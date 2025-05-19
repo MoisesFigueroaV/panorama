@@ -38,11 +38,6 @@ export default function OrganizerRegisterPage() {
   const [orgSocials, setOrgSocials] = useState<Array<{ type: string; url: string }>>([{ type: "instagram", url: "" }])
   const [orgDocument, setOrgDocument] = useState<File | null>(null)
 
-  // Paso 3: Datos de la persona
-  const [personName, setPersonName] = useState("")
-  const [personRut, setPersonRut] = useState("")
-  const [personDocument, setPersonDocument] = useState<File | null>(null)
-
   const addSocialNetwork = () => {
     setOrgSocials([...orgSocials, { type: "instagram", url: "" }])
   }
@@ -83,16 +78,11 @@ export default function OrganizerRegisterPage() {
         setError("Por favor sube un documento de verificación")
         return
       }
-    } else if (currentStep === 3) {
-      if (!personName || !personRut || !personDocument) {
-        setError("Por favor completa todos los campos")
-        return
-      }
       // Aquí iría la lógica para enviar los datos al servidor
       setIsLoading(true)
       setTimeout(() => {
         setIsLoading(false)
-        setCurrentStep(4)
+        router.push("/organizer")
       }, 1500)
       return
     }
@@ -112,11 +102,7 @@ export default function OrganizerRegisterPage() {
     }
   }
 
-  const handlePersonDocumentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setPersonDocument(e.target.files[0])
-    }
-  }
+
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-muted/30 py-10">
@@ -140,20 +126,11 @@ export default function OrganizerRegisterPage() {
             </>
           )}
 
-          {currentStep === 3 && (
+          {currentStep === 2 && (
             <>
-              <CardTitle className="text-2xl font-bold text-center">Sobre ti</CardTitle>
+              <CardTitle className="text-2xl font-bold text-center">¡Listo!</CardTitle>
               <CardDescription className="text-center">
-                Necesitamos verificar que estás autorizado para representar esta organización
-              </CardDescription>
-            </>
-          )}
-
-          {currentStep === 4 && (
-            <>
-              <CardTitle className="text-2xl font-bold text-center">¡Ya casi!</CardTitle>
-              <CardDescription className="text-center">
-                Hemos recibido tu solicitud para crear una cuenta de organizador
+                Tu cuenta de organizador ha sido creada exitosamente
               </CardDescription>
             </>
           )}
@@ -175,7 +152,7 @@ export default function OrganizerRegisterPage() {
                   />
                 ))}
               </div>
-              <span className="text-xs text-muted-foreground ml-3">Paso {currentStep} de 4</span>
+              <span className="text-xs text-muted-foreground ml-3">Paso {currentStep} de 2</span>
             </div>
           )}
         </CardHeader>
@@ -397,57 +374,8 @@ export default function OrganizerRegisterPage() {
             </div>
           )}
 
-          {/* Paso 3: Formulario de la Persona */}
-          {currentStep === 3 && (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="personName">Nombre completo</Label>
-                <Input
-                  id="personName"
-                  type="text"
-                  placeholder="Ej. Luis Morales"
-                  value={personName}
-                  onChange={(e) => setPersonName(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="personRut">RUT personal</Label>
-                <Input
-                  id="personRut"
-                  type="text"
-                  placeholder="Ej. 12.345.678-9"
-                  value={personRut}
-                  onChange={(e) => setPersonRut(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="personDocument">Documento de identidad</Label>
-                <div className="border rounded-md p-3 flex items-center justify-center bg-muted/50 cursor-pointer hover:bg-muted transition-colors">
-                  <label htmlFor="personDocument" className="cursor-pointer flex flex-col items-center w-full">
-                    <Upload className="h-6 w-6 text-muted-foreground mb-2" />
-                    <span className="text-sm text-muted-foreground">
-                      {personDocument ? personDocument.name : "Subir copia de cédula o pasaporte"}
-                    </span>
-                    <input
-                      id="personDocument"
-                      type="file"
-                      className="hidden"
-                      accept=".pdf,.jpg,.jpeg,.png"
-                      onChange={handlePersonDocumentChange}
-                    />
-                  </label>
-                </div>
-              </div>
-              <p className="text-sm text-muted-foreground mt-2">
-                Esto nos ayuda a confirmar que estás autorizado para representar a esta organización.
-              </p>
-            </div>
-          )}
-
-          {/* Paso 4: Confirmación */}
-          {currentStep === 4 && (
+          {/* Confirmación */}
+          {currentStep === 2 && (
             <div className="space-y-6 py-4">
               <div className="flex justify-center mb-6">
                 <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
@@ -455,23 +383,14 @@ export default function OrganizerRegisterPage() {
                 </div>
               </div>
               <div className="text-center space-y-4">
-                <p className="text-muted-foreground">¡Listo! Revisa tu correo para verificar tu cuenta.</p>
-                <p className="text-muted-foreground">
-                  Estamos revisando los documentos de {orgName || "tu organización"} y los tuyos. Te avisaremos en 1-3
-                  días.
-                </p>
-              </div>
-              <div className="pt-4">
-                <Button variant="outline" className="w-full">
-                  Reenviar correo de verificación
-                </Button>
+                <p className="text-muted-foreground">¡Listo! Tu cuenta de organizador ha sido creada.</p>
               </div>
             </div>
           )}
         </CardContent>
 
         <CardFooter className="flex flex-col space-y-4">
-          {currentStep < 4 && (
+          {currentStep < 2 && (
             <div className="flex w-full gap-4">
               {currentStep > 1 && (
                 <Button variant="outline" onClick={handleBack} className="flex-1">
@@ -480,26 +399,20 @@ export default function OrganizerRegisterPage() {
                 </Button>
               )}
               <Button onClick={handleNext} className="flex-1 bg-primary text-white" disabled={isLoading}>
-                {currentStep === 3 ? (
+                {currentStep === 1 ? (
+                  <>
+                    Siguiente
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </>
+                ) : (
                   isLoading ? (
                     "Enviando..."
                   ) : (
                     "Enviar"
                   )
-                ) : (
-                  <>
-                    Siguiente
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </>
                 )}
               </Button>
             </div>
-          )}
-
-          {currentStep === 4 && (
-            <Link href="/login" className="text-primary hover:underline text-center">
-              Inicia sesión cuando estés aprobado
-            </Link>
           )}
 
           {currentStep === 1 && (
