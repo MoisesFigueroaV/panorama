@@ -64,11 +64,30 @@ pnpm dev
 ## Tecnologías
 
 - Frontend: Next.js 15, TypeScript, Tailwind CSS, Radix UI
-- Backend: Node.js (por implementar)
-- Base de Datos: PostgreSQL (por implementar)
+- Backend: Hono + Bun
+- Base de Datos: PostgreSQL (Supabase)
 - Autenticación: NextAuth.js
-- API: OpenAI (Chat)
+- API: Server Actions
 - Mapas: Leaflet
+- Base de datos: Supabase
+- Autenticación: Supabase Auth
+- API: Server Actions
+- Cache: Redis
+- Colas: BullMQ
+- Monitoreo: New Relic
+- Logs: ELK Stack
+- CI/CD: GitHub Actions
+- Contenedores: Docker
+- Orquestación: Kubernetes
+- Balanceo de carga: NGINX
+- Cache: Redis
+- Colas: BullMQ
+- Monitoreo: New Relic
+- Logs: ELK Stack
+- CI/CD: GitHub Actions
+- Contenedores: Docker
+- Orquestación: Kubernetes
+- Balanceo de carga: NGINX
 
 ## Contribuciones
 
