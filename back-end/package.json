@@ -9,10 +9,14 @@
     "start": "bun run --production src/server.ts"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.49.5",
+    "@types/jsonwebtoken": "^9.0.9",
+    "dotenv": "^16.3.1",
     "hono": "^3.10.0",
-    "@hono/bun-server": "^3.10.0",
-    "@hono/node-fetch-server": "^3.10.0",
-    "@hono/mongo-adapter": "^3.10.0",
-    "dotenv": "^16.3.1"
+    "jsonwebtoken": "^9.0.2",
+    "jwt-simple": "^0.5.6"
+  },
+  "devDependencies": {
+    "@types/jwt-simple": "^0.5.36"
   }
 }

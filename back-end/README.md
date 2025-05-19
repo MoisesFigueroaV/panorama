@@ -30,7 +30,8 @@ Crea un archivo `.env` en la raíz del proyecto con las siguientes variables:
 
 ```
 PORT=3000
-MONGODB_URI=your_mongodb_uri
+SUPABASE_URL=your_supabase_url
+SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
 ## Desarrollo
@@ -51,5 +52,5 @@ bun run start
 
 - Hono (Framework)
 - Bun (Runtime)
-- MongoDB (Base de datos)
+- Supabase (Base de datos PostgreSQL)
 - dotenv (Variables de entorno)

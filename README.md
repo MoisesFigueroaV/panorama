@@ -15,7 +15,7 @@ El proyecto está organizado en dos partes principales:
 
 2. **Backend** (`/back-end`):
    - API REST con Hono y Bun
-   - Base de datos MongoDB
+   - Base de datos SupabaseBD(PostgresQL)
    - Servicios y lógica de negocio
    - Middleware y rutas organizadas
 
@@ -73,7 +73,7 @@ pnpm dev
 - Frontend: Next.js 15, TypeScript, Tailwind CSS, Radix UI
 - Frontend: Next.js 15, TypeScript, Tailwind CSS, Radix UI
 - Backend: Hono + Bun
-- Base de datos: MongoDB
+- Base de datos: Supabase (PostgreSQL)
 - Autenticación: JWT
 - API: RESTful
 
