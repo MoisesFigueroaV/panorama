@@ -1,7 +1,7 @@
 import type { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
-import GoogleProvider from "next-auth/providers/google"
-import FacebookProvider from "next-auth/providers/facebook"
+import { NextAuthOptions, User } from "next-auth"
+import CredentialsProvider from "next-auth/providers/credentials"
 // Remove PrismaAdapter import since we don't have Prisma set up yet
 // import { PrismaAdapter } from "@next-auth/prisma-adapter"
 // import { db } from "@/lib/db"
@@ -18,23 +18,6 @@ export const authOptions: NextAuthOptions = {
     signIn: "/login",
   },
   providers: [
-    // Only add OAuth providers if environment variables are available
-    ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
-      ? [
-          GoogleProvider({
-            clientId: process.env.GOOGLE_CLIENT_ID,
-            clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-          }),
-        ]
-      : []),
-    ...(process.env.FACEBOOK_CLIENT_ID && process.env.FACEBOOK_CLIENT_SECRET
-      ? [
-          FacebookProvider({
-            clientId: process.env.FACEBOOK_CLIENT_ID,
-            clientSecret: process.env.FACEBOOK_CLIENT_SECRET,
-          }),
-        ]
-      : []),
     CredentialsProvider({
       name: "credentials",
       credentials: {

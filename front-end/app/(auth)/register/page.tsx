@@ -114,22 +114,7 @@ export default function RegisterPage() {
               Iniciar sesión
             </Link>
           </div>
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">O continúa con</span>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" className="w-full">
-              Google
-            </Button>
-            <Button variant="outline" className="w-full">
-              Facebook
-            </Button>
-          </div>
+
         </CardFooter>
       </Card>
     </div>
