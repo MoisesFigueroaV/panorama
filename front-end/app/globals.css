@@ -1,0 +1,205 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 39 53% 95%; /* #fdf1e8 (crema) */
+    --foreground: 222 47% 11%; /* Dark blue */
+    --card: 39 53% 95%; /* #fdf1e8 (crema) */
+    --card-foreground: 222 47% 11%; /* Dark blue */
+    --popover: 39 53% 95%; /* #fdf1e8 (crema) */
+    --popover-foreground: 222 47% 11%; /* Dark blue */
+    --primary: 7 85% 69%; /* #f47c6c (coral) */
+    --primary-foreground: 0 0% 100%; /* White */
+    --secondary: 190 50% 76%; /* #a3d7e0 (turquesa) */
+    --secondary-foreground: 222 47% 11%; /* Dark blue */
+    --muted: 39 53% 90%; /* Versión más clara de #fdf1e8 */
+    --muted-foreground: 215 19% 47%; /* Slate */
+    --accent: 28 93% 67%; /* #f9a05d (naranja) */
+    --accent-foreground: 0 0% 100%; /* White */
+    --destructive: 0 100% 67%; /* Red */
+    --destructive-foreground: 0 0% 100%; /* White */
+    --border: 39 53% 85%; /* Versión más oscura de #fdf1e8 */
+    --input: 39 53% 85%; /* Versión más oscura de #fdf1e8 */
+    --ring: 7 85% 69%; /* #f47c6c (coral) */
+    --radius: 0.5rem;
+    --highlight: 45 85% 62%; /* #f1c84b (amarillo) */
+  }
+
+  .dark {
+    --background: 222 47% 11%; /* Dark blue */
+    --foreground: 39 53% 95%; /* #fdf1e8 (crema) */
+    --card: 222 47% 11%; /* Dark blue */
+    --card-foreground: 39 53% 95%; /* #fdf1e8 (crema) */
+    --popover: 222 47% 11%; /* Dark blue */
+    --popover-foreground: 39 53% 95%; /* #fdf1e8 (crema) */
+    --primary: 7 85% 69%; /* #f47c6c (coral) */
+    --primary-foreground: 0 0% 100%; /* White */
+    --secondary: 190 50% 76%; /* #a3d7e0 (turquesa) */
+    --secondary-foreground: 0 0% 100%; /* White */
+    --muted: 223 47% 20%; /* Darker blue */
+    --muted-foreground: 39 53% 85%; /* Versión más oscura de #fdf1e8 */
+    --accent: 28 93% 67%; /* #f9a05d (naranja) */
+    --accent-foreground: 0 0% 100%; /* White */
+    --destructive: 0 63% 31%; /* Dark red */
+    --destructive-foreground: 0 0% 100%; /* White */
+    --border: 223 47% 20%; /* Darker blue */
+    --input: 223 47% 20%; /* Darker blue */
+    --ring: 7 85% 69%; /* #f47c6c (coral) */
+    --highlight: 45 85% 62%; /* #f1c84b (amarillo) */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  .category-badge-music {
+    @apply bg-primary text-secondary hover:bg-primary/90;
+  }
+  .category-badge-sports {
+    @apply bg-secondary text-secondary-foreground hover:bg-secondary/90;
+  }
+  .category-badge-food {
+    @apply bg-accent text-secondary hover:bg-accent/90;
+  }
+  .category-badge-art {
+    @apply bg-highlight text-secondary-foreground hover:bg-highlight/90;
+  }
+  .category-badge-tech {
+    @apply bg-primary text-secondary hover:bg-primary/90;
+  }
+  .category-badge-outdoor {
+    @apply bg-secondary text-secondary-foreground hover:bg-secondary/90;
+  }
+
+  .dots-bg {
+    background-size: 20px 20px;
+    @apply bg-dots-pattern;
+  }
+
+  .hero-gradient {
+    @apply bg-gradient-to-r from-secondary via-secondary/95 to-muted;
+  }
+
+  .text-gradient {
+    @apply bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent;
+  }
+
+  .card-hover {
+    @apply transition-all duration-300 hover:shadow-md hover:-translate-y-1;
+  }
+
+  .card-hover-glow {
+    @apply transition-all duration-300 hover:shadow-neon hover:-translate-y-1;
+  }
+
+  .card-hover-glow-secondary {
+    @apply transition-all duration-300 hover:shadow-neon-secondary hover:-translate-y-1;
+  }
+
+  .card-hover-glow-accent {
+    @apply transition-all duration-300 hover:shadow-neon-accent hover:-translate-y-1;
+  }
+
+  .card-effect-1 {
+    @apply relative overflow-hidden;
+  }
+
+  .card-effect-1::before {
+    content: "";
+    @apply absolute inset-0 bg-gradient-to-r from-primary/20 to-accent/20 opacity-0 transition-opacity duration-300 rounded-lg -z-10;
+  }
+
+  .card-effect-1:hover::before {
+    @apply opacity-100;
+  }
+
+  .card-effect-2 {
+    @apply relative overflow-hidden;
+  }
+
+  .card-effect-2::after {
+    content: "";
+    @apply absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-primary to-accent scale-x-0 transition-transform duration-300 origin-left;
+  }
+
+  .card-effect-2:hover::after {
+    @apply scale-x-100;
+  }
+
+  .carousel-item {
+    @apply transition-all duration-500 ease-in-out;
+  }
+
+  .carousel-item-active {
+    @apply opacity-100 scale-100;
+  }
+
+  .carousel-item-inactive {
+    @apply opacity-0 scale-95 absolute;
+  }
+
+  .carousel-indicator {
+    @apply w-2 h-2 rounded-full bg-muted transition-all duration-300;
+  }
+
+  .carousel-indicator-active {
+    @apply w-4 bg-primary;
+  }
+
+  .luxury-border {
+    @apply border border-black/5 shadow-sm;
+  }
+
+  .luxury-button {
+    @apply bg-primary text-secondary hover:bg-primary/90 shadow-sm;
+  }
+
+  .luxury-card {
+    @apply bg-card border-black/5 border shadow-sm;
+  }
+}
+
+.category-card {
+  position: relative;
+}
+
+.category-card .loading-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  width: 0;
+  background: linear-gradient(to right, #4c74ff, #af41e1, #eb4187);
+  transition: width 0.3s ease-out;
+  opacity: 0;
+}
+
+.category-card:hover .loading-bar {
+  width: 100%;
+  opacity: 1;
+  animation: loading-bar-animation 1.5s infinite;
+}
+
+@keyframes loading-bar-animation {
+  0% {
+    background-position: 0% 50%;
+    background-size: 200% 100%;
+  }
+  50% {
+    background-position: 100% 50%;
+    background-size: 200% 100%;
+  }
+  100% {
+    background-position: 0% 50%;
+    background-size: 200% 100%;
+  }
+}
