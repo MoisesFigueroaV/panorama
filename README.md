@@ -68,26 +68,9 @@ pnpm dev
 - Base de Datos: PostgreSQL (Supabase)
 - Autenticación: NextAuth.js
 - API: Server Actions
-- Mapas: Leaflet
 - Base de datos: Supabase
 - Autenticación: Supabase Auth
 - API: Server Actions
-- Cache: Redis
-- Colas: BullMQ
-- Monitoreo: New Relic
-- Logs: ELK Stack
-- CI/CD: GitHub Actions
-- Contenedores: Docker
-- Orquestación: Kubernetes
-- Balanceo de carga: NGINX
-- Cache: Redis
-- Colas: BullMQ
-- Monitoreo: New Relic
-- Logs: ELK Stack
-- CI/CD: GitHub Actions
-- Contenedores: Docker
-- Orquestación: Kubernetes
-- Balanceo de carga: NGINX
 
 ## Contribuciones
 
