@@ -13,10 +13,11 @@ El proyecto está organizado en dos partes principales:
    - Panel de administración completo
    - Sistema de eventos y organizadores
 
-2. **Backend** (futuro):
-   - API REST
-   - Base de datos
+2. **Backend** (`/back-end`):
+   - API REST con Hono y Bun
+   - Base de datos SupabaseBD(PostgresQL)
    - Servicios y lógica de negocio
+   - Middleware y rutas organizadas
 
 ## Roles de Usuario
 
@@ -51,6 +52,12 @@ pnpm install
 
 3. Iniciar el servidor de desarrollo:
 ```bash
+# Backend
+cd back-end
+bun run dev
+
+# Frontend
+cd front-end
 pnpm dev
 ```
 
@@ -64,11 +71,11 @@ pnpm dev
 ## Tecnologías
 
 - Frontend: Next.js 15, TypeScript, Tailwind CSS, Radix UI
-- Backend: Node.js (por implementar)
-- Base de Datos: PostgreSQL (por implementar)
-- Autenticación: NextAuth.js
-- API: OpenAI (Chat)
-- Mapas: Leaflet
+- Frontend: Next.js 15, TypeScript, Tailwind CSS, Radix UI
+- Backend: Hono + Bun
+- Base de datos: Supabase (PostgreSQL)
+- Autenticación: JWT
+- API: RESTful
 
 ## Contribuciones
 
