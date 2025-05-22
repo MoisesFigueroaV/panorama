@@ -40,16 +40,16 @@ El proyecto sigue una arquitectura modular y escalable:
 
 \`\`\`bash
 # Instalar dependencias
-npm install
+pnpm install
 
 # Ejecutar en desarrollo
-npm run dev
+pnpm run dev
 
 # Construir para producción
-npm run build
+pnpm run build
 
 # Ejecutar en producción
-npm start
+pnpm run start
 \`\`\`
 
 ## Convenciones de Código
