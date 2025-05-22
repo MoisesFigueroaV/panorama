@@ -36,6 +36,11 @@ SUPABASE_ANON_KEY=your_supabase_anon_key
 
 ## Desarrollo
 
+Para instalar las dependencias:
+```bash
+bun install
+```
+
 Para iniciar el servidor en modo desarrollo:
 ```bash
 bun run dev
