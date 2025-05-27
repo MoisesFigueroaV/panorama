@@ -1,86 +1,28 @@
-import { Hono } from 'hono';
-import jwt from 'jsonwebtoken';
-import dotenv from 'dotenv';
-import { supabase } from '../lib/supabase';
-
-dotenv.config();
+// routes/auth.routes.ts
+import { Hono } from 'hono'
+import { AuthService } from '../services/auth.services'
 
 const auth = new Hono()
-  .route('/', new Hono()
-    .post(async (c) => {
-      const { email, password } = await c.req.json();
-      
-      const { data: user, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('email', email)
-        .single();
+const service = new AuthService()
 
-      if (error || !user || user.password !== password) {
-        return c.json({ error: 'Invalid credentials' }, 401);
-      }
+auth.post('/register', async (c) => {
+  const body = await c.req.json()
+  try {
+    const user = await service.register(body)
+    return c.json({ user }, 201)
+  } catch (err: any) {
+    return c.json({ error: err.message }, 400)
+  }
+})
 
-      const token = jwt.sign({
-        id: user.id,
-        email: user.email,
-        role: user.role
-      }, process.env.JWT_SECRET!, {
-        expiresIn: '24h',
-        algorithm: 'HS256'
-      });
+auth.post('/login', async (c) => {
+  const { correo, contrasena } = await c.req.json()
+  try {
+    const { user, token } = await service.login(correo, contrasena)
+    return c.json({ user, token })
+  } catch (err: any) {
+    return c.json({ error: err.message }, 401)
+  }
+})
 
-      return c.json({ token });
-    })
-  )
-  .route('/register', new Hono()
-    .post(async (c) => {
-      const { email, password, name } = await c.req.json();
-      
-      if (!email || !password || !name) {
-        return c.json({ error: 'All fields are required' }, 400);
-      }
-
-      const { data: existingUser, error: existingError } = await supabase
-        .from('users')
-        .select('id')
-        .eq('email', email)
-        .single();
-
-      if (existingError) {
-        return c.json({ error: 'Error checking user existence' }, 500);
-      }
-
-      if (existingUser) {
-        return c.json({ error: 'Email already registered' }, 400);
-      }
-
-      const { data: userData, error: insertError } = await supabase
-        .from('users')
-        .insert({
-          email,
-          password,
-          name,
-          role: 'user',
-          created_at: new Date()
-        })
-        .select()
-        .single();
-
-      if (insertError) {
-        return c.json({ error: 'Error creating user' }, 500);
-      }
-
-      const token = jwt.sign({
-        id: userData.id,
-        email,
-        role: 'user'
-      }, process.env.JWT_SECRET!, { 
-        expiresIn: '24h',
-        algorithm: 'HS256'
-      });
-
-      return c.json({ token });
-    })
-  );
-
-export default auth;
+export default auth
