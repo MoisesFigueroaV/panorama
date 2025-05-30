@@ -1,8 +1,9 @@
 export const events = [
   {
-    id: 1,
+    id: "1",
     title: "Tech Conference",
     date: "2025-05-25",
+    time: "09:00 - 18:00",
     location: "New York",
     attendees: 150,
     status: "upcoming",
@@ -11,9 +12,10 @@ export const events = [
     description: "Annual technology conference featuring the latest trends in software development"
   },
   {
-    id: 2,
+    id: "2",
     title: "Workshop",
     date: "2025-06-01",
+    time: "14:00 - 17:00",
     location: "San Francisco",
     attendees: 30,
     status: "upcoming",
@@ -22,9 +24,10 @@ export const events = [
     description: "Interactive workshop on modern art techniques"
   },
   {
-    id: 3,
+    id: "3",
     title: "Annual Meeting",
     date: "2025-06-15",
+    time: "10:00 - 16:00",
     location: "Chicago",
     attendees: 200,
     status: "upcoming",

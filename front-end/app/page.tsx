@@ -19,6 +19,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
+import { createClient } from '@/utils/supabase/server'
+import { cookies } from 'next/headers'
 import { events } from "@/services/mock-data"
 
 // Importar todos los componentes necesarios
