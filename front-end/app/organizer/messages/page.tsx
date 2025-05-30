@@ -11,6 +11,15 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Search, Send, User } from "lucide-react"
 import { cn } from "@/lib/utils"
 
+interface Message {
+  id: string
+  sender: string
+  text: string
+  time: string
+}
+
+type MessageData = Record<string, Message[]>
+
 // Datos de ejemplo para las conversaciones
 const conversations = [
   {
@@ -56,7 +65,7 @@ const conversations = [
 ]
 
 // Datos de ejemplo para los mensajes
-const messageData = {
+const messageData: MessageData = {
   "1": [
     { id: "1", sender: "user", text: "Hola, tengo una pregunta sobre el evento", time: "10:30" },
     { id: "2", sender: "me", text: "Claro, dime en qué puedo ayudarte", time: "10:31" },
