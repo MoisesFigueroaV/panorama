@@ -1,21 +1,78 @@
-import { Hono } from 'hono';
-import { logger } from 'hono/logger';
-import { cors } from 'hono/cors';
-import auth from './routes/auth';
+import 'dotenv/config'
+import { Hono } from 'hono'
+import { swaggerUI } from '@hono/swagger-ui'
+import { z } from 'zod'
+import { createClient } from '@supabase/supabase-js'
+import { serve } from 'bun' 
 
-// Bun automatically loads environment variables from .env files
+// Cliente Supabase
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_ANON_KEY!
+)
 
-const app = new Hono();
+// Zod Schema para eventos
+const EventoSchema = z.object({
+  id: z.string().uuid(),
+  nombre: z.string(),
+  fecha: z.string().datetime(),
+  descripcion: z.string().nullable()
+})
 
-// Middleware
-app.use('*', logger());
-app.use('*', cors());
+// Inicializa app Hono
+export const app = new Hono()
 
-// Rutas
-app.route('/api/auth', auth);
+app.get('/eventos', async (c) => {
+  const { data, error } = await supabase.from('evento').select('*')
+  if (error) return c.json({ error: error.message }, 500)
 
-// Ruta de prueba
-app.get('/', (c) => c.text('¡Bienvenido al backend de Event Platform!'));
+  const parsed = EventoSchema.array().safeParse(data)
+  if (!parsed.success) {
+    return c.json({ error: 'Datos inválidos desde la DB' }, 500)
+  }
 
-// Exportar la aplicación
-export default app;
+  return c.json(parsed.data)
+})
+
+app.get('/docs', swaggerUI({ url: '/openapi.json' }))
+
+app.get('/openapi.json', (c) =>
+  c.json({
+    openapi: '3.0.0',
+    info: { title: 'Mi API', version: '1.0.0' },
+    paths: {
+      '/eventos': {
+        get: {
+          summary: 'Obtener eventos',
+          responses: {
+            '200': {
+              description: 'OK',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        id: { type: 'string', format: 'uuid' },
+                        nombre: { type: 'string' },
+                        fecha: { type: 'string', format: 'date-time' },
+                        descripcion: { type: ['string', 'null'] }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  })
+)
+
+// Usar Bun.serve con app.fetch
+serve({
+  fetch: app.fetch,
+  port: 3000
+})
