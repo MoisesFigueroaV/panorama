@@ -3,6 +3,7 @@ import { drizzle } from 'drizzle-orm/node-postgres'; // Adaptador de Drizzle par
 import { Pool, type PoolConfig } from 'pg';       // Driver nativo de PostgreSQL para Node.js
 import { sql } from 'drizzle-orm';                // Para ejecutar SQL crudo si es necesario
 import * as schema from './schema';               // Importará todos tus schemas de Drizzle (ej. rolUsuario.schema, etc.)
+import { usuarioRelations } from './schema/usuario.schema';
 
 // --- Carga de Variables de Entorno ---
 const databaseUrl = process.env.DATABASE_URL;
@@ -63,7 +64,10 @@ pool.on('remove', (client) => {
 // Aquí es donde Drizzle se "conecta" con tu base de datos a través del pool
 // y se entera de tus tablas a través del objeto `schema`.
 export const db = drizzle(pool, {
-  schema, // Todos tus schemas de tabla definidos en ./schema/index.ts
+  schema: {
+    ...schema,
+    usuarioRelations,
+  },
   logger: enableDbLogger, // Activa logs de Drizzle SQL si es true (muy útil en desarrollo)
 });
 

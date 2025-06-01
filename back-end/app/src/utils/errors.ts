@@ -1,8 +1,30 @@
 import { Elysia } from 'elysia';
 
+export class CustomError extends Error {
+  constructor(
+    message: string,
+    public status: number = 500
+  ) {
+    super(message);
+    this.name = 'CustomError';
+  }
+}
+
+export const handleErrorLog = (error: unknown, context: string): void => {
+  console.error(`[${context}] Error:`, error instanceof Error ? error.message : error);
+  if (error instanceof Error && error.stack) {
+    console.error(`Stack trace:`, error.stack);
+  }
+};
+
 export const errorPlugin = new Elysia()
   .onError(({ code, error, set }) => {
     console.error(`Error ${code}:`, error);
+    
+    if (error instanceof CustomError) {
+      set.status = error.status;
+      return { error: error.message };
+    }
     
     switch (code) {
       case 'NOT_FOUND':

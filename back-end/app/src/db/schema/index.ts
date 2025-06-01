@@ -10,3 +10,5 @@ export const users = pgTable('users', {
 
 // Importar otros schemas si existen
 export * from './rolUsuario.schema';
+export * from './usuario.schema';
+export * from './organizador.schema';
