@@ -104,13 +104,11 @@ export default function EventsPage() {
                     key={event.id}
                     event={event}
                     status={
-                      event.id % 5 === 0
+                      parseInt(event.id) % 5 === 0
                         ? "reported"
-                        : event.id % 3 === 0
+                        : parseInt(event.id) % 3 === 0
                           ? "pending"
-                          : event.id % 2 === 0
-                            ? "past"
-                            : "active"
+                          : "featured"
                     }
                   />
                 ))}
@@ -120,9 +118,9 @@ export default function EventsPage() {
             <TabsContent value="active" className="m-0">
               <div className="grid gap-4 p-4 md:p-6 md:grid-cols-2 lg:grid-cols-3">
                 {events
-                  .filter((e) => e.id % 2 !== 0 && e.id % 3 !== 0)
+                  .filter((e) => parseInt(e.id) % 2 !== 0 && parseInt(e.id) % 3 !== 0)
                   .map((event) => (
-                    <AdminEventCard key={event.id} event={event} status="active" />
+                    <AdminEventCard key={event.id} event={event} status="featured" />
                   ))}
               </div>
             </TabsContent>
@@ -130,7 +128,7 @@ export default function EventsPage() {
             <TabsContent value="pending" className="m-0">
               <div className="grid gap-4 p-4 md:p-6 md:grid-cols-2 lg:grid-cols-3">
                 {events
-                  .filter((e) => e.id % 3 === 0)
+                  .filter((e) => parseInt(e.id) % 3 === 0)
                   .map((event) => (
                     <AdminEventCard key={event.id} event={event} status="pending" />
                   ))}
@@ -140,9 +138,9 @@ export default function EventsPage() {
             <TabsContent value="past" className="m-0">
               <div className="grid gap-4 p-4 md:p-6 md:grid-cols-2 lg:grid-cols-3">
                 {events
-                  .filter((e) => e.id % 2 === 0)
+                  .filter((e) => parseInt(e.id) % 2 === 0)
                   .map((event) => (
-                    <AdminEventCard key={event.id} event={event} status="past" />
+                    <AdminEventCard key={event.id} event={event} status="featured" />
                   ))}
               </div>
             </TabsContent>
@@ -150,7 +148,7 @@ export default function EventsPage() {
             <TabsContent value="reported" className="m-0">
               <div className="grid gap-4 p-4 md:p-6 md:grid-cols-2 lg:grid-cols-3">
                 {events
-                  .filter((e) => e.id % 5 === 0)
+                  .filter((e) => parseInt(e.id) % 5 === 0)
                   .map((event) => (
                     <AdminEventCard key={event.id} event={event} status="reported" />
                   ))}

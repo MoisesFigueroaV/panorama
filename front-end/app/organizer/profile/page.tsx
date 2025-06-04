@@ -9,10 +9,8 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "@/components/ui/use-toast"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Label } from "@/components/ui/label"
-import { Upload, User } from "lucide-react"
 
 // Esquema de validación para el formulario de perfil
 const profileFormSchema = z.object({
@@ -22,12 +20,6 @@ const profileFormSchema = z.object({
   email: z.string().email({
     message: "Por favor ingresa un correo electrónico válido.",
   }),
-  phone: z
-    .string()
-    .min(8, {
-      message: "El número de teléfono debe tener al menos 8 caracteres.",
-    })
-    .optional(),
 })
 
 // Esquema de validación para el formulario de contraseña
@@ -53,14 +45,12 @@ type PasswordFormValues = z.infer<typeof passwordFormSchema>
 
 // Valores por defecto para el formulario de perfil
 const defaultValues: Partial<ProfileFormValues> = {
-  name: "Carlos Rodríguez",
-  email: "carlos@eventossantiago.cl",
-  phone: "+56 9 1234 5678",
+  name: "",
+  email: "",
 }
 
 export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState<boolean>(false)
-  const [avatar, setAvatar] = useState<string>("/placeholder.svg?height=128&width=128&text=CR")
 
   // Formulario de perfil
   const profileForm = useForm<ProfileFormValues>({
@@ -138,26 +128,7 @@ export default function ProfilePage() {
               <CardDescription>Actualiza tu información personal y de contacto.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center">
-                <Avatar className="w-24 h-24 border">
-                  <AvatarImage src={avatar || "/placeholder.svg"} alt="Avatar" />
-                  <AvatarFallback>
-                    <User className="h-12 w-12" />
-                  </AvatarFallback>
-                </Avatar>
-                <div className="space-y-2">
-                  <Label>Foto de perfil</Label>
-                  <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" className="gap-2">
-                      <Upload className="h-4 w-4" />
-                      Cambiar foto
-                    </Button>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Esta foto solo será visible para ti y los administradores de la plataforma.
-                  </p>
-                </div>
-              </div>
+
 
               <Form {...profileForm}>
                 <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-6">
@@ -186,23 +157,6 @@ export default function ProfilePage() {
                         </FormControl>
                         <FormDescription>
                           Este correo se utilizará para iniciar sesión y recibir notificaciones.
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={profileForm.control}
-                    name="phone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Número de teléfono</FormLabel>
-                        <FormControl>
-                          <Input placeholder="+56 9 1234 5678" {...field} />
-                        </FormControl>
-                        <FormDescription>
-                          Este número se utilizará para contactarte en caso de emergencia.
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
