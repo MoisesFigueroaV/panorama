@@ -2,38 +2,53 @@
 import { db } from '../../db/drizzle';
 import {
   organizadorTable,
-  type Organizador,
-  type NewOrganizador,
-  usuarioTable // Para joins
+  type Organizador, // Tipo de Drizzle para leer
+  type NewOrganizador, // Tipo de Drizzle para insertar
+  usuarioTable, // Para joins y tipo de usuario
+  type Usuario as DrizzleUsuario // Tipo de Drizzle para Usuario
 } from '../../db/schema';
-import { eq, and, desc, ilike, or } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { CustomError, handleErrorLog } from '../../utils/errors';
-import type { CreateOrganizadorPayload, UpdateOrganizadorPayload } from './organizador.types';
-import type { AppSession } from '../../middleware/auth.middleware'; // Para el tipo de sesión
+import type { CreateOrganizadorPayload as ApiCreatePayload, UpdateOrganizadorPayload as ApiUpdatePayload } from './organizador.types';
+import type { AppSession } from '../../middleware/auth.middleware';
 
-// Tipo para el objeto de organizador devuelto por los servicios, incluyendo datos del usuario
-type OrganizadorConUsuario = Omit<Organizador, 'id_usuario'> & {
-    id_usuario: number; // Aseguramos que id_usuario está (aunque en Organizador es opcional por Drizzle)
-    usuario?: Omit<typeof usuarioTable.$inferSelect, 'contrasena' | 'fecha_registro' | 'fecha_nacimiento'> & {
-        fecha_registro: Date;
-        fecha_nacimiento: Date | null;
-    }
-};
+// --- Funciones Placeholder para Subida/Borrado de Archivos ---
+// ¡DEBES IMPLEMENTAR ESTAS FUNCIONES CORRECTAMENTE!
+async function uploadDocumentoAcreditacion(file: File, organizadorNombre: string, userId: number): Promise<string> {
+  console.warn(`ADVERTENCIA: uploadDocumentoAcreditacion NO IMPLEMENTADO. Simulando subida para ${file.name}`);
+  // Aquí iría tu lógica real de subida a Supabase Storage, Cloudinary, S3, etc.
+  // y devolverías la URL pública del archivo subido.
+  return `https://storage.example.com/documentos_acreditacion/${userId}_${organizadorNombre.replace(/\s+/g, '_')}_${Date.now()}_${file.name}`;
+}
 
-type UsuarioPublico = Omit<typeof usuarioTable.$inferSelect, 'contrasena'> & {
+async function deleteDocumentoAcreditacion(documentoUrl: string | null): Promise<void> {
+    if (!documentoUrl) return;
+    console.warn(`ADVERTENCIA: deleteDocumentoAcreditacion NO IMPLEMENTADO para ${documentoUrl}`);
+    // Aquí iría tu lógica real para eliminar el archivo del almacenamiento en la nube.
+}
+// --- Fin Placeholders ---
+
+
+type NestedUsuarioPublico = Omit<DrizzleUsuario, 'contrasena' | 'fecha_registro' | 'fecha_nacimiento'> & {
     fecha_registro: Date;
     fecha_nacimiento: Date | null;
 };
 
-/**
- * Crea un perfil de organizador para un usuario existente.
- */
+type OrganizadorConUsuario = Omit<Organizador, 'id_usuario' | 'acreditado'> & {
+    id_usuario: number; 
+    acreditado: boolean;
+    usuario?: NestedUsuarioPublico; 
+};
+
+
 export async function createOrganizadorService(
-  userId: number, // ID del usuario que se convierte en organizador
-  data: CreateOrganizadorPayload
+  userId: number,
+  data: ApiCreatePayload & { 
+    documento_acreditacion_file?: File;
+    documento_acreditacion_url?: string | null;
+  }
 ): Promise<OrganizadorConUsuario> {
   try {
-    // 1. Verificar que el usuario exista (opcional, la FK lo haría, pero es bueno ser explícito)
     const usuarioExistente = await db.query.usuarioTable.findFirst({
       where: eq(usuarioTable.id_usuario, userId),
       columns: { id_usuario: true }
@@ -42,46 +57,50 @@ export async function createOrganizadorService(
       throw new CustomError('Usuario no encontrado para asociar como organizador.', 404);
     }
 
-    // 2. Verificar que este usuario no tenga ya un perfil de organizador
     const perfilExistente = await db.query.organizadorTable.findFirst({
       where: eq(organizadorTable.id_usuario, userId)
     });
     if (perfilExistente) {
       throw new CustomError('Este usuario ya tiene un perfil de organizador.', 409);
     }
-    
-    // 3. (Opcional) Verificar si el nombre de la organización ya existe (si debe ser único)
-    // const orgNameExists = await db.query.organizadorTable.findFirst({
-    //   where: eq(organizadorTable.nombre_organizacion, data.nombre_organizacion)
-    // });
-    // if (orgNameExists) {
-    //   throw new CustomError(`El nombre de organización '${data.nombre_organizacion}' ya está en uso.`, 409);
-    // }
 
-    // TODO: Lógica de subida de `documento_acreditacion_file` si se implementa
-    // let documentoUrl = data.documento_acreditacion_url;
-    // if (data.documento_acreditacion_file) { ... }
+    let documentoUrlFinal: string | null = null;
+    if (data.documento_acreditacion_file) {
+      documentoUrlFinal = await uploadDocumentoAcreditacion(data.documento_acreditacion_file, data.nombre_organizacion, userId);
+    } else if (data.documento_acreditacion_url) { 
+        documentoUrlFinal = data.documento_acreditacion_url;
+    }
 
-    const newOrganizadorPayload: NewOrganizador = {
+    let orgSocialsParaDb: Record<string, string> | null = null;
+    if (data.orgSocialsJson) {
+        try {
+            const parsedSocials = JSON.parse(data.orgSocialsJson);
+            orgSocialsParaDb = parsedSocials;
+        } catch (e) {
+            throw new CustomError("Formato de redes sociales (orgSocialsJson) inválido.", 400);
+        }
+    }
+
+
+    const newOrganizadorPayloadForDb: NewOrganizador = {
       id_usuario: userId,
       nombre_organizacion: data.nombre_organizacion,
       descripcion: data.descripcion,
-      documento_acreditacion: data.documento_acreditacion_url, // Usar la URL procesada
-      acreditado: false, // Por defecto, no acreditado
+      documento_acreditacion: documentoUrlFinal,
+      acreditado: false, 
     };
 
     const [insertedOrganizador] = await db
       .insert(organizadorTable)
-      .values(newOrganizadorPayload)
-      .returning();
+      .values(newOrganizadorPayloadForDb)
+      .returning({ id_organizador: organizadorTable.id_organizador }); 
 
-    if (!insertedOrganizador) {
+    if (!insertedOrganizador || !insertedOrganizador.id_organizador) {
+      if (documentoUrlFinal) await deleteDocumentoAcreditacion(documentoUrlFinal); 
       throw new CustomError('No se pudo crear el perfil de organizador.', 500);
     }
 
-    // Devolver el organizador con los datos del usuario asociado
     return getOrganizadorByIdService(insertedOrganizador.id_organizador);
-
   } catch (error) {
     if (error instanceof CustomError) throw error;
     handleErrorLog(error, `servicio createOrganizador (userId: ${userId})`);
@@ -89,35 +108,43 @@ export async function createOrganizadorService(
   }
 }
 
-/**
- * Obtiene un perfil de organizador por su ID, incluyendo datos del usuario.
- */
 export async function getOrganizadorByIdService(organizadorId: number): Promise<OrganizadorConUsuario> {
   try {
-    const organizador = await db.query.organizadorTable.findFirst({
+    const organizadorData = await db.query.organizadorTable.findFirst({
       where: eq(organizadorTable.id_organizador, organizadorId),
       with: {
         usuario: {
-          columns: {
-            contrasena: false
+          columns: { 
+            contrasena: false,
           }
         }
       }
     });
 
-    if (!organizador || !organizador.usuario) {
-      throw new CustomError(`Organizador con ID ${organizadorId} o usuario asociado no encontrado.`, 404);
+    if (!organizadorData || organizadorData.id_usuario === null) { 
+      throw new CustomError(`Organizador con ID ${organizadorId} no encontrado o sin usuario válido.`, 404);
+    }
+    if (!organizadorData.usuario) {
+        throw new CustomError(`Usuario asociado al organizador ID ${organizadorData.id_organizador} no encontrado.`, 404);
     }
 
-    const usuarioPublico = organizador.usuario as unknown as UsuarioPublico;
-    
+    const usuarioAnidado = organizadorData.usuario as Omit<DrizzleUsuario, 'contrasena'>;
+
     return {
-      ...organizador,
-      id_usuario: organizador.id_usuario as number,
+      id_organizador: organizadorData.id_organizador,
+      nombre_organizacion: organizadorData.nombre_organizacion,
+      descripcion: organizadorData.descripcion,
+      documento_acreditacion: organizadorData.documento_acreditacion,
+      acreditado: !!organizadorData.acreditado, 
+      id_usuario: organizadorData.id_usuario, 
       usuario: {
-          ...usuarioPublico,
-          fecha_registro: new Date(usuarioPublico.fecha_registro as string),
-          fecha_nacimiento: usuarioPublico.fecha_nacimiento ? new Date(usuarioPublico.fecha_nacimiento as string) : null
+        id_usuario: usuarioAnidado.id_usuario,
+        correo: usuarioAnidado.correo,
+        nombre_usuario: usuarioAnidado.nombre_usuario,
+        fecha_registro: new Date(usuarioAnidado.fecha_registro as string),
+        sexo: usuarioAnidado.sexo,
+        fecha_nacimiento: usuarioAnidado.fecha_nacimiento ? new Date(usuarioAnidado.fecha_nacimiento as string) : null,
+        id_rol: usuarioAnidado.id_rol, 
       }
     };
   } catch (error) {
@@ -127,31 +154,40 @@ export async function getOrganizadorByIdService(organizadorId: number): Promise<
   }
 }
 
-/**
- * Obtiene el perfil de organizador asociado a un ID de usuario.
- */
 export async function getOrganizadorByUserIdService(userId: number): Promise<OrganizadorConUsuario | null> {
   try {
-    const organizador = await db.query.organizadorTable.findFirst({
+    const organizadorData = await db.query.organizadorTable.findFirst({
       where: eq(organizadorTable.id_usuario, userId),
       with: {
         usuario: { columns: { contrasena: false } }
       }
     });
 
-    if (!organizador || !organizador.usuario) {
-      return null;
+    if (!organizadorData || organizadorData.id_usuario === null) {
+      return null; 
     }
-    
-    const usuarioPublico = organizador.usuario as unknown as UsuarioPublico;
-    
+    if (!organizadorData.usuario) {
+        console.warn(`Organizador con id_usuario ${userId} no tiene un objeto usuario anidado.`);
+        return null;
+    }
+
+    const usuarioAnidado = organizadorData.usuario as Omit<DrizzleUsuario, 'contrasena'>;
+
     return {
-      ...organizador,
-      id_usuario: organizador.id_usuario as number,
+      id_organizador: organizadorData.id_organizador,
+      nombre_organizacion: organizadorData.nombre_organizacion,
+      descripcion: organizadorData.descripcion,
+      documento_acreditacion: organizadorData.documento_acreditacion,
+      acreditado: !!organizadorData.acreditado,
+      id_usuario: organizadorData.id_usuario,
       usuario: {
-          ...usuarioPublico,
-          fecha_registro: new Date(usuarioPublico.fecha_registro as string),
-          fecha_nacimiento: usuarioPublico.fecha_nacimiento ? new Date(usuarioPublico.fecha_nacimiento as string) : null
+        id_usuario: usuarioAnidado.id_usuario,
+        correo: usuarioAnidado.correo,
+        nombre_usuario: usuarioAnidado.nombre_usuario,
+        fecha_registro: new Date(usuarioAnidado.fecha_registro as string),
+        sexo: usuarioAnidado.sexo,
+        fecha_nacimiento: usuarioAnidado.fecha_nacimiento ? new Date(usuarioAnidado.fecha_nacimiento as string) : null,
+        id_rol: usuarioAnidado.id_rol,
       }
     };
   } catch (error) {
@@ -161,55 +197,52 @@ export async function getOrganizadorByUserIdService(userId: number): Promise<Org
 }
 
 
-/**
- * Actualiza un perfil de organizador.
- * Solo el propio organizador o un admin pueden hacerlo.
- */
 export async function updateOrganizadorService(
   organizadorId: number,
-  data: UpdateOrganizadorPayload,
-  session: NonNullable<AppSession> // Sesión del usuario autenticado
+  data: ApiUpdatePayload & { documento_acreditacion_file?: File | null }, 
+  session: NonNullable<AppSession>
 ): Promise<OrganizadorConUsuario> {
   try {
-    const organizadorActual = await getOrganizadorByIdService(organizadorId);
-
-    // Verificar permisos: ¿Es el dueño del perfil o un admin?
-    // const isAdmin = session.rol === ADMIN_ROLE_ID; // Necesitarías ADMIN_ROLE_ID
-    const esDueño = organizadorActual.id_usuario === session.subAsNumber;
-
-    // if (!esDueño && !isAdmin) {
-    if (!esDueño) { // Simplificado: solo el dueño puede editar por ahora
+    const organizadorActual = await getOrganizadorByIdService(organizadorId); 
+    if (organizadorActual.id_usuario !== session.subAsNumber) {
       throw new CustomError('No tienes permiso para actualizar este perfil de organizador.', 403);
     }
 
-    // TODO: Lógica de actualización de `documento_acreditacion_file`
-    // let documentoUrl = data.documento_acreditacion_url === undefined ? organizadorActual.documento_acreditacion : data.documento_acreditacion_url;
+    let newDocumentoUrl: string | null | undefined = undefined; 
 
-    const updateData: Partial<Omit<NewOrganizador, 'id_usuario' | 'acreditado'>> = {};
-    if (data.nombre_organizacion !== undefined) updateData.nombre_organizacion = data.nombre_organizacion;
-    if (data.descripcion !== undefined) updateData.descripcion = data.descripcion;
-    if (data.documento_acreditacion_url !== undefined) updateData.documento_acreditacion = data.documento_acreditacion_url;
-
-    if (Object.keys(updateData).length === 0) {
-      return organizadorActual; // No hay nada que actualizar
+    if (data.hasOwnProperty('documento_acreditacion_file')) {
+        const fileOrNull = data.documento_acreditacion_file;
+        if (fileOrNull === null) { 
+            await deleteDocumentoAcreditacion(organizadorActual.documento_acreditacion);
+            newDocumentoUrl = null;
+        } else if (fileOrNull instanceof File) { 
+            await deleteDocumentoAcreditacion(organizadorActual.documento_acreditacion);
+            newDocumentoUrl = await uploadDocumentoAcreditacion(fileOrNull, data.nombre_organizacion || organizadorActual.nombre_organizacion, session.subAsNumber);
+        }
     }
     
-    // (Opcional) Si el nombre de la organización cambia, verificar unicidad
-    // if (updateData.nombre_organizacion && updateData.nombre_organizacion !== organizadorActual.nombre_organizacion) { ... }
+    const updatePayloadForDb: Partial<Omit<NewOrganizador, 'id_usuario' | 'acreditado'>> = {};
+    if (data.nombre_organizacion !== undefined) updatePayloadForDb.nombre_organizacion = data.nombre_organizacion;
+    if (data.descripcion !== undefined) updatePayloadForDb.descripcion = data.descripcion;
+    if (newDocumentoUrl !== undefined) updatePayloadForDb.documento_acreditacion = newDocumentoUrl;
 
-
-    const [updatedOrganizador] = await db
-      .update(organizadorTable)
-      .set(updateData)
-      .where(eq(organizadorTable.id_organizador, organizadorId))
-      .returning();
-
-    if (!updatedOrganizador) {
-      throw new CustomError('No se pudo actualizar el perfil de organizador.', 500);
+    if (Object.keys(updatePayloadForDb).length === 0) { 
+      return organizadorActual; 
     }
 
-    return getOrganizadorByIdService(updatedOrganizador.id_organizador); // Devolver con datos de usuario
+    const [updatedResult] = await db
+      .update(organizadorTable)
+      .set(updatePayloadForDb)
+      .where(eq(organizadorTable.id_organizador, organizadorId))
+      .returning({ id_organizador: organizadorTable.id_organizador });
 
+    if (!updatedResult || !updatedResult.id_organizador) {
+        if (newDocumentoUrl !== undefined && newDocumentoUrl !== organizadorActual.documento_acreditacion) {
+             await deleteDocumentoAcreditacion(newDocumentoUrl);
+        }
+        throw new CustomError('No se pudo actualizar el perfil de organizador.', 500);
+    }
+    return getOrganizadorByIdService(updatedResult.id_organizador);
   } catch (error) {
     if (error instanceof CustomError) throw error;
     handleErrorLog(error, `servicio updateOrganizador (id: ${organizadorId})`);
@@ -217,41 +250,20 @@ export async function updateOrganizadorService(
   }
 }
 
-/**
- * Actualiza el estado de acreditación de un organizador (solo Admin).
- */
 export async function updateAcreditacionOrganizadorService(
   organizadorId: number,
   acreditado: boolean
-  // session: NonNullable<AppSession> // Para verificar rol de Admin
 ): Promise<OrganizadorConUsuario> {
   try {
-    // if (session.rol !== ADMIN_ROLE_ID) {
-    //   throw new CustomError('Solo los administradores pueden cambiar el estado de acreditación.', 403);
-    // }
-    await getOrganizadorByIdService(organizadorId); // Verifica que exista
-
-    const [updatedOrganizador] = await db
-      .update(organizadorTable)
-      .set({ acreditado })
-      .where(eq(organizadorTable.id_organizador, organizadorId))
-      .returning();
-
-    if (!updatedOrganizador) {
-      throw new CustomError('No se pudo actualizar el estado de acreditación.', 500);
+    await getOrganizadorByIdService(organizadorId); 
+    const [updatedOrg] = await db.update(organizadorTable).set({ acreditado }).where(eq(organizadorTable.id_organizador, organizadorId)).returning({id_organizador: organizadorTable.id_organizador});
+    if (!updatedOrg || !updatedOrg.id_organizador) {
+        throw new CustomError('No se pudo actualizar el estado de acreditación.', 500);
     }
-    // TODO: Registrar en historial_estado_acreditacion
-    return getOrganizadorByIdService(updatedOrganizador.id_organizador);
+    return getOrganizadorByIdService(updatedOrg.id_organizador);
   } catch (error) {
     if (error instanceof CustomError) throw error;
     handleErrorLog(error, `servicio updateAcreditacion (id: ${organizadorId})`);
     throw new CustomError('Error interno al actualizar acreditación.', 500);
   }
 }
-
-
-// TODO: Servicio para listar todos los organizadores (con filtros: acreditados, nombre, etc.)
-// export async function getAllOrganizadoresService(filters: {...}): Promise<OrganizadorConUsuario[]> { ... }
-
-// TODO: Servicio para eliminar un perfil de organizador (Admin)
-// Considerar si se elimina el usuario asociado o solo el perfil de organizador.

@@ -1,12 +1,10 @@
 // src/modules/organizador/organizador.routes.ts
-import Elysia, { t, type Context, type Handler } from 'elysia';
+import { Elysia, type Handler, type Context, type Static } from 'elysia';
 import {
   authMiddleware,
   requireAuth,
-  hasRole, // Para rutas de admin
-  type AppSession
+  type AppSession 
 } from '../../middleware/auth.middleware';
-// import { SwaggerResponses } from '../../utils/swagger'; // Si lo usas
 import { CustomError, handleErrorLog } from '../../utils/errors';
 import {
   createOrganizadorService,
@@ -14,138 +12,121 @@ import {
   getOrganizadorByUserIdService,
   updateOrganizadorService,
   updateAcreditacionOrganizadorService,
-  // getAllOrganizadoresService,
 } from './organizador.services';
 import {
   createOrganizadorSchema,
   updateOrganizadorSchema,
   organizadorResponseSchema,
-  organizadoresResponseSchema,
   organizadorParamsSchema,
   updateAcreditacionSchema,
-  // errorResponseSchema, // Importar si es global
 } from './organizador.types';
-import { errorResponseSchema } from '../usuario/usuario.types'; // Reutilizando el de usuario por ahora
-import type { CreateOrganizadorPayload, UpdateOrganizadorPayload } from './organizador.types';
+import { errorResponseSchema } from '../usuario/usuario.types';
 
-// const ADMIN_ROLE_ID = 1; // Definir IDs de roles
-
-// Extender el contexto de Elysia para incluir session
-type ElysiaContext = Context & {
+type AuthContext<BodyT = unknown, ParamsT = Record<string, string>> = Context & { 
     session: AppSession;
+    body: BodyT;
+    params: ParamsT;
 };
 
 export const organizadorRoutes = new Elysia({
   prefix: '/organizadores',
   detail: { tags: ['Organizadores'] },
 })
-.use(authMiddleware) // Aplicar a todas las rutas del módulo para tener `session`
+.use(authMiddleware)
 .post(
     '/',
-    async (context) => {
-        if (!('session' in context) || !('body' in context) || !('set' in context)) {
-            throw new CustomError('Datos de contexto incompletos', 500);
-        }
-        const currentSession = requireAuth()(context.session as AppSession);
-        const organizador = await createOrganizadorService(currentSession.subAsNumber, context.body as CreateOrganizadorPayload);
-        (context.set as { status: number }).status = 201;
+    async (context: any) => {
+        const { session, body } = context;
+        const currentSession = requireAuth()(session);
+        const organizador = await createOrganizadorService(currentSession.subAsNumber, body);
         return organizador;
     },
     {
         body: createOrganizadorSchema,
-        response: { 201: organizadorResponseSchema, 400: errorResponseSchema, 403: errorResponseSchema, 404:errorResponseSchema, 409: errorResponseSchema, 500: errorResponseSchema },
-        detail: {
-            summary: 'Crear mi Perfil de Organizador',
-            description: 'Permite a un usuario autenticado crear su perfil de organizador.',
-            security: [{ bearerAuth: [] }]
-        }
+        response: {
+            200: organizadorResponseSchema,
+            401: errorResponseSchema,
+            400: errorResponseSchema,
+        },
     }
 )
 .get(
     '/yo',
-    async (context) => {
-        if (!('session' in context)) throw new CustomError('No hay sesión', 401);
-        const currentSession = requireAuth()(context.session as AppSession);
+    async (context: any) => {
+        const { session } = context;
+        const currentSession = requireAuth()(session);
         const organizador = await getOrganizadorByUserIdService(currentSession.subAsNumber);
         if (!organizador) {
-            throw new CustomError('No tienes un perfil de organizador asociado.', 404);
+            throw new CustomError("Organizador no encontrado", 404);
         }
         return organizador;
     },
     {
-        response: { 200: organizadorResponseSchema, 401: errorResponseSchema, 404: errorResponseSchema, 500: errorResponseSchema },
-        detail: {
-            summary: 'Obtener mi Perfil de Organizador',
-            security: [{ bearerAuth: [] }]
-        }
+        response: {
+            200: organizadorResponseSchema,
+            401: errorResponseSchema,
+            404: errorResponseSchema,
+        },
     }
 )
-.get( // Obtener un perfil de organizador público por su ID
+.get(
     '/:id',
-    async ({ params }) => {
+    async ({ params }) => { 
         return await getOrganizadorByIdService(params.id);
     },
     {
         params: organizadorParamsSchema,
         response: { 200: organizadorResponseSchema, 404: errorResponseSchema, 500: errorResponseSchema },
-        detail: {
-            summary: 'Obtener Perfil de Organizador por ID',
-            description: 'Recupera la información pública de un organizador específico.'
-        }
+        detail: { summary: 'Obtener Perfil de Organizador por ID' }
     }
 )
 .put(
     '/yo',
-    async (context) => {
-        if (!('session' in context) || !('body' in context)) {
-            throw new CustomError('Datos de contexto incompletos', 500);
-        }
-        const currentSession = requireAuth()(context.session as AppSession);
+    async (context: any) => {
+        const { session, body } = context;
+        const currentSession = requireAuth()(session);
         const perfilOrganizadorActual = await getOrganizadorByUserIdService(currentSession.subAsNumber);
         if (!perfilOrganizadorActual) {
-            throw new CustomError('No tienes un perfil de organizador para actualizar.', 404);
+            throw new CustomError("Organizador no encontrado", 404);
         }
-        return await updateOrganizadorService(perfilOrganizadorActual.id_organizador, context.body as UpdateOrganizadorPayload, currentSession);
+        const organizador = await updateOrganizadorService(perfilOrganizadorActual.id_organizador, body, currentSession);
+        return organizador;
     },
     {
         body: updateOrganizadorSchema,
-        response: { 200: organizadorResponseSchema, 400: errorResponseSchema, 401: errorResponseSchema, 403: errorResponseSchema, 404: errorResponseSchema, 500: errorResponseSchema },
-        detail: {
-            summary: 'Actualizar mi Perfil de Organizador',
-            security: [{ bearerAuth: [] }]
-        }
+        response: {
+            200: organizadorResponseSchema,
+            401: errorResponseSchema,
+            403: errorResponseSchema,
+            404: errorResponseSchema,
+            400: errorResponseSchema,
+        },
     }
 );
 
-// Rutas de Admin para Organizadores (ejemplo)
 export const adminOrganizadorRoutes = new Elysia({
-    prefix: '/admin/organizadores', // Prefijo diferente para rutas de admin
+    prefix: '/admin/organizadores',
     detail: { tags: ['Admin - Organizadores'] },
 })
 .use(authMiddleware)
 .patch(
     '/:id/acreditacion',
-    async (context) => {
-        if (!('session' in context) || !('body' in context) || !('params' in context)) {
-            throw new CustomError('Datos de contexto incompletos', 500);
+    async (context: any) => {
+        const { params, body, session } = context;
+        const currentSession = requireAuth()(session);
+        if(currentSession.rol !== 1) {
+            throw new CustomError("Acceso denegado. Se requiere rol de administrador.", 403);
         }
-        const currentSession = requireAuth()(context.session as AppSession);
-        if(currentSession.rol !== 1) throw new CustomError("Acceso denegado", 403);
-        const params = context.params as unknown as { id: string };
-        const id = parseInt(params.id, 10);
-        if (isNaN(id)) throw new CustomError("ID inválido", 400);
-        const body = context.body as unknown as { acreditado: boolean };
-        return await updateAcreditacionOrganizadorService(id, body.acreditado);
+        return await updateAcreditacionOrganizadorService(Number(params.id), body.acreditado);
     },
     {
         params: organizadorParamsSchema,
         body: updateAcreditacionSchema,
-        response: { 200: organizadorResponseSchema, 401: errorResponseSchema, 403: errorResponseSchema, 404: errorResponseSchema, 500: errorResponseSchema },
-        detail: {
-            summary: 'Actualizar Estado de Acreditación (Admin)',
-            security: [{ bearerAuth: [] }]
-        }
+        response: {
+            200: organizadorResponseSchema,
+            401: errorResponseSchema,
+            403: errorResponseSchema,
+            404: errorResponseSchema,
+        },
     }
 );
-// TODO: GET /admin/organizadores (listar todos para admin, con filtros)
-// TODO: DELETE /admin/organizadores/:id (eliminar organizador por admin)

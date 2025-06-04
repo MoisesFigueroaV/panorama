@@ -3,29 +3,30 @@ import Elysia, { type Static, t } from 'elysia';
 import jwt from '@elysiajs/jwt';
 import { CustomError } from '../utils/errors';
 
-const JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || 'tu-super-secreto-para-jwt-access-tokens';
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'tu-super-secreto-para-jwt-refresh-tokens';
+const JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || 'tu-super-secreto-para-jwt-access-tokens-cambiame-ya';
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'tu-super-secreto-para-jwt-refresh-tokens-cambiame-ya';
 
-// Advertencias de producción (sin cambios)
-// ...
+if (JWT_ACCESS_SECRET.startsWith('tu-super-secreto') && process.env.NODE_ENV === 'production') {
+    console.warn('⚠️ ADVERTENCIA DE SEGURIDAD: JWT_ACCESS_SECRET no está configurado de forma segura para producción.');
+}
+if (JWT_REFRESH_SECRET.startsWith('tu-super-secreto') && process.env.NODE_ENV === 'production') {
+    console.warn('⚠️ ADVERTENCIA DE SEGURIDAD: JWT_REFRESH_SECRET no está configurado de forma segura para producción.');
+}
 
-// Define el schema del payload que esperas en tu JWT
-const jwtPayloadSchema = t.Object({
-    sub: t.String(), // <--- CAMBIO #1: sub AHORA ES STRING
+const jwtPayloadSchemaForPlugin = t.Object({
+    sub: t.String(),
     rol: t.Optional(t.Numeric()),
 });
-export type JwtPayload = Static<typeof jwtPayloadSchema>;
+export type JwtStoredPayload = Static<typeof jwtPayloadSchemaForPlugin>;
 
-// Para conveniencia, creamos un tipo para la sesión que tendrá sub como número
-export type AppSession = (JwtPayload & { subAsNumber: number }) | null;
+export type AppSession = (JwtStoredPayload & { subAsNumber: number }) | null;
 
-
-export const authMiddleware = new Elysia({ name: 'auth-plugin' }) // Renombrado a authMiddleware como lo usas
+export const authMiddleware = new Elysia({ name: 'auth-middleware-plugin' })
     .use(
         jwt({
             name: 'jwtAccess',
             secret: JWT_ACCESS_SECRET,
-            schema: jwtPayloadSchema, // Valida contra sub: string
+            schema: jwtPayloadSchemaForPlugin,
             exp: '15m',
         })
     )
@@ -33,11 +34,11 @@ export const authMiddleware = new Elysia({ name: 'auth-plugin' }) // Renombrado 
         jwt({
             name: 'jwtRefresh',
             secret: JWT_REFRESH_SECRET,
-            schema: t.Object({ sub: t.String() }), // <--- CAMBIO #2: sub AHORA ES STRING para refresh
+            schema: t.Object({ sub: t.String() }),
             exp: '7d',
         })
     )
-    .derive(async (context): Promise<{ session: AppSession }> => { // Tipo de retorno es AppSession
+    .derive(async (context): Promise<{ session: AppSession }> => {
         const { jwtAccess, request } = context;
         const authorizationHeader = request.headers.get('Authorization');
         let session: AppSession = null;
@@ -45,39 +46,31 @@ export const authMiddleware = new Elysia({ name: 'auth-plugin' }) // Renombrado 
         if (authorizationHeader?.startsWith('Bearer ')) {
             const token = authorizationHeader.substring(7);
             try {
-                const decoded = await jwtAccess.verify(token); // decoded.sub será string
-                if (decoded && typeof decoded.sub === 'string') {
-                    // Intentar parsear 'sub' a número
-                    const subNum = parseInt(decoded.sub, 10);
-                    if (!isNaN(subNum)) { // Asegurar que la conversión fue exitosa
-                        session = {
-                            ...decoded, // decoded ya es JwtPayload (sub: string, rol?: number)
-                            subAsNumber: subNum, // Añadir la versión numérica
-                        };
+                const decodedOrFalse = await jwtAccess.verify(token);
+                if (decodedOrFalse && typeof decodedOrFalse === 'object') {
+                    const decodedPayload = decodedOrFalse as JwtStoredPayload;
+                    const subNum = parseInt(decodedPayload.sub, 10);
+                    if (!isNaN(subNum)) {
+                        session = { ...decodedPayload, subAsNumber: subNum };
                     } else {
-                        console.warn("JWT 'sub' no es un número válido después de parsear:", decoded.sub);
+                        console.warn("auth.middleware: JWT 'sub' (" + decodedPayload.sub + ") no es un número válido.");
                     }
                 }
-            } catch (error) {
-                // Token inválido, etc. session permanece null
-            }
+            } catch (error) { /* Token inválido, etc. session es null */ }
         }
-        return { session }; // Retorna el tipo AppSession
+        return { session };
     });
 
-// Guard de Autenticación
-export const requireAuth = () => (session: AppSession): NonNullable<AppSession> => { // Espera y devuelve AppSession
-    if (!session || !session.subAsNumber) { // Verifica subAsNumber
-        throw new CustomError('Autenticación requerida. Token no proporcionado o inválido.', 401);
+export const requireAuth = () => (session: AppSession): NonNullable<AppSession> => {
+    if (!session || typeof session.subAsNumber !== 'number') {
+        throw new CustomError('Autenticación requerida.', 401);
     }
-    return session; // session ya es NonNullable<AppSession>
+    return session;
 };
 
-// Guard de Roles
-export const hasRole = (allowedRoles: number[]) => (session: AppSession) => { // Espera AppSession
-    const currentSession = requireAuth()(session); // requireAuth devuelve NonNullable<AppSession>
-    if (!currentSession.rol || !allowedRoles.includes(currentSession.rol)) {
-        throw new CustomError('Acceso denegado. No tienes los permisos necesarios.', 403);
+export const hasRole = (allowedRoles: number[]) => (session: AppSession) => {
+    const currentSession = requireAuth()(session);
+    if (typeof currentSession.rol !== 'number' || !allowedRoles.includes(currentSession.rol)) {
+        throw new CustomError('Acceso denegado.', 403);
     }
-    // No es necesario devolver nada si es un guard que solo lanza errores
 };
