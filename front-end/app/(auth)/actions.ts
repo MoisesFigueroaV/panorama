@@ -7,7 +7,7 @@ export async function login(formData: FormData) {
   const password = formData.get('password') as string;
   
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -41,13 +41,15 @@ export async function register(formData: FormData) {
   const name = formData.get('name') as string;
   
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/register`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/auth/registro`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ email, password, name }),
     });
+
+    console.log("response del actionsss", response)
 
     if (!response.ok) {
       throw new Error('Registration failed');

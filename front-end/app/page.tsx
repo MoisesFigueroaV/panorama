@@ -21,7 +21,7 @@ import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 import { createClient } from '@/utils/supabase/server'
 import { cookies } from 'next/headers'
-import { events } from "@/services/mock-data"
+import { events } from "@/lib/mock-data"
 
 // Importar todos los componentes necesarios
 import SiteHeader from "@/components/site-header"
@@ -395,12 +395,13 @@ export default function Home() {
               </div>
             </TabsContent>
 
+          /*
             <TabsContent value="map">
               <div className="h-[600px] rounded-lg overflow-hidden border border-black/5">
                 <EventMap events={events} />
               </div>
             </TabsContent>
-
+          /*
             <TabsContent value="calendar">
               <CalendarView events={events} />
             </TabsContent>
