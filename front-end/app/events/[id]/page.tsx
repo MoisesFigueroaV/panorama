@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import EventMap from "@/components/event-map"
-import { events } from "@/services/mock-data"
+import { events } from "@/lib/mock-data"
 
 interface EventPageProps {
   params: {

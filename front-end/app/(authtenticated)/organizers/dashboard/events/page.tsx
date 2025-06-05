@@ -113,7 +113,7 @@ export default function OrganizerEventsPage() {
           <h1 className="text-3xl font-bold tracking-tight">Mis Eventos</h1>
           <p className="text-muted-foreground">Gestiona todos tus eventos desde un solo lugar.</p>
         </div>
-        <Link href="/organizer/events/create">
+        <Link href="/dashboard/events/create">
           <Button className="gap-2">
             <Plus className="h-4 w-4" />
             Crear evento
@@ -208,8 +208,6 @@ export default function OrganizerEventsPage() {
                 <TableHead>Fecha</TableHead>
                 <TableHead>Categoría</TableHead>
                 <TableHead>Estado</TableHead>
-                <TableHead>Ventas</TableHead>
-                <TableHead>Ingresos</TableHead>
                 <TableHead className="text-right">Acciones</TableHead>
               </TableRow>
             </TableHeader>
@@ -248,13 +246,14 @@ export default function OrganizerEventsPage() {
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
+                        {/* Actualizar las acciones del menú desplegable */}
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                           <DropdownMenuItem asChild>
-                            <Link href={`/events/${event.id}`}>Ver evento</Link>
+                            <Link href={`/organizers/dashboard/events/${event.id}`}>Ver evento</Link>
                           </DropdownMenuItem>
                           <DropdownMenuItem asChild>
-                            <Link href={`/organizer/events/${event.id}/edit`}>Editar</Link>
+                            <Link href={`/organizers/dashboard/events/${event.id}/edit`}>Editar</Link>
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem className="text-destructive">Eliminar</DropdownMenuItem>

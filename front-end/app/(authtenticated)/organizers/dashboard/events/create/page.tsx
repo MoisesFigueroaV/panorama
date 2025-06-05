@@ -19,6 +19,8 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
+import { ChevronLeft } from "lucide-react"
 
 const eventFormSchema = z.object({
   title: z.string().min(5, {
@@ -73,20 +75,28 @@ export default function CreateEventPage() {
   function onSubmit(data: EventFormValues) {
     console.log(data)
     // Aquí iría la lógica para guardar el evento
-    router.push("/organizer/events")
+    router.push("/organizers/dashboard/events")
   }
 
   function saveAsDraft() {
     // Aquí iría la lógica para guardar como borrador
-    router.push("/organizer/events")
+    router.push("/organizers/dashboard/events")
   }
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Crear nuevo evento</h1>
-          <p className="text-muted-foreground">Completa la información para publicar tu evento</p>
+          <Link href="/organizers/dashboard/events" className="inline-block mb-4">
+            <Button variant="ghost" className="gap-2">
+              <ChevronLeft className="h-4 w-4" />
+              Volver a eventos
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Crear nuevo evento</h1>
+            <p className="text-muted-foreground">Completa la información para publicar tu evento</p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={saveAsDraft}>

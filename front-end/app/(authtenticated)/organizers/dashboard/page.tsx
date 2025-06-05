@@ -14,12 +14,20 @@ export default function OrganizerDashboardPage() {
             Gestiona tus eventos y revisa las estadísticas de asistencia y ventas.
           </p>
         </div>
-        <Link href="/organizer/events/create">
-          <Button className="gap-2">
-            <PlusCircle className="h-4 w-4" />
-            Crear evento
-          </Button>
-        </Link>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Link href="/organizers/dashboard/events">
+            <Button variant="outline" className="w-full sm:w-auto gap-2">
+              <Calendar className="h-4 w-4" />
+              Ver mis eventos
+            </Button>
+          </Link>
+          <Link href="/organizers/dashboard/events/create">
+            <Button className="w-full sm:w-auto gap-2">
+              <PlusCircle className="h-4 w-4" />
+              Crear evento
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

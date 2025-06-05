@@ -56,12 +56,6 @@ export const usuarioRoutes = new Elysia({
     },
     {
       body: registroUsuarioSchema,
-      response: {
-        201: usuariosResponseSchema,
-        400: errorResponseSchema,
-        409: errorResponseSchema,
-        500: errorResponseSchema,
-      },
       detail: { summary: 'Registrar un nuevo usuario' },
     }
 )

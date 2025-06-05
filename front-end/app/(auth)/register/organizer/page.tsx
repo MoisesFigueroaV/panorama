@@ -170,7 +170,7 @@ export default function OrganizerRegisterPage() {
 
           {currentStep === 1 && (
             <div className="space-y-4">
-              <div className="space-y-2"> <Label htmlFor="nombre_usuario_organizador">Nombre del Contacto Principal</Label> <Input id="nombre_usuario_organizador" value={nombre_usuario_organizador} onChange={(e) => setNombreUsuarioOrganizador(e.target.value)} required disabled={isLoading}/> </div>
+              <div className="space-y-2"> <Label htmlFor="nombre_usuario_organizador">Nombre de la Organizacion</Label> <Input id="nombre_usuario_organizador" value={nombre_usuario_organizador} onChange={(e) => setNombreUsuarioOrganizador(e.target.value)} required disabled={isLoading}/> </div>
               <div className="space-y-2"> <Label htmlFor="email">Correo Electrónico (para la cuenta)</Label> <Input id="email" type="email" placeholder="contacto@organizacion.com" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={isLoading}/> </div>
               <div className="space-y-2"> <Label htmlFor="password">Contraseña</Label> <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required disabled={isLoading}/> </div>
               <div className="space-y-2"> <Label htmlFor="confirmPassword">Confirmar Contraseña</Label> <Input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required disabled={isLoading}/> </div>

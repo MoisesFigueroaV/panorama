@@ -9,14 +9,14 @@ import { Slider } from "@/components/ui/slider"
 import { Separator } from "@/components/ui/separator"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent } from "@/components/ui/card"
-import { events } from "@/services/mock-data"
+import { events, type EventData } from "@/lib/mock-data"
 
 export default function AllEventsPage() {
   // Duplicar eventos para tener más contenido para mostrar
   const allEvents = [
     ...events,
-    ...events.map((event) => ({ ...event, id: `dup-${event.id}` })),
-    ...events.map((event) => ({ ...event, id: `trip-${event.id}` })),
+    ...events.map((event: EventData) => ({ ...event, id: `dup-${event.id}` })),
+    ...events.map((event: EventData) => ({ ...event, id: `trip-${event.id}` })),
   ].slice(0, 12)
 
   return (

@@ -22,7 +22,6 @@ interface RegistroPayload {
   sexo?: 'M' | 'F' | 'O' | null;
   fecha_nacimiento?: string | null; // YYYY-MM-DD
 }
-interface UsuarioRegistrado { /* ... define la estructura de la respuesta del backend ... */ }
 
 
 export default function RegisterPage() {
@@ -56,7 +55,7 @@ export default function RegisterPage() {
 
     try {
       console.log("RESULTADO DE ESTO XDDD", payload)
-      const result = await apiClient.post<UsuarioRegistrado>('/auth/registro', payload);
+      const result = await apiClient.post('/auth/registro', payload);
       console.log("RESULTADO DE ESTO XDDD", result)
       alert("¡Registro exitoso! Por favor, inicia sesión."); // Mejor usar un toast/modal
       router.push("/login");

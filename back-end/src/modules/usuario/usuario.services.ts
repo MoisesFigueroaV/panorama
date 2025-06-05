@@ -28,11 +28,11 @@ type UsuarioServiceResponse = {
     id_rol: number | null;
 };
 
-type UsuarioConRolServiceResponse = UsuarioServiceResponse & {
+export type UsuarioConRolServiceResponse = UsuarioServiceResponse & {
     rol?: { id_rol: number; nombre_rol: string } | null;
 };
 
-const ROL_USUARIO_COMUN_ID = 2;
+const ROL_USUARIO_COMUN_ID = 3;
 
 const seleccionColumnasUsuarioPublico = {
     id_usuario: usuarioTable.id_usuario,
@@ -47,19 +47,19 @@ const seleccionColumnasUsuarioPublico = {
 async function hashPassword(password: string): Promise<string> {
     if (process.env.NODE_ENV === 'test') return `hashed_${password}`;
     console.warn("ADVERTENCIA DE SEGURIDAD: Usando hashing de contraseña inseguro.");
-    return `dev_hashed_${password}`; // ¡¡¡REEMPLAZAR!!!
+    return `${password}`; // ¡¡¡REEMPLAZAR!!!
 }
 
 async function verifyPassword(password: string, hash: string): Promise<boolean> {
     if (process.env.NODE_ENV === 'test') return `hashed_${password}` === hash;
-    return `dev_hashed_${password}` === hash; // ¡¡¡REEMPLAZAR!!!
+    return `${password}` === hash; // ¡¡¡REEMPLAZAR!!!
 }
 
 export async function registrarUsuarioService(
   data: RegistroUsuarioPayload,
-  targetRolId: number = ROL_USUARIO_COMUN_ID
 ): Promise<UsuarioConRolServiceResponse> {
   try {
+    const targetRolId = ROL_USUARIO_COMUN_ID
     const existingUser = await db.query.usuarioTable.findFirst({
       where: eq(usuarioTable.correo, data.correo),
     });
@@ -86,8 +86,8 @@ export async function registrarUsuarioService(
     }
     return getUsuarioByIdService(insertedUserBrief.id_usuario);
   } catch (error) {
-    if (error instanceof CustomError) throw error;
     console.log("Error en registrar", error)
+    if (error instanceof CustomError) throw error;
     handleErrorLog(error, 'servicio registrarUsuarioService');
     throw new CustomError('Error interno durante el registro.', 500);
   }

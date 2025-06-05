@@ -3,14 +3,11 @@ import { t } from 'elysia';
 import { rolUsuarioBaseSchema } from '../rolUsuario/rolUsuario.types'; // Asume que este exporta rolUsuarioBaseSchema
 
 export const usuarioBaseResponseSchema = t.Object({
-  id_usuario: t.Integer({ description: "ID único del usuario" }),
   correo: t.String({ format: 'email', description: "Correo electrónico del usuario" }),
   nombre_usuario: t.String({ description: "Nombre completo o de usuario" }),
   fecha_registro: t.Date({ description: "Fecha de registro del usuario" }),
   sexo: t.Nullable(t.String({ minLength: 1, maxLength: 1, pattern: '^[MFO]$', description: "Sexo: M, F, O (Otro)" })),
   fecha_nacimiento: t.Nullable(t.Date({ description: "Fecha de nacimiento" })),
-  id_rol: t.Nullable(t.Integer({ description: "ID del rol del usuario" })),
-  rol: t.Optional(t.Nullable(rolUsuarioBaseSchema)),
 });
 
 export const registroUsuarioSchema = t.Object({

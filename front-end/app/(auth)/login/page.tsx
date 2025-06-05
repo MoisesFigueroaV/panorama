@@ -14,8 +14,8 @@ import { apiClient, setAccessToken, setRefreshToken, getAccessToken } from "@/li
 // Definir los IDs de roles (idealmente vendrían de un archivo de constantes)
 const ROLES = {
   ADMIN: 1,
-  USUARIO_COMUN: 2, // Asumiendo que el ID 2 es para usuario común
-  ORGANIZADOR: 3,
+  USUARIO_COMUN: 3, // Asumiendo que el ID 2 es para usuario común
+  ORGANIZADOR: 2,
 };
 
 // Tipos que esperas de la respuesta de login del backend
@@ -61,12 +61,11 @@ export default function LoginPage() {
           console.log("Sesión activa, redirigiendo...");
           const userRolId = userData.rol?.id_rol;
           if (userRolId === ROLES.ADMIN) {
-            router.replace("/admin/dashboard"); // Usar replace para no añadir al historial
+            router.replace("/admin");
           } else if (userRolId === ROLES.ORGANIZADOR) {
-            router.replace("/organizador/dashboard");
-          } else {
-            router.replace("/dashboard");
-          }
+            router.replace("/organizers/dashboard");
+          } else if (userRolId == ROLES.USUARIO_COMUN)
+            router.replace("/users/profile")// Usar replace para no añadir al historial
         } catch (error) {
           // Token inválido o expirado y refresh falló
           console.warn("Token existente inválido, limpiando sesión local:", error);
@@ -102,13 +101,11 @@ export default function LoginPage() {
       const userRolId = responseData.data.usuario?.rol?.id_rol; // Acceso CORREGIDO
 
       if (userRolId === ROLES.ADMIN) {
-        router.push("/admin/dashboard");
+        router.replace("/admin");
       } else if (userRolId === ROLES.ORGANIZADOR) {
-        router.push("/organizador/dashboard");
-      } else {
-        // Si no tiene rol asignado o es un rol de usuario común
-        router.push("/dashboard");
-      }
+        router.replace("/organizers/dashboard");
+      } else if (userRolId == ROLES.USUARIO_COMUN)
+        router.replace("/users/profile")// Usar replace para no añadir al historial
     } catch (err: any) {
       setError(err.message || "Credenciales inválidas o error en el servidor.");
     } finally {
