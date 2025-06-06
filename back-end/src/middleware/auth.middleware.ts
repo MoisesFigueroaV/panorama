@@ -38,8 +38,7 @@ export const authMiddleware = new Elysia({ name: 'auth-middleware-plugin' })
             exp: '7d',
         })
     )
-    .derive(async (context): Promise<{ session: AppSession }> => {
-        const { jwtAccess, request } = context;
+    .derive({as: "scoped"},async ({ jwtAccess, request }) => {
         const authorizationHeader = request.headers.get('Authorization');
         let session: AppSession = null;
 
@@ -56,8 +55,11 @@ export const authMiddleware = new Elysia({ name: 'auth-middleware-plugin' })
                         console.warn("auth.middleware: JWT 'sub' (" + decodedPayload.sub + ") no es un número válido.");
                     }
                 }
-            } catch (error) { /* Token inválido, etc. session es null */ }
+            } catch (error) { 
+                /* Token inválido, etc. session es null */ 
+            }
         }
+        
         return { session };
     });
 

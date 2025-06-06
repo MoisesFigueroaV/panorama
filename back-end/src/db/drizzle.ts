@@ -3,7 +3,13 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool, type PoolConfig } from 'pg';       
 import { sql } from 'drizzle-orm';               
 import * as schema from './schema';               
+
+// src/db/drizzle.ts
+import * as allSchemas from './schema'; // Importa todos los schemas
+// Importa las relaciones explícitamente si no están en allSchemas por defecto
 import { usuarioRelations } from './schema/usuario.schema';
+import { organizadorRelations } from './schema/organizador.schema';
+// ...
 
 const databaseUrl = process.env.DATABASE_URL;
 const nodeEnv = process.env.NODE_ENV || 'development'; 
@@ -49,7 +55,9 @@ pool.on('remove', (client) => {
 export const db = drizzle(pool, {
   schema: {
     ...schema,
-    usuarioRelations,
+    ...allSchemas, // Todos tus schemas de tabla
+    usuarioRelations,    // Añade las relaciones de usuario
+    organizadorRelations
   },
   logger: enableDbLogger, 
 });
