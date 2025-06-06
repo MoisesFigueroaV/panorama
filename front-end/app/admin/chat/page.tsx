@@ -9,6 +9,12 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
 
+interface Message {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+}
+
 // Datos de ejemplo para los chats
 const chatUsers = [
   { id: 1, name: "María López", role: "Organizador", avatar: "/placeholder.svg?height=40&width=40", unread: 2 },
