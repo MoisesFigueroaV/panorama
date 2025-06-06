@@ -3,8 +3,8 @@ import Elysia, { type Static, t } from 'elysia';
 import jwt from '@elysiajs/jwt';
 import { CustomError } from '../utils/errors';
 
-const JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || 'tu-super-secreto-para-jwt-access-tokens';
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'tu-super-secreto-para-jwt-refresh-tokens';
+const JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJmbGdyc2RramR5eWV1dGFmYWNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDUwMDMwOTUsImV4cCI6MjA2MDU3OTA5NX0.RWcm3SE_qg7LanbmOS_TNhOW_wK4OJ-D9CD5ZCZqeFs';
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJmbGdyc2RramR5eWV1dGFmYWNjIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NTAwMzA5NSwiZXhwIjoyMDYwNTc5MDk1fQ.pXZD5VlgnMHb0OXhRQr5pekm31ylf9WI399_9g_N9Ik';
 
 // Advertencias de producción (sin cambios)
 // ...

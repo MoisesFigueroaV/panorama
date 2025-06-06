@@ -11,6 +11,7 @@ import * as dotenv from 'dotenv';
 import { rolUsuarioRoutes } from './modules/rolUsuario/rolUsuario.routes';
 import { usuarioRoutes, userProfileRoutes } from './modules/usuario/usuario.routes';
 import { organizadorRoutes, adminOrganizadorRoutes } from './modules/organizador/organizador.routes';
+import { eventoRoutes } from './modules/evento/evento.routes';
 // ... y cualquier otro módulo que hayas creado (ej. eventoRoutes)
 
 // Cargar variables de entorno al inicio
@@ -37,6 +38,7 @@ const app = new Elysia()
         { name: 'Usuarios', description: 'Gestión de perfiles de usuario' },
         { name: 'Organizadores', description: 'Gestión de perfiles de organizadores de eventos' },
         { name: 'Admin - Organizadores', description: 'Administración de organizadores de eventos' },
+        { name: 'Eventos', description: 'Gestión de eventos' },
         // Añade más tags a medida que crees módulos
       ],
       servers: [ // URLs donde tu API está disponible
@@ -97,7 +99,8 @@ const app = new Elysia()
       .use(usuarioRoutes)           // ej. /api/v1/auth (para registro, login, refresh)
       .use(userProfileRoutes)       // ej. /api/v1/usuarios (para /yo - perfil)
       .use(organizadorRoutes)       // ej. /api/v1/organizadores
-      .use(adminOrganizadorRoutes)  // ej. /api/v1/admin/organizadores
+      .use(adminOrganizadorRoutes) 
+      .use(eventoRoutes)  // ej. /api/v1/admin/organizadores
       // .use(eventoRoutes)         // Cuando crees el módulo de eventos
   )
   // --- FIN DE SECCIÓN DE REGISTRO ---

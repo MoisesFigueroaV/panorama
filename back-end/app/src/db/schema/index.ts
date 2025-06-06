@@ -12,3 +12,4 @@ export const users = pgTable('users', {
 export * from './rolUsuario.schema';
 export * from './usuario.schema';
 export * from './organizador.schema';
+export * from './evento.schema';
