@@ -10,7 +10,7 @@ import {
 import { CustomError, handleErrorLog } from '../../utils/errors';
 
 import {
-  registrarUsuarioService,
+  registrarUsuarioComunService,
   loginUsuarioService,
   refreshTokenService,
   getUsuarioByIdService,
@@ -49,7 +49,7 @@ export const usuarioRoutes = new Elysia({
     '/registro', // Confirmar que este es el endpoint correcto
     async ({ body, set }) => {
         console.log("ENTRO AL REGISTRO ")
-      const usuario = await registrarUsuarioService(body);
+      const usuario = await registrarUsuarioComunService(body);
       set.status = 201;
       console.log("USUARIO RESPONSE FINAL", usuario)
       return usuario;

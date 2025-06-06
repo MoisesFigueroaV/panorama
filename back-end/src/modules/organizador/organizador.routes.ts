@@ -1,132 +1,157 @@
 // src/modules/organizador/organizador.routes.ts
-import { Elysia, type Handler, type Context, type Static } from 'elysia';
+import Elysia, { t, type Static } from 'elysia';
 import {
   authMiddleware,
   requireAuth,
-  type AppSession 
+  hasRole,
+  type AppSession
 } from '../../middleware/auth.middleware';
-import { CustomError, handleErrorLog } from '../../utils/errors';
+import { CustomError } from '../../utils/errors';
 import {
-  createOrganizadorService,
+  registrarUsuarioYCrearPerfilOrganizadorService,
+  crearPerfilOrganizadorService,
   getOrganizadorByIdService,
   getOrganizadorByUserIdService,
-  updateOrganizadorService,
-  updateAcreditacionOrganizadorService,
+  updateOrganizadorPerfilService,
+  adminUpdateAcreditacionService,
 } from './organizador.services';
 import {
-  createOrganizadorSchema,
-  updateOrganizadorSchema,
+  registroCompletoOrganizadorSchema,
+  createOrganizadorPerfilSchema,
+  updateOrganizadorPerfilSchema,
   organizadorResponseSchema,
   organizadorParamsSchema,
-  updateAcreditacionSchema,
+  adminUpdateAcreditacionSchema,
+  crearOrganizadorResponseSchema,
 } from './organizador.types';
 import { errorResponseSchema } from '../usuario/usuario.types';
 
-type AuthContext<BodyT = unknown, ParamsT = Record<string, string>> = Context & { 
-    session: AppSession;
-    body: BodyT;
-    params: ParamsT;
-};
+const ADMIN_ROLE_ID = 1;
 
-export const organizadorRoutes = new Elysia({
+// Rutas para que los usuarios autenticados gestionen SU perfil de organizador
+export const organizadorUsuarioRoutes = new Elysia({
   prefix: '/organizadores',
-  detail: { tags: ['Organizadores'] },
+  detail: { tags: ['Organizadores - Perfil'] },
 })
-.use(authMiddleware)
+.use(authMiddleware) // Aplica el middleware para tener `session`, `jwtAccess`, `jwtRefresh`
 .post(
-    '/',
-    async (context: any) => {
-        const { session, body } = context;
-        const currentSession = requireAuth()(session);
-        const organizador = await createOrganizadorService(currentSession.subAsNumber, body);
-        return organizador;
-    },
-    {
-        body: createOrganizadorSchema,
-        response: {
-            200: organizadorResponseSchema,
-            401: errorResponseSchema,
-            400: errorResponseSchema,
-        },
+  '/', // POST /api/v1/organizadores
+  async ({ body, session, set }) => {
+    const currentSession = requireAuth()(session);
+    const resultadoCreacion = await crearPerfilOrganizadorService(currentSession.subAsNumber, body);
+    const organizadorCompleto = await getOrganizadorByIdService(resultadoCreacion.id_organizador);
+    set.status = 201;
+    return organizadorCompleto;
+  },
+  {
+    body: createOrganizadorPerfilSchema,
+    detail: {
+      summary: 'Crear o Completar mi Perfil de Organizador',
+      description: 'Permite a un usuario autenticado crear su perfil de organizador. Se requiere autenticación. Si se incluye `documento_acreditacion_file`, enviar como multipart/form-data.',
+      security: [{ bearerAuth: [] }]
     }
+  }
 )
 .get(
-    '/yo',
-    async (context: any) => {
-        const { session } = context;
-        const currentSession = requireAuth()(session);
-        const organizador = await getOrganizadorByUserIdService(currentSession.subAsNumber);
-        if (!organizador) {
-            throw new CustomError("Organizador no encontrado", 404);
-        }
-        return organizador;
-    },
-    {
-        response: {
-            200: organizadorResponseSchema,
-            401: errorResponseSchema,
-            404: errorResponseSchema,
-        },
+  '/yo', // GET /api/v1/organizadores/yo
+  async ({ session }) => {
+    const currentSession = requireAuth()(session);
+    const organizador = await getOrganizadorByUserIdService(currentSession.subAsNumber);
+    if (!organizador) {
+      throw new CustomError('No tienes un perfil de organizador asociado.', 404);
     }
-)
-.get(
-    '/:id',
-    async ({ params }) => { 
-        return await getOrganizadorByIdService(params.id);
-    },
-    {
-        params: organizadorParamsSchema,
-        response: { 200: organizadorResponseSchema, 404: errorResponseSchema, 500: errorResponseSchema },
-        detail: { summary: 'Obtener Perfil de Organizador por ID' }
-    }
+    return organizador;
+  },
+  {
+    detail: { summary: 'Obtener mi Perfil de Organizador', security: [{ bearerAuth: [] }] }
+  }
 )
 .put(
-    '/yo',
-    async (context: any) => {
-        const { session, body } = context;
-        const currentSession = requireAuth()(session);
-        const perfilOrganizadorActual = await getOrganizadorByUserIdService(currentSession.subAsNumber);
-        if (!perfilOrganizadorActual) {
-            throw new CustomError("Organizador no encontrado", 404);
-        }
-        const organizador = await updateOrganizadorService(perfilOrganizadorActual.id_organizador, body, currentSession);
-        return organizador;
-    },
-    {
-        body: updateOrganizadorSchema,
-        response: {
-            200: organizadorResponseSchema,
-            401: errorResponseSchema,
-            403: errorResponseSchema,
-            404: errorResponseSchema,
-            400: errorResponseSchema,
-        },
+  '/yo', // PUT /api/v1/organizadores/yo
+  async ({ session, body }) => {
+    const currentSession = requireAuth()(session);
+    const perfilOrganizadorActual = await getOrganizadorByUserIdService(currentSession.subAsNumber);
+    if (!perfilOrganizadorActual) {
+      throw new CustomError('No se encontró tu perfil de organizador para actualizar.', 404);
     }
+    const organizador = await updateOrganizadorPerfilService(perfilOrganizadorActual.id_organizador, body, currentSession);
+    return organizador;
+  },
+  {
+    body: updateOrganizadorPerfilSchema,
+    detail: {
+      summary: 'Actualizar mi Perfil de Organizador',
+      description: 'Modifica el perfil de organizador del usuario autenticado. Para cambiar el documento, envía `documento_acreditacion_file`. Para eliminarlo, envía `documento_acreditacion_file` como `null` (si el schema lo permite y el servicio lo maneja).',
+      security: [{ bearerAuth: [] }]
+    }
+  }
 );
 
+// Rutas públicas para ver organizadores
+export const publicOrganizadorRoutes = new Elysia({
+  prefix: '/organizadores',
+  detail: { tags: ['Organizadores - Público'] }
+})
+.get(
+  '/:id', // GET /api/v1/organizadores/:id
+  async ({ params }) => {
+    return await getOrganizadorByIdService(params.id);
+  },
+  {
+    params: organizadorParamsSchema,
+    detail: { summary: 'Obtener Perfil Público de Organizador por ID' }
+  }
+);
+
+// Rutas de Admin para gestionar organizadores
 export const adminOrganizadorRoutes = new Elysia({
-    prefix: '/admin/organizadores',
-    detail: { tags: ['Admin - Organizadores'] },
+  prefix: '/admin/organizadores',
+  detail: { tags: ['Admin - Organizadores'] },
 })
 .use(authMiddleware)
 .patch(
-    '/:id/acreditacion',
-    async (context: any) => {
-        const { params, body, session } = context;
-        const currentSession = requireAuth()(session);
-        if(currentSession.rol !== 1) {
-            throw new CustomError("Acceso denegado. Se requiere rol de administrador.", 403);
-        }
-        return await updateAcreditacionOrganizadorService(Number(params.id), body.acreditado);
-    },
-    {
-        params: organizadorParamsSchema,
-        body: updateAcreditacionSchema,
-        response: {
-            200: organizadorResponseSchema,
-            401: errorResponseSchema,
-            403: errorResponseSchema,
-            404: errorResponseSchema,
-        },
+  '/:id/acreditacion', // PATCH /api/v1/admin/organizadores/:id/acreditacion
+  async ({ params, body, session }) => {
+    const currentSession = requireAuth()(session);
+    hasRole([ADMIN_ROLE_ID])(currentSession); // Solo Admin
+
+    const resultadoUpdate = await adminUpdateAcreditacionService(
+      params.id,
+      body.id_estado_acreditacion,
+      body.notas_admin || null,
+      currentSession.subAsNumber
+    );
+    const organizadorCompleto = await getOrganizadorByIdService(resultadoUpdate.id_organizador);
+    return organizadorCompleto;
+  },
+  {
+    params: organizadorParamsSchema,
+    body: adminUpdateAcreditacionSchema,
+    detail: {
+      summary: 'Actualizar Estado de Acreditación de Organizador (Admin)',
+      security: [{ bearerAuth: [] }]
     }
+  }
+);
+
+// Endpoint para el registro "todo en uno" de un organizador (público)
+export const authOrganizadorRoutes = new Elysia({
+  prefix: '/auth', // Se monta bajo /api/v1/auth
+  detail: { tags: ['Autenticación'] }
+})
+.post(
+  '/registro-organizador', // POST /api/v1/auth/registro-organizador
+  async ({ body, set }) => {
+    const resultadoRegistro = await registrarUsuarioYCrearPerfilOrganizadorService(body);
+    const organizadorCompleto = await getOrganizadorByIdService(resultadoRegistro.id_organizador);
+    set.status = 201;
+    return organizadorCompleto;
+  },
+  {
+    body: registroCompletoOrganizadorSchema,
+    detail: {
+      summary: 'Registrar Nuevo Organizador (Cuenta + Perfil)',
+      description: 'Crea una cuenta de usuario (con rol Organizador) y su perfil de organización asociado. Enviar como multipart/form-data si se incluye `documento_acreditacion_file`.',
+    }
+  }
 );

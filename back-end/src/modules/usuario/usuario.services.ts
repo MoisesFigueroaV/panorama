@@ -4,6 +4,7 @@ import {
   usuarioTable,
   type Usuario as DrizzleUsuario,
   type NewUsuario as DrizzleNewUsuario,
+  // rolUsuarioTable, // No es necesario si usas `with` y ya está en db.schema
 } from '../../db/schema';
 import { eq } from 'drizzle-orm';
 import { CustomError, handleErrorLog } from '../../utils/errors';
@@ -12,19 +13,20 @@ import type {
   LoginUsuarioPayload,
   UpdateUsuarioPerfilPayload,
 } from './usuario.types';
+import { ROLES_IDS } from '../../config/constants'; // <--- IMPORTAR CONSTANTES DE ROLES
 
-// Tipos para los payloads de los signers, deben coincidir con el middleware
+// Tipos para los payloads de los signers
 type SignerAccessPayload = { sub: string; rol?: number };
 type SignerRefreshPayload = { sub: string };
 
-// Tipos de respuesta del servicio (deben ser compatibles con usuarioBaseResponseSchema)
-type UsuarioServiceResponse = {
+// Tipos de respuesta del servicio
+export type UsuarioServiceResponse = {
     id_usuario: number;
     correo: string;
     nombre_usuario: string;
-    fecha_registro: Date; // El servicio devuelve Date
+    fecha_registro: Date;
     sexo: string | null;
-    fecha_nacimiento: Date | null; // El servicio devuelve Date
+    fecha_nacimiento: Date | null;
     id_rol: number | null;
 };
 
@@ -32,63 +34,66 @@ export type UsuarioConRolServiceResponse = UsuarioServiceResponse & {
     rol?: { id_rol: number; nombre_rol: string } | null;
 };
 
-const ROL_USUARIO_COMUN_ID = 3;
+// Constantes de roles (ahora importadas)
+// const ROL_ADMINISTRADOR_ID = ROLES_IDS.ADMINISTRADOR; // Descomenta si lo usas aquí
+export const ROL_ORGANIZADOR_ID = ROLES_IDS.ORGANIZADOR; // Exportar si organizador.service lo necesita desde aquí
+export const ROL_USUARIO_COMUN_ID = ROLES_IDS.USUARIO_COMUN;
+export const ROL_ADMINISTRADOR_ID = ROLES_IDS.ADMINISTRADOR; // Exportar si otro servicio lo necesita
 
-const seleccionColumnasUsuarioPublico = {
-    id_usuario: usuarioTable.id_usuario,
-    correo: usuarioTable.correo,
-    nombre_usuario: usuarioTable.nombre_usuario,
-    fecha_registro: usuarioTable.fecha_registro,
-    sexo: usuarioTable.sexo,
-    fecha_nacimiento: usuarioTable.fecha_nacimiento,
-    id_rol: usuarioTable.id_rol,
-};
+// No necesitas `seleccionColumnasUsuarioPublico` si tus funciones de get y returning especifican los campos.
 
 async function hashPassword(password: string): Promise<string> {
-    if (process.env.NODE_ENV === 'test') return `hashed_${password}`;
-    console.warn("ADVERTENCIA DE SEGURIDAD: Usando hashing de contraseña inseguro.");
-    return `${password}`; // ¡¡¡REEMPLAZAR!!!
+    // ¡¡¡IMPLEMENTACIÓN SEGURA URGENTE con Bun.password.hash!!!
+    console.warn("SEGURIDAD: Usando hashing de contraseña placeholder en usuario.service.");
+    return `Bun_Hashed_${password}_Placeholder`; // Cambia esto
 }
 
-async function verifyPassword(password: string, hash: string): Promise<boolean> {
-    if (process.env.NODE_ENV === 'test') return `hashed_${password}` === hash;
-    return `${password}` === hash; // ¡¡¡REEMPLAZAR!!!
+async function verifyPassword(password: string, hashFromDb: string): Promise<boolean> {
+    // ¡¡¡IMPLEMENTACIÓN SEGURA URGENTE con Bun.password.verify!!!
+    console.warn("SEGURIDAD: Usando verificación de contraseña placeholder en usuario.service.");
+    return `Bun_Hashed_${password}_Placeholder` === hashFromDb; // Cambia esto
 }
 
-export async function registrarUsuarioService(
-  data: RegistroUsuarioPayload,
+/**
+ * Registra un NUEVO USUARIO COMÚN.
+ * Para registrar un organizador, usa el servicio en `organizador.service.ts`.
+ */
+export async function registrarUsuarioComunService( // Renombrado para claridad
+  data: RegistroUsuarioPayload
 ): Promise<UsuarioConRolServiceResponse> {
   try {
-    const targetRolId = ROL_USUARIO_COMUN_ID
+    const targetRolId = ROL_USUARIO_COMUN_ID; // <--- Asigna rol de usuario común
+    
     const existingUser = await db.query.usuarioTable.findFirst({
       where: eq(usuarioTable.correo, data.correo),
     });
     if (existingUser) {
-      console.log('El correo electrónico ya está registrado.')
       throw new CustomError('El correo electrónico ya está registrado.', 409);
     }
+
     const contrasenaHash = await hashPassword(data.contrasena);
     const newUserPayloadForDb: DrizzleNewUsuario = {
       nombre_usuario: data.nombre_usuario,
       correo: data.correo,
       contrasena: contrasenaHash,
-      id_rol: targetRolId,
+      id_rol: targetRolId, // Asigna el rol de usuario común
       sexo: data.sexo || null,
-      fecha_nacimiento: data.fecha_nacimiento || null, // Drizzle/pg maneja string a date
+      fecha_nacimiento: data.fecha_nacimiento || null,
     };
+
     const [insertedUserBrief] = await db
         .insert(usuarioTable)
         .values(newUserPayloadForDb)
         .returning({ id_usuario: usuarioTable.id_usuario });
+
     if (!insertedUserBrief || !insertedUserBrief.id_usuario) {
-      console.log('Falló la creación del perfil de usuario.')
         throw new CustomError('Falló la creación del perfil de usuario.', 500);
     }
+    // Devolver el usuario completo con su rol
     return getUsuarioByIdService(insertedUserBrief.id_usuario);
   } catch (error) {
-    console.log("Error en registrar", error)
     if (error instanceof CustomError) throw error;
-    handleErrorLog(error, 'servicio registrarUsuarioService');
+    handleErrorLog(error, 'servicio registrarUsuarioComunService');
     throw new CustomError('Error interno durante el registro.', 500);
   }
 }
@@ -103,15 +108,18 @@ export async function loginUsuarioService(
   try {
     const userFromDb = await db.query.usuarioTable.findFirst({
       where: eq(usuarioTable.correo, payload.correo),
-      with: { rol: true }
+      with: { rol: true } // Trae el objeto rol relacionado
     });
+
     if (!userFromDb || !userFromDb.contrasena) {
       throw new CustomError('Credenciales inválidas.', 401);
     }
+
     const contrasenaValida = await verifyPassword(payload.contrasena, userFromDb.contrasena);
     if (!contrasenaValida) {
       throw new CustomError('Credenciales inválidas.', 401);
     }
+
     const jwtAccessPayload: SignerAccessPayload = {
       sub: String(userFromDb.id_usuario),
       ...(userFromDb.id_rol !== null && { rol: userFromDb.id_rol }),
@@ -119,15 +127,17 @@ export async function loginUsuarioService(
     const jwtRefreshPayload: SignerRefreshPayload = {
         sub: String(userFromDb.id_usuario)
     };
+
     const accessToken = await jwtSigners.access(jwtAccessPayload);
     const refreshToken = await jwtSigners.refresh(jwtRefreshPayload);
+
     const usuarioParaRespuesta: UsuarioConRolServiceResponse = {
         id_usuario: userFromDb.id_usuario,
         correo: userFromDb.correo,
         nombre_usuario: userFromDb.nombre_usuario,
-        fecha_registro: new Date(userFromDb.fecha_registro as string),
+        fecha_registro: new Date(userFromDb.fecha_registro as string), // Asegurar Date
         sexo: userFromDb.sexo,
-        fecha_nacimiento: userFromDb.fecha_nacimiento ? new Date(userFromDb.fecha_nacimiento as string) : null,
+        fecha_nacimiento: userFromDb.fecha_nacimiento ? new Date(userFromDb.fecha_nacimiento as string) : null, // Asegurar Date
         id_rol: userFromDb.id_rol,
         rol: userFromDb.rol ? { 
             id_rol: userFromDb.rol.id_rol,
@@ -143,25 +153,29 @@ export async function loginUsuarioService(
 }
 
 export async function refreshTokenService(
-  verifiedRefreshTokenPayload: { sub: string },
+  verifiedRefreshTokenPayload: { sub: string }, // sub es string
   jwtSignerAccess: (payload: SignerAccessPayload) => Promise<string>
 ): Promise<{ accessToken: string }> {
   try {
     const userIdAsNumber = parseInt(verifiedRefreshTokenPayload.sub, 10);
     if (isNaN(userIdAsNumber)) {
-        throw new CustomError("Payload de token de refresco inválido (sub no es numérico).", 401);
+        throw new CustomError("Token de refresco inválido (sub no numérico).", 401);
     }
+
     const user = await db.query.usuarioTable.findFirst({
       where: eq(usuarioTable.id_usuario, userIdAsNumber),
-      columns: { id_rol: true }
+      columns: { id_rol: true } // Solo necesitamos el rol para el nuevo token de acceso
     });
+
     if (!user) {
       throw new CustomError('Usuario asociado al token de refresco no encontrado.', 401);
     }
+
     const newAccessTokenPayload: SignerAccessPayload = {
-      sub: String(userIdAsNumber),
+      sub: String(userIdAsNumber), // `sub` debe ser string para firmar
       ...(user.id_rol !== null && { rol: user.id_rol }),
     };
+
     const accessToken = await jwtSignerAccess(newAccessTokenPayload);
     return { accessToken };
   } catch (error) {
@@ -175,24 +189,24 @@ export async function getUsuarioByIdService(id: number): Promise<UsuarioConRolSe
   try {
     const userFromDb = await db.query.usuarioTable.findFirst({
       where: eq(usuarioTable.id_usuario, id),
-      columns: {
+      columns: { // Seleccionar explícitamente para excluir 'contrasena'
         id_usuario: true, correo: true, nombre_usuario: true,
         fecha_registro: true, sexo: true, fecha_nacimiento: true, id_rol: true,
       },
-      with: { rol: true },
+      with: { rol: true }, // Incluir el objeto rol relacionado
     });
+
     if (!userFromDb) {
-      console.log(`Usuario con ID ${id} no encontrado.`)
       throw new CustomError(`Usuario con ID ${id} no encontrado.`, 404);
     }
-    console.log("USUARIO", userFromDb)
+    
     return {
         id_usuario: userFromDb.id_usuario,
         correo: userFromDb.correo,
         nombre_usuario: userFromDb.nombre_usuario,
-        fecha_registro: new Date(userFromDb.fecha_registro as string),
+        fecha_registro: new Date(userFromDb.fecha_registro as string), // Asegurar Date
         sexo: userFromDb.sexo,
-        fecha_nacimiento: userFromDb.fecha_nacimiento ? new Date(userFromDb.fecha_nacimiento as string) : null,
+        fecha_nacimiento: userFromDb.fecha_nacimiento ? new Date(userFromDb.fecha_nacimiento as string) : null, // Asegurar Date
         id_rol: userFromDb.id_rol,
         rol: userFromDb.rol ? { 
             id_rol: userFromDb.rol.id_rol,
@@ -201,7 +215,6 @@ export async function getUsuarioByIdService(id: number): Promise<UsuarioConRolSe
     };
   } catch (error) {
     if (error instanceof CustomError) throw error;
-    console.log("ERROR AAAA", error)
     handleErrorLog(error, `servicio getUsuarioByIdService (id: ${id})`);
     throw new CustomError('Error interno al obtener el perfil del usuario.', 500);
   }
@@ -210,31 +223,37 @@ export async function getUsuarioByIdService(id: number): Promise<UsuarioConRolSe
 export async function updateUsuarioPerfilService(
   userId: number,
   data: UpdateUsuarioPerfilPayload
-): Promise<UsuarioConRolServiceResponse> {
+): Promise<UsuarioConRolServiceResponse> { // Devolver el perfil completo con rol
     try {
         const currentUser = await db.query.usuarioTable.findFirst({
             where: eq(usuarioTable.id_usuario, userId),
-            columns: { id_usuario: true }
+            columns: { id_usuario: true } // Solo para verificar existencia
         });
         if (!currentUser) {
             throw new CustomError('Usuario no encontrado para actualizar.', 404);
         }
+
+        // Campos que el usuario puede actualizar de su propio perfil
         const updatePayloadForDb: Partial<Pick<DrizzleNewUsuario, 'nombre_usuario' | 'sexo' | 'fecha_nacimiento'>> = {};
         if (data.nombre_usuario !== undefined) updatePayloadForDb.nombre_usuario = data.nombre_usuario;
         if (data.hasOwnProperty('sexo')) updatePayloadForDb.sexo = data.sexo;
         if (data.hasOwnProperty('fecha_nacimiento')) {
           updatePayloadForDb.fecha_nacimiento = data.fecha_nacimiento; // Drizzle/pg maneja string para DATE
         }
+
         if (Object.keys(updatePayloadForDb).length === 0) {
-            return getUsuarioByIdService(userId);
+            return getUsuarioByIdService(userId); // No hay cambios, devolver el perfil actual
         }
+
         const [updatedUserRaw] = await db.update(usuarioTable)
             .set(updatePayloadForDb)
             .where(eq(usuarioTable.id_usuario, userId))
-            .returning({id_usuario: usuarioTable.id_usuario}); // Solo el ID
+            .returning({id_usuario: usuarioTable.id_usuario}); // Solo el ID para luego buscar completo
+
         if (!updatedUserRaw || !updatedUserRaw.id_usuario) {
             throw new CustomError('No se pudo actualizar el perfil del usuario.', 500);
         }
+        // Devolver el perfil completo y actualizado
         return getUsuarioByIdService(updatedUserRaw.id_usuario);
     } catch (error) {
         if (error instanceof CustomError) throw error;

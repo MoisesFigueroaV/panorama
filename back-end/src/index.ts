@@ -8,7 +8,7 @@ import * as dotenv from 'dotenv';
 
 import { rolUsuarioRoutes } from './modules/rolUsuario/rolUsuario.routes';
 import { usuarioRoutes, userProfileRoutes } from './modules/usuario/usuario.routes';
-import { organizadorRoutes, adminOrganizadorRoutes } from './modules/organizador/organizador.routes';
+import { authOrganizadorRoutes, adminOrganizadorRoutes } from './modules/organizador/organizador.routes';
 
 dotenv.config();
 
@@ -81,7 +81,7 @@ const app = new Elysia()
       .use(rolUsuarioRoutes)        // ej. /api/v1/roles-usuario
       .use(usuarioRoutes)           // ej. /api/v1/auth (para registro, login, refresh)
       .use(userProfileRoutes)       // ej. /api/v1/usuarios (para /yo - perfil)
-      .use(organizadorRoutes)       // ej. /api/v1/organizadores
+      .use(authOrganizadorRoutes)   // ej. /api/v1/organizadores
       .use(adminOrganizadorRoutes)  // ej. /api/v1/admin/organizadores
   )
 
