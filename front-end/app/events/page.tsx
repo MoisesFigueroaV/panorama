@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent } from "@/components/ui/card"
 import EventCard from "@/components/event-card"
-import { events } from "@/services/mock-data"
+import { events } from "@/lib/mock-data"
 
 export default function EventsPage() {
   const searchParams = useSearchParams()

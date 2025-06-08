@@ -1,7 +1,7 @@
 "use client"
 
-import { useAuth } from "@/hooks/use-auth"
-import { signOut } from "next-auth/react"
+import { useAuth } from "@/components/auth-provider"
+import { apiClient, handleLogoutClient } from "@/lib/api/apiClient"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Search, Menu, User, LogOut, Bell } from "lucide-react"
@@ -22,7 +22,7 @@ export default function SiteHeader() {
   const { user, isAuthenticated } = useAuth()
 
   const handleSignOut = () => {
-    signOut({ callbackUrl: "/" })
+    handleLogoutClient()
   }
 
   const getInitials = (name: string) => {
@@ -81,16 +81,15 @@ export default function SiteHeader() {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={user?.image || ""} alt={user?.name || "Usuario"} />
-                      <AvatarFallback>{getInitials(user?.name || "")}</AvatarFallback>
+                      <AvatarFallback>{getInitials(user?.nombre_usuario || "")}</AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56" align="end" forceMount>
                   <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">{user?.name}</p>
-                      <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
+                      <p className="text-sm font-medium leading-none">{user?.nombre_usuario}</p>
+                      <p className="text-xs leading-none text-muted-foreground">{user?.correo}</p>
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
@@ -149,12 +148,11 @@ export default function SiteHeader() {
                 {isAuthenticated && (
                   <div className="flex items-center gap-4 mb-2 pb-4 border-b border-primary/10">
                     <Avatar className="h-10 w-10">
-                      <AvatarImage src={user?.image || ""} alt={user?.name || "Usuario"} />
-                      <AvatarFallback>{getInitials(user?.name || "")}</AvatarFallback>
+                      <AvatarFallback>{getInitials(user?.nombre_usuario || "")}</AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="text-sm font-medium">{user?.name}</p>
-                      <p className="text-xs text-muted-foreground">{user?.email}</p>
+                      <p className="text-sm font-medium">{user?.nombre_usuario}</p>
+                      <p className="text-xs text-muted-foreground">{user?.correo}</p>
                     </div>
                   </div>
                 )}

@@ -19,32 +19,32 @@ export function OrganizerSidebar() {
 
   const routes = [
     {
-      href: "/organizer",
+      href: "/organizers/dashboard",
       icon: Home,
       label: "Dashboard",
     },
     {
-      href: "/organizer/events",
+      href: "/organizers/dashboard/events",
       icon: Calendar,
       label: "Mis eventos",
     },
     {
-      href: "/organizer/events/create",
+      href: "/organizers/dashboard/events/create",
       icon: PlusCircle,
       label: "Crear evento",
     },
     {
-      href: "/organizer/messages",
+      href: "/organizers/dashboard/messages",
       icon: MessageSquare,
       label: "Mensajes",
     },
     {
-      href: "/organizer/profile",
+      href: "/organizers/dashboard/profile",
       icon: Users,
       label: "Mi Perfil",
     },
     {
-      href: "/organizer/profile/public",
+      href: "/organizers/dashboard/profile/public",
       icon: Globe,
       label: "Perfil Público",
     },
