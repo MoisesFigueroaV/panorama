@@ -4,7 +4,6 @@ import {
   usuarioTable,
   type Usuario as DrizzleUsuario,
   type NewUsuario as DrizzleNewUsuario,
-  // rolUsuarioTable, // No es necesario si usas `with` y ya está en db.schema
 } from '../../db/schema';
 import { eq } from 'drizzle-orm';
 import { CustomError, handleErrorLog } from '../../utils/errors';
@@ -45,13 +44,13 @@ export const ROL_ADMINISTRADOR_ID = ROLES_IDS.ADMINISTRADOR; // Exportar si otro
 async function hashPassword(password: string): Promise<string> {
     // ¡¡¡IMPLEMENTACIÓN SEGURA URGENTE con Bun.password.hash!!!
     console.warn("SEGURIDAD: Usando hashing de contraseña placeholder en usuario.service.");
-    return `Bun_Hashed_${password}_Placeholder`; // Cambia esto
+    return `${password}`; // Cambia esto
 }
 
 async function verifyPassword(password: string, hashFromDb: string): Promise<boolean> {
     // ¡¡¡IMPLEMENTACIÓN SEGURA URGENTE con Bun.password.verify!!!
     console.warn("SEGURIDAD: Usando verificación de contraseña placeholder en usuario.service.");
-    return `Bun_Hashed_${password}_Placeholder` === hashFromDb; // Cambia esto
+    return `${password}` === hashFromDb; // Cambia esto
 }
 
 /**
