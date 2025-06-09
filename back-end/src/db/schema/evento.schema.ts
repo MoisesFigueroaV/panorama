@@ -14,3 +14,7 @@ export const eventoTable = pgTable('eventos', {
   creado_en: timestamp('creado_en').defaultNow(),
   actualizado_en: timestamp('actualizado_en').defaultNow(),
 });
+
+export type Evento = typeof eventoTable.$inferSelect;
+export type NewEvento = typeof eventoTable.$inferInsert;
+export type UpdateEvento = Partial<NewEvento> & { id_evento: number };

@@ -12,3 +12,4 @@ export * from './usuario.schema';
 export * from './organizador.schema';
 export * from './historialAcreditacion.schema';
 export * from './estadoAcreditacion.schema';
+export * from './evento.schema';

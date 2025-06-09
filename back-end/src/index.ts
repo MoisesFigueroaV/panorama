@@ -9,6 +9,7 @@ import * as dotenv from 'dotenv';
 import { rolUsuarioRoutes } from './modules/rolUsuario/rolUsuario.routes';
 import { usuarioRoutes, userProfileRoutes } from './modules/usuario/usuario.routes';
 import { authOrganizadorRoutes, adminOrganizadorRoutes } from './modules/organizador/organizador.routes';
+import { eventoRoutes } from './modules/evento/evento.routes';
 
 dotenv.config();
 
@@ -33,6 +34,7 @@ const app = new Elysia()
         { name: 'Usuarios', description: 'Gestión de perfiles de usuario' },
         { name: 'Organizadores', description: 'Gestión de perfiles de organizadores de eventos' },
         { name: 'Admin - Organizadores', description: 'Administración de organizadores de eventos' },
+        { name: 'eventos', description: 'Gestión de eventos y sus participantes' },
       ],
       servers: [ 
         { url: `http://localhost:${port}`, description: 'Servidor Local (sin prefijo /api/v1)' },
@@ -83,6 +85,7 @@ const app = new Elysia()
       .use(userProfileRoutes)       // ej. /api/v1/usuarios (para /yo - perfil)
       .use(authOrganizadorRoutes)   // ej. /api/v1/organizadores
       .use(adminOrganizadorRoutes)  // ej. /api/v1/admin/organizadores
+      .use(eventoRoutes)      // ej. /api/v1/eventos (para crear eventos)
   )
 
   .listen(port); 
