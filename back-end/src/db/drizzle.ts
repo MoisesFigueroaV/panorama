@@ -9,6 +9,7 @@ import * as allSchemas from './schema'; // Importa todos los schemas
 // Importa las relaciones explícitamente si no están en allSchemas por defecto
 import { usuarioRelations } from './schema/usuario.schema';
 import { organizadorRelations } from './schema/organizador.schema';
+//import { adminRelations } from './schema/rolUsuario.schema';
 // ...
 
 const databaseUrl = process.env.DATABASE_URL;

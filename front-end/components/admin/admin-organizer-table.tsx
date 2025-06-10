@@ -1,12 +1,11 @@
-// Create this file for the admin user table component
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { MoreHorizontal, UserCheck, UserX, Search, Loader2 } from "lucide-react"
+import { MoreHorizontal, UserCheck, UserX, Search, Calendar, MapPin } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,121 +21,120 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { apiClient } from "@/lib/api/apiClient"
 import { useToast } from "@/components/ui/use-toast"
-import { Link } from "react-router-dom"
+import Link from "next/link"
 
-interface User {
+// Datos de ejemplo
+const mockOrganizers = [
+  {
+    id: "1",
+    name: "Producciones Urbanas",
+    email: "contacto@produccionesurbanas.com",
+    status: "active" as const,
+    eventsCount: 12,
+    rating: 4.8,
+    location: "Santiago, Chile",
+    createdAt: "2024-01-15"
+  },
+  {
+    id: "2",
+    name: "Galería Central",
+    email: "info@galeriacentral.com",
+    status: "active" as const,
+    eventsCount: 8,
+    rating: 4.5,
+    location: "Valparaíso, Chile",
+    createdAt: "2024-02-01"
+  },
+  {
+    id: "3",
+    name: "Deportes Unidos",
+    email: "eventos@deportesunidos.com",
+    status: "suspended" as const,
+    eventsCount: 15,
+    rating: 4.2,
+    location: "Concepción, Chile",
+    createdAt: "2024-01-20"
+  },
+  {
+    id: "4",
+    name: "TechHub",
+    email: "info@techhub.com",
+    status: "pending" as const,
+    eventsCount: 6,
+    rating: 4.0,
+    location: "Antofagasta, Chile",
+    createdAt: "2024-02-15"
+  },
+  {
+    id: "5",
+    name: "Sabores del Mundo",
+    email: "contacto@saboresdelmundo.com",
+    status: "active" as const,
+    eventsCount: 9,
+    rating: 4.7,
+    location: "La Serena, Chile",
+    createdAt: "2024-01-10"
+  }
+]
+
+interface Organizer {
   id: string
   name: string
   email: string
-  role: "admin" | "organizer" | "user"
-  status: "active" | "suspended"
+  status: "active" | "suspended" | "pending"
+  eventsCount: number
+  rating: number
+  location: string
   createdAt: string
 }
 
-export function AdminUserTable() {
+export function AdminOrganizerTable() {
   const { toast } = useToast()
-  const [users, setUsers] = useState<User[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
-  const [roleFilter, setRoleFilter] = useState<string>("all")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [currentPage, setCurrentPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(1)
   const itemsPerPage = 10
 
-  // Función para cargar usuarios
-  const fetchUsers = async () => {
-    try {
-      setIsLoading(true)
-      setError(null)
-      const response = await apiClient.get('/usuarios', {
-        params: {
-          page: currentPage,
-          limit: itemsPerPage,
-          search: searchTerm,
-          role: roleFilter !== 'all' ? roleFilter : undefined,
-          status: statusFilter !== 'all' ? statusFilter : undefined
-        }
-      })
-      setUsers(response.data.users)
-      setTotalPages(Math.ceil(response.data.total / itemsPerPage))
-    } catch (err: any) {
-      setError(err.message || 'Error al cargar usuarios')
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "No se pudieron cargar los usuarios"
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  // Filtrar organizadores
+  const filteredOrganizers = mockOrganizers.filter(organizer => {
+    const matchesSearch = searchTerm === "" || 
+      organizer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      organizer.email.toLowerCase().includes(searchTerm.toLowerCase())
+    
+    const matchesStatus = statusFilter === "all" || organizer.status === statusFilter
 
-  // Función para actualizar estado de usuario
-  const updateUserStatus = async (userId: string, newStatus: "active" | "suspended") => {
-    try {
-      await apiClient.patch(`/usuarios/${userId}/status`, { status: newStatus })
-      toast({
-        title: "Estado actualizado",
-        description: `Usuario ${newStatus === 'active' ? 'activado' : 'suspendido'} correctamente`
-      })
-      fetchUsers() // Recargar lista
-    } catch (err: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "No se pudo actualizar el estado del usuario"
-      })
-    }
-  }
+    return matchesSearch && matchesStatus
+  })
 
-  // Efecto para cargar usuarios y manejar filtros
-  useEffect(() => {
-    const debounceTimer = setTimeout(() => {
-      setCurrentPage(1) // Resetear a primera página al filtrar
-      fetchUsers()
-    }, 300)
+  // Paginación
+  const totalPages = Math.ceil(filteredOrganizers.length / itemsPerPage)
+  const paginatedOrganizers = filteredOrganizers.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  )
 
-    return () => clearTimeout(debounceTimer)
-  }, [searchTerm, roleFilter, statusFilter, currentPage])
-
-  if (error) {
-    return (
-      <Alert variant="destructive">
-        <AlertDescription>{error}</AlertDescription>
-      </Alert>
-    )
+  const updateOrganizerStatus = (organizerId: string, newStatus: "active" | "suspended") => {
+    toast({
+      title: "Estado actualizado",
+      description: `Organizador ${newStatus === 'active' ? 'activado' : 'suspendido'} correctamente`
+    })
   }
 
   return (
     <div className="space-y-4">
       {/* Filtros y búsqueda */}
       <div className="flex flex-col gap-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="relative">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar usuarios..."
+              placeholder="Buscar organizadores..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-8 w-full"
             />
           </div>
-          <Select value={roleFilter} onValueChange={setRoleFilter}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Filtrar por rol" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos los roles</SelectItem>
-              <SelectItem value="admin">Administradores</SelectItem>
-              <SelectItem value="organizer">Organizadores</SelectItem>
-              <SelectItem value="user">Usuarios</SelectItem>
-            </SelectContent>
-          </Select>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Filtrar por estado" />
@@ -145,6 +143,7 @@ export function AdminUserTable() {
               <SelectItem value="all">Todos los estados</SelectItem>
               <SelectItem value="active">Activos</SelectItem>
               <SelectItem value="suspended">Suspendidos</SelectItem>
+              <SelectItem value="pending">Pendientes</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -156,60 +155,66 @@ export function AdminUserTable() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="min-w-[200px]">Usuario</TableHead>
-                <TableHead className="min-w-[120px]">Rol</TableHead>
+                <TableHead className="min-w-[200px]">Organizador</TableHead>
                 <TableHead className="min-w-[120px]">Estado</TableHead>
+                <TableHead className="min-w-[120px]">Eventos</TableHead>
+                <TableHead className="min-w-[120px]">Calificación</TableHead>
+                <TableHead className="min-w-[150px]">Ubicación</TableHead>
                 <TableHead className="min-w-[120px]">Fecha de registro</TableHead>
                 <TableHead className="w-[100px] text-right">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {isLoading ? (
+              {paginatedOrganizers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center">
-                    <Loader2 className="h-6 w-6 animate-spin mx-auto" />
-                    <p className="mt-2 text-sm text-muted-foreground">Cargando usuarios...</p>
-                  </TableCell>
-                </TableRow>
-              ) : users.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center">
-                    No se encontraron usuarios
+                  <TableCell colSpan={7} className="h-24 text-center">
+                    No se encontraron organizadores
                   </TableCell>
                 </TableRow>
               ) : (
-                users.map((user) => (
-                  <TableRow key={user.id}>
+                paginatedOrganizers.map((organizer) => (
+                  <TableRow key={organizer.id}>
                     <TableCell className="font-medium">
                       <div className="min-w-[180px]">
-                        <div className="truncate">{user.name}</div>
-                        <div className="text-sm text-muted-foreground truncate">{user.email}</div>
+                        <div className="truncate">{organizer.name}</div>
+                        <div className="text-sm text-muted-foreground truncate">{organizer.email}</div>
                       </div>
                     </TableCell>
                     <TableCell>
-                      {user.role === "admin" ? (
-                        <Badge className="bg-primary whitespace-nowrap">Admin</Badge>
-                      ) : user.role === "organizer" ? (
-                        <Badge variant="outline" className="border-accent text-accent whitespace-nowrap">
-                          Organizador
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="whitespace-nowrap">Usuario</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {user.status === "active" ? (
+                      {organizer.status === "active" ? (
                         <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200 whitespace-nowrap">
                           Activo
                         </Badge>
-                      ) : (
+                      ) : organizer.status === "suspended" ? (
                         <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200 whitespace-nowrap">
                           Suspendido
                         </Badge>
+                      ) : (
+                        <Badge variant="outline" className="bg-yellow-50 text-yellow-600 border-yellow-200 whitespace-nowrap">
+                          Pendiente
+                        </Badge>
                       )}
                     </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <span>{organizer.eventsCount}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <span className="font-medium">{organizer.rating.toFixed(1)}</span>
+                        <span className="text-muted-foreground">/5.0</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                        <span className="truncate">{organizer.location}</span>
+                      </div>
+                    </TableCell>
                     <TableCell className="whitespace-nowrap">
-                      {new Date(user.createdAt).toLocaleDateString()}
+                      {new Date(organizer.createdAt).toLocaleDateString()}
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
@@ -223,27 +228,35 @@ export function AdminUserTable() {
                           <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem asChild>
-                            <Link href={`/admin/users/${user.id}`}>Ver perfil</Link>
+                            <Link href={`/admin/organizers/${organizer.id}`}>Ver perfil</Link>
                           </DropdownMenuItem>
                           <DropdownMenuItem asChild>
-                            <Link href={`/admin/users/${user.id}/edit`}>Editar usuario</Link>
+                            <Link href={`/admin/organizers/${organizer.id}/edit`}>Editar organizador</Link>
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          {user.status === "active" ? (
+                          {organizer.status === "active" ? (
                             <DropdownMenuItem 
                               className="text-red-600"
-                              onClick={() => updateUserStatus(user.id, "suspended")}
+                              onClick={() => updateOrganizerStatus(organizer.id, "suspended")}
                             >
                               <UserX className="mr-2 h-4 w-4" />
-                              Suspender usuario
+                              Suspender
+                            </DropdownMenuItem>
+                          ) : organizer.status === "suspended" ? (
+                            <DropdownMenuItem 
+                              className="text-green-600"
+                              onClick={() => updateOrganizerStatus(organizer.id, "active")}
+                            >
+                              <UserCheck className="mr-2 h-4 w-4" />
+                              Activar
                             </DropdownMenuItem>
                           ) : (
                             <DropdownMenuItem 
                               className="text-green-600"
-                              onClick={() => updateUserStatus(user.id, "active")}
+                              onClick={() => updateOrganizerStatus(organizer.id, "active")}
                             >
                               <UserCheck className="mr-2 h-4 w-4" />
-                              Activar usuario
+                              Aprobar
                             </DropdownMenuItem>
                           )}
                         </DropdownMenuContent>
@@ -258,10 +271,10 @@ export function AdminUserTable() {
       </div>
 
       {/* Paginación */}
-      {!isLoading && totalPages > 1 && (
+      {totalPages > 1 && (
         <div className="flex items-center justify-between gap-4">
           <div className="text-sm text-muted-foreground">
-            Mostrando {users.length} de {totalPages * itemsPerPage} usuarios
+            Mostrando {paginatedOrganizers.length} de {filteredOrganizers.length} organizadores
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -288,4 +301,4 @@ export function AdminUserTable() {
       )}
     </div>
   )
-}
+} 
