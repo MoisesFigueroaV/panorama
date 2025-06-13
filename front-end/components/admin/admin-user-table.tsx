@@ -1,291 +1,72 @@
-// Create this file for the admin user table component
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { MoreHorizontal, UserCheck, UserX, Search, Loader2 } from "lucide-react"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { apiClient } from "@/lib/api/apiClient"
-import { useToast } from "@/components/ui/use-toast"
-import { Link } from "react-router-dom"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { MoreHorizontal } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import type { AdminUser } from "@/lib/hooks/useAdminDashboard"; // Usamos el tipo del hook
 
-interface User {
-  id: string
-  name: string
-  email: string
-  role: "admin" | "organizer" | "user"
-  status: "active" | "suspended"
-  createdAt: string
+interface AdminUserTableProps {
+  users: AdminUser[];
 }
 
-export function AdminUserTable() {
-  const { toast } = useToast()
-  const [users, setUsers] = useState<User[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [roleFilter, setRoleFilter] = useState<string>("all")
-  const [statusFilter, setStatusFilter] = useState<string>("all")
-  const [currentPage, setCurrentPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(1)
-  const itemsPerPage = 10
-
-  // Función para cargar usuarios
-  const fetchUsers = async () => {
-    try {
-      setIsLoading(true)
-      setError(null)
-      const response = await apiClient.get('/usuarios', {
-        params: {
-          page: currentPage,
-          limit: itemsPerPage,
-          search: searchTerm,
-          role: roleFilter !== 'all' ? roleFilter : undefined,
-          status: statusFilter !== 'all' ? statusFilter : undefined
-        }
-      })
-      setUsers(response.data.users)
-      setTotalPages(Math.ceil(response.data.total / itemsPerPage))
-    } catch (err: any) {
-      setError(err.message || 'Error al cargar usuarios')
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "No se pudieron cargar los usuarios"
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  // Función para actualizar estado de usuario
-  const updateUserStatus = async (userId: string, newStatus: "active" | "suspended") => {
-    try {
-      await apiClient.patch(`/usuarios/${userId}/status`, { status: newStatus })
-      toast({
-        title: "Estado actualizado",
-        description: `Usuario ${newStatus === 'active' ? 'activado' : 'suspendido'} correctamente`
-      })
-      fetchUsers() // Recargar lista
-    } catch (err: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "No se pudo actualizar el estado del usuario"
-      })
-    }
-  }
-
-  // Efecto para cargar usuarios y manejar filtros
-  useEffect(() => {
-    const debounceTimer = setTimeout(() => {
-      setCurrentPage(1) // Resetear a primera página al filtrar
-      fetchUsers()
-    }, 300)
-
-    return () => clearTimeout(debounceTimer)
-  }, [searchTerm, roleFilter, statusFilter, currentPage])
-
-  if (error) {
-    return (
-      <Alert variant="destructive">
-        <AlertDescription>{error}</AlertDescription>
-      </Alert>
-    )
+export function AdminUserTable({ users }: AdminUserTableProps) {
+  if (!users || users.length === 0) {
+    return <p className="text-sm text-center text-muted-foreground py-8">No hay usuarios para mostrar.</p>;
   }
 
   return (
-    <div className="space-y-4">
-      {/* Filtros y búsqueda */}
-      <div className="flex flex-col gap-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div className="relative">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar usuarios..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-8 w-full"
-            />
-          </div>
-          <Select value={roleFilter} onValueChange={setRoleFilter}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Filtrar por rol" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos los roles</SelectItem>
-              <SelectItem value="admin">Administradores</SelectItem>
-              <SelectItem value="organizer">Organizadores</SelectItem>
-              <SelectItem value="user">Usuarios</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Filtrar por estado" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos los estados</SelectItem>
-              <SelectItem value="active">Activos</SelectItem>
-              <SelectItem value="suspended">Suspendidos</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      {/* Tabla */}
-      <div className="rounded-md border">
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="min-w-[200px]">Usuario</TableHead>
-                <TableHead className="min-w-[120px]">Rol</TableHead>
-                <TableHead className="min-w-[120px]">Estado</TableHead>
-                <TableHead className="min-w-[120px]">Fecha de registro</TableHead>
-                <TableHead className="w-[100px] text-right">Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center">
-                    <Loader2 className="h-6 w-6 animate-spin mx-auto" />
-                    <p className="mt-2 text-sm text-muted-foreground">Cargando usuarios...</p>
-                  </TableCell>
-                </TableRow>
-              ) : users.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center">
-                    No se encontraron usuarios
-                  </TableCell>
-                </TableRow>
-              ) : (
-                users.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell className="font-medium">
-                      <div className="min-w-[180px]">
-                        <div className="truncate">{user.name}</div>
-                        <div className="text-sm text-muted-foreground truncate">{user.email}</div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {user.role === "admin" ? (
-                        <Badge className="bg-primary whitespace-nowrap">Admin</Badge>
-                      ) : user.role === "organizer" ? (
-                        <Badge variant="outline" className="border-accent text-accent whitespace-nowrap">
-                          Organizador
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="whitespace-nowrap">Usuario</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {user.status === "active" ? (
-                        <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200 whitespace-nowrap">
-                          Activo
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200 whitespace-nowrap">
-                          Suspendido
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {new Date(user.createdAt).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <span className="sr-only">Abrir menú</span>
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-[160px]">
-                          <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem asChild>
-                            <Link href={`/admin/users/${user.id}`}>Ver perfil</Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem asChild>
-                            <Link href={`/admin/users/${user.id}/edit`}>Editar usuario</Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          {user.status === "active" ? (
-                            <DropdownMenuItem 
-                              className="text-red-600"
-                              onClick={() => updateUserStatus(user.id, "suspended")}
-                            >
-                              <UserX className="mr-2 h-4 w-4" />
-                              Suspender usuario
-                            </DropdownMenuItem>
-                          ) : (
-                            <DropdownMenuItem 
-                              className="text-green-600"
-                              onClick={() => updateUserStatus(user.id, "active")}
-                            >
-                              <UserCheck className="mr-2 h-4 w-4" />
-                              Activar usuario
-                            </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </div>
-
-      {/* Paginación */}
-      {!isLoading && totalPages > 1 && (
-        <div className="flex items-center justify-between gap-4">
-          <div className="text-sm text-muted-foreground">
-            Mostrando {users.length} de {totalPages * itemsPerPage} usuarios
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-            >
-              Anterior
-            </Button>
-            <div className="text-sm text-muted-foreground">
-              Página {currentPage} de {totalPages}
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-            >
-              Siguiente
-            </Button>
-          </div>
-        </div>
-      )}
+    <div className="overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Usuario</TableHead>
+            <TableHead>Email</TableHead>
+            <TableHead>Rol</TableHead>
+            <TableHead>Fecha de Registro</TableHead>
+            <TableHead className="text-right">Acciones</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {users.map((user) => (
+            <TableRow key={user.id_usuario}>
+              <TableCell>
+                <div className="flex items-center gap-3">
+                  <Avatar>
+                    <AvatarFallback>{user.nombre_usuario.charAt(0).toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                  <div className="font-medium">{user.nombre_usuario}</div>
+                </div>
+              </TableCell>
+              <TableCell>{user.correo}</TableCell>
+              <TableCell>
+                <Badge variant="outline">{user.rol?.nombre_rol ?? 'Sin rol'}</Badge>
+              </TableCell>
+              <TableCell>
+                {new Date(user.fecha_registro).toLocaleDateString('es-ES', {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric',
+                })}
+              </TableCell>
+              <TableCell className="text-right">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem>Ver detalles</DropdownMenuItem>
+                    <DropdownMenuItem>Editar</DropdownMenuItem>
+                    <DropdownMenuItem className="text-red-500">Suspender</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     </div>
-  )
+  );
 }

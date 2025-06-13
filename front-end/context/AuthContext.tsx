@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { apiClient, setAccessToken, setRefreshToken, getAccessToken } from '@/lib/api/apiClient'
+import { useRouter } from 'next/navigation'
 
 interface AuthContextType {
   user: any | null
@@ -17,35 +18,58 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<any | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const router = useRouter()
 
   useEffect(() => {
     checkSession()
   }, [])
 
   const checkSession = async () => {
-    const token = getAccessToken()
-    if (token) {
-      try {
+    try {
+      const token = getAccessToken()
+      if (token) {
+        // Configurar el token en el cliente API
+        setAccessToken(token)
+        
+        // Verificar la sesión con el backend
         const response = await apiClient.get('/usuarios/yo')
         setUser(response.data)
-      } catch (err) {
-        setAccessToken(null)
-        setRefreshToken(null)
+      } else {
+        setUser(null)
       }
+    } catch (err) {
+      console.error('Error al verificar sesión:', err)
+      setAccessToken(null)
+      setRefreshToken(null)
+      setUser(null)
+    } finally {
+      setIsLoading(false)
     }
-    setIsLoading(false)
   }
 
   const login = async (email: string, password: string) => {
     try {
       setError(null)
+      setIsLoading(true)
       const response = await apiClient.post('/auth/login', { correo: email, contrasena: password })
+      
+      // Guardar tokens
       setAccessToken(response.data.accessToken)
       setRefreshToken(response.data.refreshToken)
+      
+      // Guardar usuario
       setUser(response.data.usuario)
+      
+      // Configurar el token en el cliente API
+      apiClient.defaults.headers.common['Authorization'] = `Bearer ${response.data.accessToken}`
     } catch (err: any) {
       setError(err.message || 'Error al iniciar sesión')
+      setAccessToken(null)
+      setRefreshToken(null)
+      setUser(null)
       throw err
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -53,6 +77,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setAccessToken(null)
     setRefreshToken(null)
     setUser(null)
+    router.push('/login')
   }
 
   return (

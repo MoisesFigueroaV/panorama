@@ -1,57 +1,63 @@
 // src/modules/admin/admin.types.ts
 import { t } from 'elysia';
 
-// Schema para la respuesta de los KPIs del Dashboard
+// Schema para KPIs
 export const kpisResponseSchema = t.Object({
-  totalUsuarios: t.Integer(),
-  totalOrganizadores: t.Integer(),
-  solicitudesPendientes: t.Integer(),
-  eventosActivos: t.Integer(),
+    totalUsuarios: t.Integer(),
+    totalOrganizadores: t.Integer(),
+    solicitudesPendientes: t.Integer(),
+    eventosActivos: t.Integer(),
 });
 
-// Schema para la respuesta de un organizador en las listas de admin
+// Schema para la lista de organizadores
 export const adminOrganizerSchema = t.Object({
     id_organizador: t.Integer(),
     nombre_organizacion: t.String(),
-    acreditado: t.Boolean(),
+    descripcion: t.Nullable(t.String()),
     documento_acreditacion: t.Nullable(t.String()),
-    usuario: t.Object({
+    acreditado: t.Boolean(),
+    ubicacion: t.Nullable(t.String()),
+    anio_fundacion: t.Nullable(t.Integer()),
+    sitio_web: t.Nullable(t.String()),
+    imagen_portada: t.Nullable(t.String()),
+    logo_organizacion: t.Nullable(t.String()),
+    id_usuario: t.Integer(),
+    usuario: t.Nullable(t.Object({
         nombre_usuario: t.String(),
         correo: t.String(),
-        fecha_registro: t.Date(),
-    }),
-    estadoAcreditacionActual: t.Nullable(t.Object({
-        nombre_estado: t.String(),
+        fecha_registro: t.String({ format: 'date-time' })
     })),
+    estadoAcreditacionActual: t.Nullable(t.Object({
+        nombre_estado: t.String()
+    }))
 });
 export const organizersListResponseSchema = t.Array(adminOrganizerSchema);
 
-// Schema para la petición de actualizar el estado de acreditación
-export const updateAcreditationSchema = t.Object({
-    id_estado_acreditacion: t.Integer({ description: "ID del nuevo estado (ej. 2 para Aprobado)" }),
-    notas_admin: t.Optional(t.String({ description: "Notas del administrador sobre el cambio." }))
-});
+// Schema para actualizar acreditación
+export const updateAcreditationSchema = t.Object({ /* ... */ });
 
-// Schema para la respuesta de un usuario en las listas de admin
+// Schema para la lista de usuarios
 export const adminUserSchema = t.Object({
     id_usuario: t.Integer(),
     nombre_usuario: t.String(),
     correo: t.String(),
-    fecha_registro: t.Date(),
+    fecha_registro: t.String({ format: 'date-time' }),
+    fecha_nacimiento: t.Nullable(t.String({ format: 'date-time' })),
+    id_rol: t.Nullable(t.Integer()),
+    sexo: t.Nullable(t.String()),
     rol: t.Nullable(t.Object({
         id_rol: t.Integer(),
         nombre_rol: t.String()
     }))
 });
-export const usersListResponseSchema = t.Array(adminUserSchema);
 
-// Schema para los parámetros de paginación
-export const paginationQuerySchema = t.Object({
-    page: t.Optional(t.Numeric({ default: 1, minimum: 1 })),
-    pageSize: t.Optional(t.Numeric({ default: 10, minimum: 1, maximum: 50 }))
+export const usersListResponseSchema = t.Object({
+    users: t.Array(adminUserSchema),
+    total: t.Integer(),
+    page: t.Integer(),
+    pageSize: t.Integer()
 });
 
-// Parámetros de ruta genéricos
-export const idParamsSchema = t.Object({
-  id: t.Numeric({ minimum: 1 })
-});
+// Schemas de paginación y parámetros
+export const paginationQuerySchema = t.Object({ /* ... */ });
+export const idParamsSchema = t.Object({ /* ... */ });

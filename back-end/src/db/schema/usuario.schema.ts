@@ -2,7 +2,8 @@
 import { pgTable, serial, integer, varchar, date, char } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm'; 
 import { relations } from 'drizzle-orm';
-import { rolUsuarioTable } from './rolUsuario.schema'; 
+import { rolUsuarioTable } from './rolUsuario.schema';
+import { organizadorTable } from './organizador.schema';
 
 export const usuarioTable = pgTable('usuario', {
   id_usuario: serial('id_usuario').primaryKey(),
@@ -19,6 +20,10 @@ export const usuarioRelations = relations(usuarioTable, ({ one }) => ({
   rol: one(rolUsuarioTable, {
     fields: [usuarioTable.id_rol],
     references: [rolUsuarioTable.id_rol],
+  }),
+  organizador: one(organizadorTable, {
+    fields: [usuarioTable.id_usuario],
+    references: [organizadorTable.id_usuario],
   }),
 }));
 

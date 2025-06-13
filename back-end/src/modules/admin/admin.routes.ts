@@ -6,11 +6,10 @@ import * as adminServices from './admin.services';
 import * as adminTypes from './admin.types';
 
 export const adminRoutes = new Elysia({
-  prefix: '/admin', // Prefijo único para todo el módulo
+  prefix: '/admin',
   detail: { tags: ['Admin'] },
 })
 .use(authMiddleware)
-// Guardia de seguridad a nivel de módulo: todas las rutas aquí requieren rol de Admin.
 .onBeforeHandle(({ session }) => {
   const currentSession = requireAuth()(session);
   hasRole([ROLES_IDS.ADMINISTRADOR])(currentSession);
@@ -32,32 +31,39 @@ export const adminRoutes = new Elysia({
   }
 )
 .patch('/organizers/:id/acreditation', 
-  ({ params, body, session }) => {
-    // La sesión la obtenemos del middleware
-    const adminId = (session as NonNullable<AppSession>).subAsNumber; 
+  ({ params, body, session }: { 
+    params: { id: number }, 
+    body: { id_estado_acreditacion: number, notas_admin?: string },
+    session: AppSession 
+  }) => {
+    const adminId = (session as NonNullable<AppSession>).subAsNumber;
     return adminServices.updateAcreditationStatusService(
-      params.id, 
-      body.id_estado_acreditacion, 
-      adminId, 
+      params.id,
+      body.id_estado_acreditacion,
+      adminId,
       body.notas_admin ?? null
     );
   },
   { 
-    params: adminTypes.idParamsSchema,
-    body: adminTypes.updateAcreditationSchema,
+    params: t.Object({ id: t.Numeric() }),
+    body: t.Object({ 
+      id_estado_acreditacion: t.Numeric(),
+      notas_admin: t.Optional(t.String())
+    }),
     detail: { summary: 'Actualizar estado de acreditación de un organizador' }
   }
 )
 
 // --- Rutas de Gestión de Usuarios ---
-.get('/users',
-  ({ query }) => adminServices.getAllUsersService(query.page, query.pageSize),
+.get('/users', 
+  ({ query }: { query: { page?: number, pageSize?: number } }) => 
+    adminServices.getAllUsersService(query.page, query.pageSize),
   { 
-    query: adminTypes.paginationQuerySchema,
+    query: t.Object({
+      page: t.Optional(t.Numeric()),
+      pageSize: t.Optional(t.Numeric())
+    }),
     response: { 200: adminTypes.usersListResponseSchema },
     detail: { summary: 'Obtener lista paginada de usuarios' }
   }
 );
-
-// Aquí puedes seguir añadiendo más rutas para gestionar eventos, denuncias, etc.
-// Ejemplo: .get('/events', () => adminServices.getAllEventsService())
