@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
 import { AuthProvider } from "@/components/auth-provider"
 import { ScrollToTop } from "@/components/scroll-to-top"
+import { AuthProvider as NewAuthProvider } from '@/context/AuthContext'
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -24,9 +25,11 @@ export default function RootLayout({
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
           <AuthProvider>
-            <ScrollToTop />
-            {children}
-            <Toaster />
+            <NewAuthProvider>
+              <ScrollToTop />
+              {children}
+              <Toaster />
+            </NewAuthProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>
