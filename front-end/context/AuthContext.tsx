@@ -1,13 +1,14 @@
 "use client"
 
 import React, { createContext, useContext, useState, useEffect } from 'react'
-import { apiClient, setAccessToken, setRefreshToken, getAccessToken } from '@/lib/api/apiClient'
+import { apiClient, setAccessToken, setRefreshToken, getAccessToken, clearAuthTokens } from '@/lib/api/apiClient'
 import { useRouter } from 'next/navigation'
+import { deleteCookie, getCookie } from 'cookies-next'
 
 interface AuthContextType {
   user: any | null
   login: (email: string, password: string) => Promise<void>
-  logout: () => void
+  logout: () => Promise<void>
   isLoading: boolean
   error: string | null
 }
@@ -35,15 +36,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const response = await apiClient.get('/usuarios/yo')
         setUser(response.data)
       } else {
-        setUser(null)
+        // Si no hay token, limpiar todo
+        await clearSession()
       }
     } catch (err) {
       console.error('Error al verificar sesión:', err)
-      setAccessToken(null)
-      setRefreshToken(null)
-      setUser(null)
+      await clearSession()
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const clearSession = async () => {
+    try {
+      // Limpiar tokens en el cliente API
+      clearAuthTokens()
+      
+      // Limpiar cookies
+      deleteCookie('accessToken')
+      deleteCookie('refreshToken')
+      
+      // Limpiar estado
+      setUser(null)
+      setError(null)
+      
+      // Limpiar headers de la API
+      delete apiClient.defaults.headers.common['Authorization']
+    } catch (err) {
+      console.error('Error al limpiar sesión:', err)
     }
   }
 
@@ -64,20 +84,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       apiClient.defaults.headers.common['Authorization'] = `Bearer ${response.data.accessToken}`
     } catch (err: any) {
       setError(err.message || 'Error al iniciar sesión')
-      setAccessToken(null)
-      setRefreshToken(null)
-      setUser(null)
+      await clearSession()
       throw err
     } finally {
       setIsLoading(false)
     }
   }
 
-  const logout = () => {
-    setAccessToken(null)
-    setRefreshToken(null)
-    setUser(null)
-    router.push('/login')
+  const logout = async () => {
+    try {
+      // Intentar hacer logout en el backend si hay token
+      const token = getAccessToken()
+      if (token) {
+        try {
+          await apiClient.post('/auth/logout')
+        } catch (err) {
+          console.error('Error al hacer logout en el backend:', err)
+        }
+      }
+
+      // Limpiar toda la sesión
+      await clearSession()
+      
+      // Redirigir al login
+      router.push('/login')
+      
+      // Forzar recarga de la página para limpiar cualquier estado residual
+      window.location.href = '/login'
+    } catch (err) {
+      console.error('Error durante el logout:', err)
+      // Aún así, intentar limpiar la sesión y redirigir
+      await clearSession()
+      router.push('/login')
+    }
   }
 
   return (
