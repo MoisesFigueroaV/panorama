@@ -17,7 +17,14 @@
     "pg": "^8.16.0"
   },
   "devDependencies": {
+    "@types/bun": "latest",
+    "@types/dotenv": "^6.1.1",
     "bun-types": "latest"
   },
-  "module": "src/index.js"
+  "module": "src/index.js",
+  "type": "module",
+  "private": true,
+  "peerDependencies": {
+    "typescript": "^5"
+  }
 }

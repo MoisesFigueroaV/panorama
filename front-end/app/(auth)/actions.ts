@@ -20,8 +20,7 @@ export async function login(formData: FormData) {
     }
 
     const { token } = await response.json();
-    const cookieStore = cookies();
-    cookieStore.set('token', token, {
+    cookies().set('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
@@ -56,8 +55,7 @@ export async function register(formData: FormData) {
     }
 
     const { token } = await response.json();
-    const cookieStore = cookies();
-    cookieStore.set('token', token, {
+    cookies().set('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
@@ -72,7 +70,6 @@ export async function register(formData: FormData) {
 export async function logout() {
   'use server';
   
-  const cookieStore = cookies();
-  cookieStore.delete('token');
+  cookies().delete('token');
   return { success: true };
 }
