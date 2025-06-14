@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
@@ -17,15 +17,20 @@ import { toast } from "@/components/ui/use-toast"
 import { Separator } from "@/components/ui/separator"
 import { ArrowLeft, Camera, Lock } from "lucide-react"
 import Link from "next/link"
+import { useAuth } from "@/context/AuthContext"
+import { apiClient } from "@/lib/api/apiClient"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { CheckCircle2 } from "lucide-react"
+import { CategoriaTags } from "@/components/ui/categoria-tag"
+import { CATEGORIAS } from "@/constants/categorias"
+import { Checkbox } from "@/components/ui/checkbox"
 
 // Esquema de validación para el formulario de perfil personal
 const profileFormSchema = z.object({
   name: z.string().min(2, {
     message: "El nombre debe tener al menos 2 caracteres.",
   }),
-  email: z.string().email({
-    message: "Por favor ingresa un correo electrónico válido.",
-  }),
+  email: z.string().optional(),
   bio: z
     .string()
     .max(500, {
@@ -34,7 +39,14 @@ const profileFormSchema = z.object({
     .optional(),
   phone: z.string().optional(),
   location: z.string().optional(),
-  interests: z.string().optional(),
+  interests: z.array(z.string())
+    .min(1, "Selecciona al menos un interés")
+    .refine(
+      (interests) => interests.every(interest => 
+        CATEGORIAS.some(cat => cat.nombre === interest && cat.nombre !== "Otros")
+      ),
+      "Solo puedes seleccionar categorías válidas"
+    ),
 })
 
 // Esquema de validación para el formulario de seguridad
@@ -76,7 +88,7 @@ const defaultValues: Partial<ProfileFormValues> = {
   bio: "Amante de los conciertos y eventos culturales. Siempre buscando nuevas experiencias.",
   phone: "+56 9 8765 4321",
   location: "Santiago, Chile",
-  interests: "Música, Arte, Gastronomía, Deportes",
+  interests: ["Música", "Arte", "Gastronomía", "Deportes"],
 }
 
 // Valores por defecto para el formulario de notificaciones
@@ -89,15 +101,50 @@ const defaultNotificationValues: NotificationsFormValues = {
 }
 
 export default function ProfilePage() {
+  const { user } = useAuth()
   const [isLoading, setIsLoading] = useState<boolean>(false)
-  const [avatar, setAvatar] = useState<string>("/placeholder.svg?height=128&width=128&text=MG")
+  const [avatar, setAvatar] = useState<string>(user?.foto_perfil || "/placeholder.svg?height=128&width=128")
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
+
+  // Efecto para actualizar el avatar cuando cambia el usuario
+  useEffect(() => {
+    if (user?.foto_perfil) {
+      setAvatar(user.foto_perfil)
+    }
+  }, [user?.foto_perfil])
+
+  // Log para depuración
+  useEffect(() => {
+    console.log('Datos del usuario:', user)
+  }, [user])
 
   // Formulario de perfil personal
   const profileForm = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
-    defaultValues,
+    defaultValues: {
+      name: user?.nombre_usuario || "",
+      email: user?.correo || "",
+      bio: user?.biografia || "",
+      phone: "", // No tenemos este campo en el backend
+      location: "", // No tenemos este campo en el backend
+      interests: user?.intereses || [],
+    },
     mode: "onChange",
   })
+
+  // Actualizar los valores del formulario cuando cambia el usuario
+  useEffect(() => {
+    if (user) {
+      profileForm.reset({
+        name: user.nombre_usuario || "",
+        email: user.correo || "",
+        bio: user.biografia || "",
+        phone: "", // No tenemos este campo en el backend
+        location: "", // No tenemos este campo en el backend
+        interests: user.intereses || [],
+      })
+    }
+  }, [user, profileForm])
 
   // Formulario de seguridad
   const securityForm = useForm<SecurityFormValues>({
@@ -118,38 +165,77 @@ export default function ProfilePage() {
   })
 
   // Función para manejar el envío del formulario de perfil
-  function onProfileSubmit(data: ProfileFormValues) {
+  async function onProfileSubmit(data: ProfileFormValues) {
     setIsLoading(true)
+    setSuccessMessage(null)
+    try {
+      console.log('Datos del formulario:', data);
+      console.log('Intereses seleccionados:', data.interests);
+      
+      const updateData = {
+        nombre_usuario: data.name,
+        biografia: data.bio,
+        intereses: data.interests,
+        foto_perfil: avatar,
+      }
+      
+      console.log('Datos a enviar al backend:', updateData);
+      
+      const response = await apiClient.put('/usuarios/yo', updateData)
+      console.log('Respuesta del backend:', response.data);
 
-    // Simulamos una petición a la API
-    setTimeout(() => {
-      console.log(data)
-      setIsLoading(false)
+      setSuccessMessage("Tu información personal ha sido actualizada correctamente.")
       toast({
         title: "Perfil actualizado",
         description: "Tu información personal ha sido actualizada correctamente.",
       })
-    }, 1000)
+    } catch (error: any) {
+      console.error('Error completo al actualizar perfil:', error);
+      if (error.response) {
+        console.error('Datos de la respuesta de error:', error.response.data);
+      }
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "No se pudo actualizar tu perfil. Por favor, intenta de nuevo.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   // Función para manejar el envío del formulario de seguridad
-  function onSecuritySubmit(data: SecurityFormValues) {
+  async function onSecuritySubmit(data: SecurityFormValues) {
     setIsLoading(true)
+    setSuccessMessage(null)
+    try {
+      await apiClient.put('/usuarios/yo/contrasena', {
+        contrasena_actual: data.currentPassword,
+        nueva_contrasena: data.newPassword
+      });
 
-    // Simulamos una petición a la API
-    setTimeout(() => {
-      console.log(data)
-      setIsLoading(false)
+      setSuccessMessage("Tu contraseña ha sido actualizada correctamente.")
       toast({
         title: "Contraseña actualizada",
         description: "Tu contraseña ha sido actualizada correctamente.",
-      })
+      });
+
+      // Limpiar el formulario
       securityForm.reset({
         currentPassword: "",
         newPassword: "",
         confirmPassword: "",
-      })
-    }, 1000)
+      });
+    } catch (error: any) {
+      console.error('Error al actualizar contraseña:', error);
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "No se pudo actualizar la contraseña. Por favor, intenta de nuevo.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   // Función para manejar el envío del formulario de notificaciones
@@ -182,6 +268,30 @@ export default function ProfilePage() {
         </Link>
       </div>
 
+      {successMessage && (
+        <Alert className="bg-green-50 border-green-200">
+          <CheckCircle2 className="h-4 w-4 text-green-600" />
+          <AlertTitle className="text-green-800">¡Éxito!</AlertTitle>
+          <AlertDescription className="text-green-700">
+            {successMessage}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {isLoading && (
+        <Alert>
+          <AlertTitle>Cargando...</AlertTitle>
+          <AlertDescription>Obteniendo datos del usuario...</AlertDescription>
+        </Alert>
+      )}
+
+      {!isLoading && !user && (
+        <Alert variant="destructive">
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>No se pudieron cargar los datos del usuario. Por favor, intenta recargar la página.</AlertDescription>
+        </Alert>
+      )}
+
       <Tabs defaultValue="personal" className="space-y-6">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="personal">Información Personal</TabsTrigger>
@@ -198,15 +308,61 @@ export default function ProfilePage() {
                 <CardTitle>Foto de perfil</CardTitle>
                 <CardDescription>Esta imagen será visible para otros usuarios y organizadores.</CardDescription>
               </CardHeader>
-              <CardContent className="flex flex-col items-center justify-center space-y-4">
+              <CardContent className="flex flex-col items-center justify-center space-y-6">
                 <Avatar className="h-32 w-32">
-                  <AvatarImage src={avatar || "/placeholder.svg"} alt="María González" />
-                  <AvatarFallback>MG</AvatarFallback>
+                  <AvatarImage src={user?.foto_perfil || "/placeholder.svg"} alt={user?.nombre_usuario || "Usuario"} />
+                  <AvatarFallback>{user?.nombre_usuario?.slice(0, 2).toUpperCase() || "U"}</AvatarFallback>
                 </Avatar>
                 <Button variant="outline" className="gap-2">
                   <Camera className="h-4 w-4" />
                   Cambiar foto
                 </Button>
+
+                <Separator className="my-4" />
+
+                <div className="w-full space-y-4">
+                  <h3 className="font-semibold text-lg">Información actual</h3>
+                  <div className="space-y-3 text-sm">
+                    <div>
+                      <p className="font-medium text-muted-foreground">Nombre</p>
+                      <p className="text-foreground">{user?.nombre_usuario || "No especificado"}</p>
+                    </div>
+                    <div>
+                      <p className="font-medium text-muted-foreground">Correo electrónico</p>
+                      <p className="text-foreground">{user?.correo || "No especificado"}</p>
+                    </div>
+                    <div>
+                      <p className="font-medium text-muted-foreground">Biografía</p>
+                      <p className="text-foreground whitespace-pre-wrap">
+                        {user?.biografia || "No has agregado una biografía aún."}
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-medium">Intereses</h4>
+                      {user ? (
+                        <CategoriaTags categorias={user.intereses || []} />
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          No has especificado intereses aún.
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-medium text-muted-foreground">Fecha de registro</p>
+                      <p className="text-sm">
+                        {user?.fecha_registro ? (
+                          new Date(user.fecha_registro).toLocaleDateString('es-ES', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          })
+                        ) : (
+                          'No disponible'
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
@@ -240,10 +396,14 @@ export default function ProfilePage() {
                         <FormItem>
                           <FormLabel>Correo electrónico</FormLabel>
                           <FormControl>
-                            <Input placeholder="tu@ejemplo.com" {...field} />
+                            <Input 
+                              {...field} 
+                              disabled 
+                              value={user?.correo || ""}
+                            />
                           </FormControl>
                           <FormDescription>
-                            Este correo se usará para notificaciones y acceso a la cuenta.
+                            El correo electrónico no se puede modificar.
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
@@ -284,9 +444,40 @@ export default function ProfilePage() {
                         <FormItem>
                           <FormLabel>Intereses</FormLabel>
                           <FormControl>
-                            <Input placeholder="Música, Arte, Deportes..." {...field} />
+                            <div className="space-y-2">
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                {CATEGORIAS.filter(categoria => categoria.nombre !== "Otros").map((categoria) => (
+                                  <div key={categoria.id} className="flex items-center space-x-2">
+                                    <Checkbox
+                                      id={`interes-${categoria.id}`}
+                                      checked={(field.value as string[])?.includes(categoria.nombre)}
+                                      onCheckedChange={(checked) => {
+                                        const currentIntereses = (field.value as string[]) || [];
+                                        if (checked) {
+                                          field.onChange([...currentIntereses, categoria.nombre]);
+                                        } else {
+                                          field.onChange(
+                                            currentIntereses.filter((i: string) => i !== categoria.nombre)
+                                          );
+                                        }
+                                      }}
+                                    />
+                                    <Label
+                                      htmlFor={`interes-${categoria.id}`}
+                                      className="text-sm font-normal cursor-pointer"
+                                    >
+                                      {categoria.nombre}
+                                    </Label>
+                                  </div>
+                                ))}
+                              </div>
+                              {(field.value as string[])?.length > 0 && (
+                                <p className="text-sm text-muted-foreground">
+                                  {(field.value as string[]).length} intereses seleccionados
+                                </p>
+                              )}
+                            </div>
                           </FormControl>
-                          <FormDescription>Tus intereses nos ayudan a recomendarte eventos.</FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}

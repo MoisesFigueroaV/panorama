@@ -34,7 +34,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         // Verificar la sesión con el backend
         const response = await apiClient.get('/usuarios/yo')
-        setUser(response.data)
+        // La respuesta viene en un array, tomamos el primer elemento
+        setUser(response.data[0])
       } else {
         // Si no hay token, limpiar todo
         await clearSession()
