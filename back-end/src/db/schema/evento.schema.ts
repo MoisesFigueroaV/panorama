@@ -8,7 +8,7 @@ import { estadoEventoTable } from './estadoEvento.schema';
 export const eventoTable = pgTable('evento', {
   id_evento: serial('id_evento').primaryKey(),
   id_organizador: integer('id_organizador').references(() => organizadorTable.id_organizador).notNull(),
-  id_categoria: integer('id_categoria').references(() => categoriaEventoTable.id_categoria),
+  id_categoria: integer('id_categoria').references(() => categoriaEventoTable.id_categoria).notNull(),
   titulo: varchar('titulo', { length: 150 }).notNull(),
   descripcion: text('descripcion'), // text es más flexible que varchar(1000)
   fecha_inicio: date('fecha_inicio').notNull(),
