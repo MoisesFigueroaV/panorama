@@ -7,8 +7,13 @@ import * as schema from './schema';
 // src/db/drizzle.ts
 import * as allSchemas from './schema'; // Importa todos los schemas
 // Importa las relaciones explícitamente si no están en allSchemas por defecto
-import { usuarioRelations } from './schema/usuario.schema';
-import { organizadorRelations } from './schema/organizador.schema';
+import { usuarioTable, usuarioRelations } from './schema/usuario.schema';
+import { organizadorTable, organizadorRelations } from './schema/organizador.schema';
+import { rolUsuarioTable } from './schema/rolUsuario.schema';
+import { estadoAcreditacionTable } from './schema/estadoAcreditacion.schema';
+import { historialEstadoAcreditacionTable } from './schema/historialEstadoAcreditacion.schema';
+import { eventoTable, eventoRelations } from './schema/evento.schema';
+//import { adminRelations } from './schema/rolUsuario.schema';
 // ...
 
 const databaseUrl = process.env.DATABASE_URL;
@@ -57,7 +62,8 @@ export const db = drizzle(pool, {
     ...schema,
     ...allSchemas, // Todos tus schemas de tabla
     usuarioRelations,    // Añade las relaciones de usuario
-    organizadorRelations
+    organizadorRelations,
+    eventoRelations
   },
   logger: enableDbLogger, 
 });
