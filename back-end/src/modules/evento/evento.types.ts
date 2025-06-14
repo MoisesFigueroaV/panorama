@@ -1,37 +1,62 @@
 import { t } from 'elysia';
 
-// Esquema para crear un evento
+/**
+ * Esquema de validación para la creación de eventos.
+ * Compatible con el modelo actual.
+ */
 export const createEventoSchema = t.Object({
-  titulo: t.String({ minLength: 3, maxLength: 150, description: "Título del evento" }),
-  descripcion: t.Optional(t.String({ maxLength: 1000, description: "Descripción del evento" })),
-  fecha_inicio: t.String({ format: 'date-time', description: "Fecha y hora de inicio del evento" }),
-  fecha_fin: t.String({ format: 'date-time', description: "Fecha y hora de fin del evento" }),
-  imagen_url: t.Optional(t.String({ format: 'uri', description: "URL de la imagen del evento" })),
-  ubicacion: t.String({ minLength: 3, maxLength: 255, description: "Ubicación del evento" }),
-  capacidad: t.Integer({ minimum: 1, description: "Capacidad máxima de asistentes al evento" }),
-  categorias: t.Array(
-    t.String({ minLength: 2, maxLength: 50, description: "Categoría del evento" }),
-    { minItems: 1 }
-  ),
+  titulo: t.String({ minLength: 3, maxLength: 150 }),
+  descripcion: t.Optional(t.String({ maxLength: 1000 })),
+  fecha_inicio: t.String({ format: 'date-time' }),  // Ingresado como ISO8601, luego parseado a YYYY-MM-DD internamente
+  fecha_fin: t.String({ format: 'date-time' }),
+  imagen: t.Optional(t.String({ format: 'uri' })),
+  ubicacion: t.Optional(t.String({ maxLength: 250 })),
+  capacidad: t.Integer({ minimum: 1 }),
+  id_categoria: t.Integer(),
+  id_estado_evento: t.Optional(t.Integer()),
+
+  /**
+   * 🔧 Escalable a futuro: múltiples categorías
+   * categorias: t.Optional(t.Array(t.String(), { minItems: 1 }))
+   */
 });
+
+/**
+ * Esquema de actualización parcial.
+ */
 export const updateEventoSchema = t.Partial(createEventoSchema);
 
-// Esquema de respuesta para un evento
+/**
+ * Esquema de respuesta de un solo evento.
+ */
 export const eventoResponseSchema = t.Object({
   id_evento: t.Integer(),
   id_organizador: t.Integer(),
   titulo: t.String(),
   descripcion: t.Optional(t.String()),
-  fecha_inicio: t.String(),
+  fecha_inicio: t.String(),  // Siempre string YYYY-MM-DD
   fecha_fin: t.String(),
-  imagen_url: t.Optional(t.String()),
-  ubicacion: t.String(),
+  imagen: t.Optional(t.String()),
+  ubicacion: t.Optional(t.String()),
   capacidad: t.Integer(),
-  categorias: t.Array(t.String()),
-  creado_en: t.String(),
-  actualizado_en: t.String(),
+  id_categoria: t.Integer(),
+  id_estado_evento: t.Optional(t.Integer()),
+  fecha_registro: t.Optional(t.String()),
+
+  /**
+   * 🔧 Para futuras migraciones a control de timestamps:
+   * creado_en: t.Optional(t.String()),
+   * actualizado_en: t.Optional(t.String())
+   */
 });
+
+/**
+ * Esquema de respuesta para listados.
+ */
 export const eventosResponseSchema = t.Array(eventoResponseSchema);
 
+/**
+ * Tipos inferidos para uso interno de los servicios.
+ */
 export type CreateEventoPayload = typeof createEventoSchema.static;
 export type UpdateEventoPayload = typeof updateEventoSchema.static;

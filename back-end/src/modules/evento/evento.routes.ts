@@ -4,25 +4,45 @@ import { createEventoService, updateEventoService, getEventosByOrganizadorServic
 import { createEventoSchema, updateEventoSchema, eventoResponseSchema, eventosResponseSchema } from './evento.types';
 import { CustomError } from '../../utils/errors';
 
+/**
+ * Mapeador de eventos para ajustar el formato de respuesta.
+ * Adaptado al modelo actual (sin fechas datetime completas ni múltiples categorías).
+ */
 function mapEventoToResponse(evento: any) {
   return {
     ...evento,
     descripcion: evento.descripcion ?? undefined,
-    imagen_url: evento.imagen_url ?? undefined,
-    fecha_inicio: evento.fecha_inicio instanceof Date ? evento.fecha_inicio.toISOString() : evento.fecha_inicio,
-    fecha_fin: evento.fecha_fin instanceof Date ? evento.fecha_fin.toISOString() : evento.fecha_fin,
-    creado_en: evento.creado_en instanceof Date ? evento.creado_en.toISOString() : evento.creado_en,
-    actualizado_en: evento.actualizado_en instanceof Date ? evento.actualizado_en.toISOString() : evento.actualizado_en,
-    categorias: Array.isArray(evento.categorias)
-      ? evento.categorias
-      : (typeof evento.categorias === 'string'
-          ? JSON.parse(evento.categorias)
-          : []),
+    imagen: evento.imagen ?? undefined,
+    fecha_inicio: evento.fecha_inicio,  // Las fechas ya vienen como string YYYY-MM-DD
+    fecha_fin: evento.fecha_fin,
+    ubicacion: evento.ubicacion ?? undefined,
+    capacidad: evento.capacidad,
+    id_categoria: evento.id_categoria,
+    id_estado_evento: evento.id_estado_evento ?? undefined,
+    fecha_registro: evento.fecha_registro,
+
+    /**
+     * 🔧 Para futuras migraciones de fechas completas (timestamps):
+     * creado_en, actualizado_en
+     */
+
+    /**
+     * 🔧 Para futuras migraciones de múltiples categorías:
+     * categorias: Array.isArray(evento.categorias)
+     *   ? evento.categorias
+     *   : (typeof evento.categorias === 'string'
+     *         ? JSON.parse(evento.categorias)
+     *         : [])
+     */
   };
 }
 
 export const eventoRoutes = new Elysia({ prefix: '/eventos', detail: { tags: ['Eventos'] } })
   .use(authMiddleware)
+
+  /**
+   * Crear evento
+   */
   .post(
     '/',
     async (context) => {
@@ -37,6 +57,10 @@ export const eventoRoutes = new Elysia({ prefix: '/eventos', detail: { tags: ['E
       detail: { summary: 'Crear evento', security: [{ bearerAuth: [] }] }
     }
   )
+
+  /**
+   * Listar eventos del organizador autenticado
+   */
   .get(
     '/mis-eventos',
     async (context) => {
@@ -49,6 +73,10 @@ export const eventoRoutes = new Elysia({ prefix: '/eventos', detail: { tags: ['E
       detail: { summary: 'Listar mis eventos', security: [{ bearerAuth: [] }] }
     }
   )
+
+  /**
+   * Actualizar evento existente
+   */
   .put(
     '/:id',
     async (context) => {
