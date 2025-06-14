@@ -5,8 +5,8 @@ export const historialEstadoAcreditacionSchema = t.Object({
   id_organizador: t.Integer(),
   id_estado_acreditacion: t.Integer(),
   fecha_cambio: t.String(),
-  id_admin_responsable: t.Optional(t.Integer()),
-  notas_cambio: t.Optional(t.String())
+  id_admin_responsable: t.Nullable(t.Integer()),
+  notas_cambio: t.Nullable(t.String())
 });
 
 export const historialAcreditacionResponseSchema = t.Array(historialEstadoAcreditacionSchema);
