@@ -1,6 +1,6 @@
 "use client"
 
-import { useAuth } from "@/components/auth-provider"
+import { useAuth } from "@/app/context/AuthContext"
 import { apiClient, handleLogoutClient } from "@/lib/api/apiClient"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -16,13 +16,26 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { toast } from "@/components/ui/use-toast"
 
 export default function SiteHeader() {
+  const { user, logout } = useAuth()
   const [isOpen, setIsOpen] = useState(false)
-  const { user, isAuthenticated } = useAuth()
+  const isAuthenticated = !!user
 
   const handleSignOut = () => {
-    handleLogoutClient()
+    try {
+      logout()
+      // No redirigimos explícitamente, dejamos que la página se recargue naturalmente
+      // y el estado de autenticación se actualice
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error)
+      toast({
+        title: "Error",
+        description: "Hubo un problema al cerrar sesión. Por favor, intenta de nuevo.",
+        variant: "destructive",
+      })
+    }
   }
 
   const getInitials = (name: string) => {
@@ -68,15 +81,6 @@ export default function SiteHeader() {
 
           {isAuthenticated ? (
             <div className="hidden md:flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-secondary-foreground hover:text-primary hover:bg-secondary-foreground/10"
-              >
-                <Bell className="h-5 w-5" />
-                <span className="sr-only">Notificaciones</span>
-              </Button>
-
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-8 w-8 rounded-full">
@@ -94,16 +98,14 @@ export default function SiteHeader() {
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link href="/dashboard">
-                      <User className="mr-2 h-4 w-4" />
-                      <span>Mi Dashboard</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/profile">
+                    <Link href="/users/profile">
                       <User className="mr-2 h-4 w-4" />
                       <span>Mi Perfil</span>
                     </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <Bell className="mr-2 h-4 w-4" />
+                    <span>Notificaciones</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleSignOut}>
@@ -188,15 +190,7 @@ export default function SiteHeader() {
 
                 {isAuthenticated ? (
                   <div className="flex flex-col gap-2 mt-4">
-                    <Link href="/dashboard" onClick={() => setIsOpen(false)}>
-                      <Button
-                        variant="outline"
-                        className="w-full border-primary/30 text-secondary-foreground hover:bg-secondary-foreground/10"
-                      >
-                        Mi Dashboard
-                      </Button>
-                    </Link>
-                    <Link href="/profile" onClick={() => setIsOpen(false)}>
+                    <Link href="/users/profile" onClick={() => setIsOpen(false)}>
                       <Button
                         variant="outline"
                         className="w-full border-primary/30 text-secondary-foreground hover:bg-secondary-foreground/10"

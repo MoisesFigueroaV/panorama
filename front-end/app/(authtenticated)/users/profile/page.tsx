@@ -17,7 +17,7 @@ import { toast } from "@/components/ui/use-toast"
 import { Separator } from "@/components/ui/separator"
 import { ArrowLeft, Camera, Lock, LogOut, Bell, Bookmark, Home } from "lucide-react"
 import Link from "next/link"
-import { useAuth } from "@/context/AuthContext"
+import { useAuth } from "@/app/context/AuthContext"
 import { apiClient } from "@/lib/api/apiClient"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { CheckCircle2 } from "lucide-react"
@@ -345,13 +345,13 @@ export default function ProfilePage() {
               <DropdownMenuLabel>Mi Cuenta</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Link href="/usuarios/profile" className="cursor-pointer">
+                <Link href="/users/profile" className="cursor-pointer">
                   <Camera className="mr-2 h-4 w-4" />
                   <span>Editar Perfil</span>
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/usuarios/profile?tab=security" className="cursor-pointer">
+                <Link href="/users/profile?tab=security" className="cursor-pointer">
                   <Lock className="mr-2 h-4 w-4" />
                   <span>Seguridad</span>
                 </Link>
@@ -408,12 +408,11 @@ export default function ProfilePage() {
       )}
 
       <Tabs defaultValue="personal" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="personal">Información Personal</TabsTrigger>
           <TabsTrigger value="saved">Eventos Guardados</TabsTrigger>
           <TabsTrigger value="notifications">Notificaciones</TabsTrigger>
           <TabsTrigger value="security">Seguridad</TabsTrigger>
-          <TabsTrigger value="notifications">Notificaciones</TabsTrigger>
         </TabsList>
 
         {/* Pestaña de información personal */}
