@@ -1,5 +1,5 @@
 // src/db/schema/usuario.schema.ts
-import { pgTable, serial, integer, varchar, date, char } from 'drizzle-orm/pg-core';
+import { pgTable, serial, integer, varchar, date, char, text } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm'; 
 import { relations } from 'drizzle-orm';
 import { rolUsuarioTable } from './rolUsuario.schema';
@@ -13,7 +13,11 @@ export const usuarioTable = pgTable('usuario', {
   contrasena: varchar('contrasena', { length: 100 }).notNull(), 
   fecha_registro: date('fecha_registro').default(sql`CURRENT_DATE`).notNull(),
   sexo: char('sexo', { length: 1 }), 
-  fecha_nacimiento: date('fecha_nacimiento'), 
+  fecha_nacimiento: date('fecha_nacimiento'),
+  // Nuevos campos de perfil
+  biografia: text('biografia'),
+  intereses: text('intereses').array(),
+  foto_perfil: varchar('foto_perfil', { length: 250 }),
 });
 
 export const usuarioRelations = relations(usuarioTable, ({ one }) => ({
