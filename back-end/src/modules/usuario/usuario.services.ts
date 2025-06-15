@@ -27,6 +27,10 @@ export type UsuarioServiceResponse = {
     sexo: string | null;
     fecha_nacimiento: Date | null;
     id_rol: number | null;
+    // Nuevos campos de perfil
+    biografia: string | null;
+    intereses: string[] | null;
+    foto_perfil: string | null;
 };
 
 export type UsuarioConRolServiceResponse = UsuarioServiceResponse & {
@@ -78,6 +82,10 @@ export async function registrarUsuarioComunService( // Renombrado para claridad
       id_rol: targetRolId, // Asigna el rol de usuario común
       sexo: data.sexo || null,
       fecha_nacimiento: data.fecha_nacimiento || null,
+      // Nuevos campos de perfil
+      biografia: data.biografia || null,
+      intereses: data.intereses || null,
+      foto_perfil: data.foto_perfil || null,
     };
 
     const [insertedUserBrief] = await db
@@ -138,6 +146,10 @@ export async function loginUsuarioService(
         sexo: userFromDb.sexo,
         fecha_nacimiento: userFromDb.fecha_nacimiento ? new Date(userFromDb.fecha_nacimiento as string) : null, // Asegurar Date
         id_rol: userFromDb.id_rol,
+        // Nuevos campos de perfil
+        biografia: userFromDb.biografia,
+        intereses: userFromDb.intereses,
+        foto_perfil: userFromDb.foto_perfil,
         rol: userFromDb.rol ? { 
             id_rol: userFromDb.rol.id_rol,
             nombre_rol: userFromDb.rol.nombre_rol 
@@ -188,11 +200,20 @@ export async function getUsuarioByIdService(id: number): Promise<UsuarioConRolSe
   try {
     const userFromDb = await db.query.usuarioTable.findFirst({
       where: eq(usuarioTable.id_usuario, id),
-      columns: { // Seleccionar explícitamente para excluir 'contrasena'
-        id_usuario: true, correo: true, nombre_usuario: true,
-        fecha_registro: true, sexo: true, fecha_nacimiento: true, id_rol: true,
+      columns: {
+        id_usuario: true,
+        correo: true,
+        nombre_usuario: true,
+        fecha_registro: true,
+        sexo: true,
+        fecha_nacimiento: true,
+        id_rol: true,
+        // Nuevos campos de perfil
+        biografia: true,
+        intereses: true,
+        foto_perfil: true,
       },
-      with: { rol: true }, // Incluir el objeto rol relacionado
+      with: { rol: true },
     });
 
     if (!userFromDb) {
@@ -203,10 +224,14 @@ export async function getUsuarioByIdService(id: number): Promise<UsuarioConRolSe
         id_usuario: userFromDb.id_usuario,
         correo: userFromDb.correo,
         nombre_usuario: userFromDb.nombre_usuario,
-        fecha_registro: new Date(userFromDb.fecha_registro as string), // Asegurar Date
+        fecha_registro: new Date(userFromDb.fecha_registro as string),
         sexo: userFromDb.sexo,
-        fecha_nacimiento: userFromDb.fecha_nacimiento ? new Date(userFromDb.fecha_nacimiento as string) : null, // Asegurar Date
+        fecha_nacimiento: userFromDb.fecha_nacimiento ? new Date(userFromDb.fecha_nacimiento as string) : null,
         id_rol: userFromDb.id_rol,
+        // Nuevos campos de perfil
+        biografia: userFromDb.biografia,
+        intereses: userFromDb.intereses,
+        foto_perfil: userFromDb.foto_perfil,
         rol: userFromDb.rol ? { 
             id_rol: userFromDb.rol.id_rol,
             nombre_rol: userFromDb.rol.nombre_rol 
@@ -233,12 +258,17 @@ export async function updateUsuarioPerfilService(
         }
 
         // Campos que el usuario puede actualizar de su propio perfil
-        const updatePayloadForDb: Partial<Pick<DrizzleNewUsuario, 'nombre_usuario' | 'sexo' | 'fecha_nacimiento'>> = {};
+        const updatePayloadForDb: Partial<Pick<DrizzleNewUsuario, 
+            'nombre_usuario' | 'sexo' | 'fecha_nacimiento' | 'biografia' | 'intereses' | 'foto_perfil'
+        >> = {};
+
         if (data.nombre_usuario !== undefined) updatePayloadForDb.nombre_usuario = data.nombre_usuario;
         if (data.hasOwnProperty('sexo')) updatePayloadForDb.sexo = data.sexo;
-        if (data.hasOwnProperty('fecha_nacimiento')) {
-          updatePayloadForDb.fecha_nacimiento = data.fecha_nacimiento; // Drizzle/pg maneja string para DATE
-        }
+        if (data.hasOwnProperty('fecha_nacimiento')) updatePayloadForDb.fecha_nacimiento = data.fecha_nacimiento;
+        // Nuevos campos de perfil
+        if (data.hasOwnProperty('biografia')) updatePayloadForDb.biografia = data.biografia;
+        if (data.hasOwnProperty('intereses')) updatePayloadForDb.intereses = data.intereses;
+        if (data.hasOwnProperty('foto_perfil')) updatePayloadForDb.foto_perfil = data.foto_perfil;
 
         if (Object.keys(updatePayloadForDb).length === 0) {
             return getUsuarioByIdService(userId); // No hay cambios, devolver el perfil actual
@@ -259,4 +289,43 @@ export async function updateUsuarioPerfilService(
         handleErrorLog(error, `servicio updateUsuarioPerfilService (userId: ${userId})`);
         throw new CustomError('Error interno al actualizar el perfil.', 500);
     }
+}
+
+export async function updateUsuarioContrasenaService(
+  userId: number,
+  data: { contrasena_actual: string; nueva_contrasena: string }
+): Promise<void> {
+  try {
+    const userFromDb = await db.query.usuarioTable.findFirst({
+      where: eq(usuarioTable.id_usuario, userId),
+      columns: { id_usuario: true, contrasena: true }
+    });
+
+    if (!userFromDb || !userFromDb.contrasena) {
+      throw new CustomError('Usuario no encontrado.', 404);
+    }
+
+    // Verificar la contraseña actual
+    const contrasenaActualValida = await verifyPassword(data.contrasena_actual, userFromDb.contrasena);
+    if (!contrasenaActualValida) {
+      throw new CustomError('La contraseña actual es incorrecta.', 401);
+    }
+
+    // Hash de la nueva contraseña
+    const nuevaContrasenaHash = await hashPassword(data.nueva_contrasena);
+
+    // Actualizar la contraseña
+    const [updatedUser] = await db.update(usuarioTable)
+      .set({ contrasena: nuevaContrasenaHash })
+      .where(eq(usuarioTable.id_usuario, userId))
+      .returning({ id_usuario: usuarioTable.id_usuario });
+
+    if (!updatedUser) {
+      throw new CustomError('No se pudo actualizar la contraseña.', 500);
+    }
+  } catch (error) {
+    if (error instanceof CustomError) throw error;
+    handleErrorLog(error, `servicio updateUsuarioContrasenaService (userId: ${userId})`);
+    throw new CustomError('Error interno al actualizar la contraseña.', 500);
+  }
 }

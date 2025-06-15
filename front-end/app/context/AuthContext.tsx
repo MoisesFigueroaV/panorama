@@ -12,6 +12,9 @@ interface UsuarioAuth {
   nombre_usuario: string;
   correo: string;
   rol?: { id_rol: number; nombre_rol: string } | null;
+  foto_perfil?: string | null;
+  biografia?: string | null;
+  intereses?: string[];
   // ...otros campos que devuelve tu endpoint /usuarios/yo
 }
 
@@ -42,24 +45,23 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<UsuarioAuth | null>(null);
-  const [localAccessToken, setLocalAccessToken] = useState<string | null>(() => getAccessToken()); // Leer del storage al inicio
+  const [localAccessToken, setLocalAccessToken] = useState<string | null>(null);
   const [isLoadingSession, setIsLoadingSession] = useState(true);
   const router = useRouter();
 
   const syncUserSession = useCallback(async (token: string | null) => {
     if (token) {
       try {
-        const userData = await apiClient.get<UsuarioAuth>('/usuarios/yo'); // Llama a tu endpoint de perfil
+        const { data: userData } = await apiClient.get<UsuarioAuth>('/usuarios/yo');
         setUser(userData);
-        setLocalAccessToken(token); // Asegurar que el estado local esté sincronizado
-        setAccessToken(token); // Guardar en localStorage
+        setLocalAccessToken(token);
+        setAccessToken(token);
       } catch (error) {
         console.warn("Fallo al obtener perfil con token, deslogueando:", error);
         setAccessToken(null);
         setRefreshToken(null);
         setUser(null);
         setLocalAccessToken(null);
-        // No redirigir aquí para evitar bucles si la página es pública
       }
     } else {
       setAccessToken(null);
@@ -70,33 +72,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsLoadingSession(false);
   }, []);
 
-
+  // Inicializar el token al montar el componente
   useEffect(() => {
-    // Al montar, intenta sincronizar la sesión si hay un token.
-    // La lógica de refresh token ya está en apiClient.
-    const token = getAccessToken();
+    const token = getAccessToken() || null;
+    setLocalAccessToken(token);
     if (token) {
       syncUserSession(token);
     } else {
-      setIsLoadingSession(false); // No hay token, no hay sesión que cargar
+      setIsLoadingSession(false);
     }
   }, [syncUserSession]);
 
   const login = async (credentials: LoginUsuarioPayload) => {
     try {
-      const response = await apiClient.post<{ accessToken: string; refreshToken: string; usuario: UsuarioAuth }>('/auth/login', credentials);
+      const { data: response } = await apiClient.post<{ accessToken: string; refreshToken: string; usuario: UsuarioAuth }>('/auth/login', credentials);
       setAccessToken(response.accessToken);
       setRefreshToken(response.refreshToken);
       setUser(response.usuario);
       setLocalAccessToken(response.accessToken);
 
-      // Redirección después del login
-      if (response.usuario.rol?.id_rol === 1 /* ADMIN */) {
+      if (response.usuario.rol?.id_rol === 1) {
         router.push('/admin/dashboard');
-      } else if (response.usuario.rol?.id_rol === 3 /* ORGANIZER */) {
-        router.push('/organizador/dashboard');
+      } else if (response.usuario.rol?.id_rol === 3) {
+        router.push('/organizadores/dashboard');
       } else {
-        router.push('/dashboard');
+        router.push('/');
       }
     } catch (error) {
       console.error("Error en login (AuthContext):", error);
@@ -106,8 +106,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const register = async (data: RegistroUsuarioPayload): Promise<UsuarioAuth> => {
     try {
-      const registeredUser = await apiClient.post<UsuarioAuth>('/auth/registro', data);
-      // No se loguea automáticamente, el usuario debe ir a la página de login
+      const { data: registeredUser } = await apiClient.post<UsuarioAuth>('/auth/registro', data);
       return registeredUser;
     } catch (error) {
       console.error("Error en register (AuthContext):", error);
@@ -119,7 +118,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     handleLogoutClient(); // Llama a la función de apiClient que limpia localStorage
     setUser(null);
     setLocalAccessToken(null);
-    router.push('/login');
+    // No redirigimos automáticamente, dejamos que el componente decida qué hacer
   };
 
   return (
