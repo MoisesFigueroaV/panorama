@@ -23,20 +23,19 @@ export default function SiteHeader() {
   const [isOpen, setIsOpen] = useState(false)
   const isAuthenticated = !!user
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
     try {
-      logout()
-      // No redirigimos explícitamente, dejamos que la página se recargue naturalmente
-      // y el estado de autenticación se actualice
+      await logout();
+      // Recargar la página principal después de cerrar sesión
+      window.location.href = '/';
     } catch (error) {
-      console.error('Error al cerrar sesión:', error)
       toast({
         title: "Error",
-        description: "Hubo un problema al cerrar sesión. Por favor, intenta de nuevo.",
+        description: "Hubo un problema al cerrar sesión. Por favor, inténtalo de nuevo.",
         variant: "destructive",
-      })
+      });
     }
-  }
+  };
 
   const getInitials = (name: string) => {
     if (!name) return "U"
@@ -81,6 +80,15 @@ export default function SiteHeader() {
 
           {isAuthenticated ? (
             <div className="hidden md:flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-secondary-foreground hover:text-primary hover:bg-secondary-foreground/10"
+              >
+                <Bell className="h-5 w-5" />
+                <span className="sr-only">Notificaciones</span>
+              </Button>
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-8 w-8 rounded-full">
@@ -102,10 +110,6 @@ export default function SiteHeader() {
                       <User className="mr-2 h-4 w-4" />
                       <span>Mi Perfil</span>
                     </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <Bell className="mr-2 h-4 w-4" />
-                    <span>Notificaciones</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleSignOut}>
