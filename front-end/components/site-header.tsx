@@ -108,7 +108,7 @@ export default function SiteHeader() {
                   <DropdownMenuItem asChild>
                     <Link href="/users/profile">
                       <User className="mr-2 h-4 w-4" />
-                      <span>Mi Perfil</span>
+                      <span>Perfil</span>
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />

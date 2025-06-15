@@ -44,12 +44,14 @@ export default function AdminDashboardPage() {
           <p className="text-sm sm:text-base text-muted-foreground">Gestiona usuarios y eventos de la plataforma.</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
+          {/* Comentado temporalmente hasta que se implemente la funcionalidad
           <Link href="/admin/settings" className="w-full sm:w-auto">
             <Button variant="outline" className="w-full sm:w-auto gap-2">
               <Settings className="h-4 w-4" />
               Configuración
             </Button>
           </Link>
+          */}
           <Link href="/admin/events/create" className="w-full sm:w-auto">
             <Button className="w-full sm:w-auto gap-2">
               <PlusCircle className="h-4 w-4" />

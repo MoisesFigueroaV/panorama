@@ -15,6 +15,8 @@ interface UsuarioAuth {
   foto_perfil?: string | null;
   biografia?: string | null;
   intereses?: string[];
+  telefono?: string | null;
+  ubicacion?: string | null;
 }
 
 interface LoginUsuarioPayload {

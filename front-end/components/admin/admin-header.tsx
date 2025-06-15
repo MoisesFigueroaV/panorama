@@ -9,16 +9,27 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Bell, User } from "lucide-react"
+import { Bell, User, Home, Settings, LogOut } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { useAuth } from "@/context/AuthContext"
+import { toast } from "@/components/ui/use-toast"
 
 export function AdminHeader() {
   const router = useRouter()
+  const { logout } = useAuth()
 
-  // Función simulada de cierre de sesión
-  const handleSignOut = () => {
-    router.push("/")
+  const handleSignOut = async () => {
+    try {
+      await logout()
+      router.push("/")
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Hubo un problema al cerrar sesión. Por favor, inténtalo de nuevo.",
+        variant: "destructive",
+      })
+    }
   }
 
   return (
@@ -41,13 +52,22 @@ export function AdminHeader() {
               <DropdownMenuLabel>Mi cuenta</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Link href="/admin/profile">Perfil</Link>
+                <Link href="/admin/profile">
+                  <User className="mr-2 h-4 w-4" />
+                  Panel de Administración
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/admin/settings">Configuración</Link>
+                <Link href="/admin/settings">
+                  <Settings className="mr-2 h-4 w-4" />
+                  Configuración
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleSignOut}>Cerrar sesión</DropdownMenuItem>
+              <DropdownMenuItem onClick={handleSignOut}>
+                <LogOut className="mr-2 h-4 w-4" />
+                Cerrar sesión
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

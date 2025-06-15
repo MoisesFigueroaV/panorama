@@ -18,6 +18,9 @@ export const usuarioTable = pgTable('usuario', {
   biografia: text('biografia'),
   intereses: text('intereses').array(),
   foto_perfil: varchar('foto_perfil', { length: 250 }),
+  // Campos de contacto
+  telefono: varchar('telefono', { length: 20 }),
+  ubicacion: varchar('ubicacion', { length: 100 }),
 });
 
 export const usuarioRelations = relations(usuarioTable, ({ one }) => ({

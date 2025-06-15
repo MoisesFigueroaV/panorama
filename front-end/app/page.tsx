@@ -34,6 +34,7 @@ import PromotedEventsCarousel from "@/components/promoted-events-carousel"
 import CategoryCard from "@/components/category-card"
 import TestimonialCard from "@/components/testimonial-card"
 import FeaturedOrganizers from "@/components/featured-organizers"
+import { DynamicHeader } from "@/components/dynamic-header"
 
 export default function Home() {
   // Categorías para mostrar
@@ -62,7 +63,7 @@ export default function Home() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <SiteHeader />
+      <DynamicHeader />
       <main className="flex-1">
         {/* Hero Section */}
         <section className="relative bg-gradient-to-r from-primary via-accent to-highlight h-[600px] flex items-center overflow-hidden">

@@ -18,8 +18,8 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   
-  const [email, setEmail] = useState("admin@example.com")
-  const [password, setPassword] = useState("password")
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
 
   // Mover la redirección a un useEffect
   useEffect(() => {
@@ -85,7 +85,7 @@ export default function LoginPage() {
               <Input 
                 id="email" 
                 type="email" 
-                placeholder="tu@email.com" 
+                placeholder="ejemplo@email.com" 
                 value={email} 
                 onChange={(e) => setEmail(e.target.value)} 
                 required 
@@ -102,6 +102,7 @@ export default function LoginPage() {
               <Input 
                 id="password" 
                 type="password" 
+                placeholder="••••••••" 
                 value={password} 
                 onChange={(e) => setPassword(e.target.value)} 
                 required 
