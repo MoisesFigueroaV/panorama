@@ -5,21 +5,46 @@ import { apiClient, setAccessToken, setRefreshToken, getAccessToken, clearAuthTo
 import { useRouter } from 'next/navigation'
 import { deleteCookie, getCookie } from 'cookies-next'
 
+// Definir tipos para el payload y la respuesta del usuario
+interface UsuarioAuth {
+  id_usuario: number;
+  nombre_usuario: string;
+  correo: string;
+  fecha_registro: string;
+  rol?: { id_rol: number; nombre_rol: string } | null;
+  foto_perfil?: string | null;
+  biografia?: string | null;
+  intereses?: string[];
+}
+
+interface LoginUsuarioPayload {
+  correo: string;
+  contrasena: string;
+}
+
+interface RegistroUsuarioPayload {
+  nombre_usuario: string;
+  correo: string;
+  contrasena: string;
+}
+
 interface AuthContextType {
-  user: any | null
-  login: (email: string, password: string) => Promise<void>
-  logout: () => Promise<void>
-  isLoading: boolean
-  error: string | null
+  isAuthenticated: boolean;
+  user: UsuarioAuth | null;
+  accessToken: string | null;
+  isLoadingSession: boolean;
+  login: (credentials: LoginUsuarioPayload) => Promise<void>;
+  register: (data: RegistroUsuarioPayload) => Promise<UsuarioAuth>;
+  logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<any | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const router = useRouter()
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const [user, setUser] = useState<UsuarioAuth | null>(null);
+  const [localAccessToken, setLocalAccessToken] = useState<string | null>(null);
+  const [isLoadingSession, setIsLoadingSession] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     checkSession()
@@ -44,7 +69,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('Error al verificar sesión:', err)
       await clearSession()
     } finally {
-      setIsLoading(false)
+      setIsLoadingSession(false)
     }
   }
 
@@ -59,7 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       // Limpiar estado
       setUser(null)
-      setError(null)
+      setLocalAccessToken(null)
       
       // Limpiar headers de la API
       delete apiClient.defaults.headers.common['Authorization']
@@ -68,29 +93,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const login = async (email: string, password: string) => {
+  const login = async (credentials: LoginUsuarioPayload) => {
     try {
-      setError(null)
-      setIsLoading(true)
-      const response = await apiClient.post('/auth/login', { correo: email, contrasena: password })
-      
-      // Guardar tokens
-      setAccessToken(response.data.accessToken)
-      setRefreshToken(response.data.refreshToken)
-      
-      // Guardar usuario
-      setUser(response.data.usuario)
-      
-      // Configurar el token en el cliente API
-      apiClient.defaults.headers.common['Authorization'] = `Bearer ${response.data.accessToken}`
-    } catch (err: any) {
-      setError(err.message || 'Error al iniciar sesión')
-      await clearSession()
-      throw err
-    } finally {
-      setIsLoading(false)
+      const { data: response } = await apiClient.post<{ accessToken: string; refreshToken: string; usuario: UsuarioAuth }>('/auth/login', credentials);
+      setAccessToken(response.accessToken);
+      setRefreshToken(response.refreshToken);
+      setUser(response.usuario);
+      setLocalAccessToken(response.accessToken);
+
+      if (response.usuario.rol?.id_rol === 1) {
+        router.push('/admin/dashboard');
+      } else if (response.usuario.rol?.id_rol === 3) {
+        router.push('/organizadores/dashboard');
+      } else {
+        router.push('/');
+      }
+    } catch (error) {
+      console.error("Error en login (AuthContext):", error);
+      throw error;
     }
-  }
+  };
 
   const logout = async () => {
     try {
@@ -120,8 +142,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const register = async (data: RegistroUsuarioPayload): Promise<UsuarioAuth> => {
+    try {
+      const { data: registeredUser } = await apiClient.post<UsuarioAuth>('/auth/registro', data);
+      return registeredUser;
+    } catch (error) {
+      console.error("Error en register (AuthContext):", error);
+      throw error;
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading, error }}>
+    <AuthContext.Provider value={{ 
+      isAuthenticated: !!localAccessToken && !!user, 
+      user, 
+      accessToken: localAccessToken, 
+      isLoadingSession, 
+      login, 
+      register,
+      logout 
+    }}>
       {children}
     </AuthContext.Provider>
   )
