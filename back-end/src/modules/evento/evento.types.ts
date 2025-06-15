@@ -11,6 +11,8 @@ export const createEventoSchema = t.Object({
   fecha_fin: t.String({ format: 'date-time' }),
   imagen: t.Optional(t.String({ format: 'uri' })),
   ubicacion: t.Optional(t.String({ maxLength: 250 })),
+  latitud: t.Optional(t.Number()),  // ✅ ahora incluimos latitud
+  longitud: t.Optional(t.Number()), // ✅ ahora incluimos longitud
   capacidad: t.Integer({ minimum: 1 }),
   id_categoria: t.Integer(),
   id_estado_evento: t.Optional(t.Integer()),
@@ -21,9 +23,6 @@ export const createEventoSchema = t.Object({
    */
 });
 
-/**
- * Esquema de actualización parcial.
- */
 export const updateEventoSchema = t.Partial(createEventoSchema);
 
 /**
@@ -38,6 +37,8 @@ export const eventoResponseSchema = t.Object({
   fecha_fin: t.String(),
   imagen: t.Optional(t.String()),
   ubicacion: t.Optional(t.String()),
+  latitud: t.Optional(t.Number()),  // ✅ añadidos para respuesta también
+  longitud: t.Optional(t.Number()),
   capacidad: t.Integer(),
   id_categoria: t.Integer(),
   id_estado_evento: t.Optional(t.Integer()),
@@ -50,9 +51,6 @@ export const eventoResponseSchema = t.Object({
    */
 });
 
-/**
- * Esquema de respuesta para listados.
- */
 export const eventosResponseSchema = t.Array(eventoResponseSchema);
 
 /**
