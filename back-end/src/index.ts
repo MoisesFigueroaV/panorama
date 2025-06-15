@@ -17,6 +17,8 @@ import {
   publicOrganizadorRoutes
 } from './modules/organizador/organizador.routes';
 import { adminRoutes } from './modules/admin/admin.routes';
+import { eventoRoutes } from './modules/evento/evento.routes';
+// ====================================================================
 
 // Cargar variables de entorno
 dotenv.config();
@@ -45,6 +47,7 @@ const app = new Elysia()
         { name: 'Usuarios', description: 'Gestión de perfiles de usuario' },
         { name: 'Organizadores', description: 'Gestión de perfiles de organizadores de eventos' },
         { name: 'Admin', description: 'Operaciones de administración (KPIs, gestión de usuarios, organizadores, etc.)' },
+        { name: 'Eventos', description: 'Gestión de eventos y sus participantes' },
       ],
       servers: [ 
         { url: `http://localhost:${port}`, description: 'Servidor Local (sin prefijo /api/v1)' },
@@ -111,6 +114,9 @@ const app = new Elysia()
       
       // Módulo de Administración Centralizado
       .use(adminRoutes)
+
+      // Módulo de eventos
+      .use(eventoRoutes)
   )
 
   // Iniciar el servidor
