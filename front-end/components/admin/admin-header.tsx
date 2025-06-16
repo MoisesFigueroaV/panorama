@@ -22,7 +22,7 @@ export function AdminHeader() {
   const handleSignOut = async () => {
     try {
       await logout()
-      router.push("/")
+    router.push("/")
     } catch (error) {
       toast({
         title: "Error",
