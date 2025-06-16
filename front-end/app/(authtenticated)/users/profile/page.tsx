@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import React, { useState, useEffect } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
@@ -17,13 +17,14 @@ import { toast } from "@/components/ui/use-toast"
 import { Separator } from "@/components/ui/separator"
 import { ArrowLeft, Camera, Lock, LogOut, Bell, Bookmark, Home } from "lucide-react"
 import Link from "next/link"
-import { useAuth } from "@/app/context/AuthContext"
+import { useAuth } from "@/context/AuthContext"
 import { apiClient } from "@/lib/api/apiClient"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { CheckCircle2 } from "lucide-react"
 import { CategoriaTags } from "@/components/ui/categoria-tag"
 import { CATEGORIAS } from "@/constants/categorias"
 import { Checkbox } from "@/components/ui/checkbox"
+import { cn } from "@/lib/utils"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,8 +47,14 @@ const profileFormSchema = z.object({
       message: "La biografía no puede tener más de 500 caracteres.",
     })
     .optional(),
-  phone: z.string().optional(),
-  location: z.string().optional(),
+  phone: z.string()
+    .regex(/^\+56 9 \d{4} \d{4}$/, {
+      message: "El teléfono debe tener el formato +56 9 XXXX XXXX",
+    })
+    .optional(),
+  location: z.string().min(2, {
+    message: "La ubicación debe tener al menos 2 caracteres.",
+  }),
   interests: z.array(z.string())
     .min(1, "Selecciona al menos un interés")
     .refine(
@@ -187,6 +194,8 @@ export default function ProfilePage() {
         biografia: data.bio,
         intereses: data.interests,
         foto_perfil: avatar,
+        telefono: data.phone,
+        ubicacion: data.location,
       }
       
       console.log('Datos a enviar al backend:', updateData);
@@ -453,6 +462,18 @@ export default function ProfilePage() {
                         {user?.biografia || "No has agregado una biografía aún."}
                       </p>
                     </div>
+                    <div>
+                      <p className="font-medium text-muted-foreground">Teléfono</p>
+                      <p className="text-foreground">
+                        {user?.telefono || "No has agregado un número de teléfono."}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="font-medium text-muted-foreground">Ubicación</p>
+                      <p className="text-foreground">
+                        {user?.ubicacion || "No has especificado tu ubicación."}
+                      </p>
+                    </div>
                     <div className="space-y-2">
                       <h4 className="text-sm font-medium">Intereses</h4>
                       {user ? (
@@ -532,7 +553,60 @@ export default function ProfilePage() {
                         <FormItem>
                           <FormLabel>Teléfono</FormLabel>
                           <FormControl>
-                            <Input placeholder="+56 9 1234 5678" {...field} />
+                            <Input 
+                              placeholder="+56 9 1234 5678" 
+                              {...field}
+                              value={field.value || ''}
+                              onChange={(e) => {
+                                const input = e.target.value;
+                                // Si el usuario está borrando, permitir borrar normalmente
+                                if (input.length < (field.value?.length || 0)) {
+                                  field.onChange(input);
+                                  return;
+                                }
+                                
+                                // Limpiar el input de caracteres no numéricos
+                                const numbers = input.replace(/\D/g, '');
+                                
+                                // Si no hay números, limpiar el campo
+                                if (numbers.length === 0) {
+                                  field.onChange('');
+                                  return;
+                                }
+                                
+                                // Formatear el número
+                                let formatted = '';
+                                if (numbers.length > 0) {
+                                  formatted = '+56';
+                                  if (numbers.length > 2) {
+                                    formatted += ' 9';
+                                    if (numbers.length > 3) {
+                                      formatted += ' ' + numbers.slice(2, 6);
+                                      if (numbers.length > 6) {
+                                        formatted += ' ' + numbers.slice(6, 10);
+                                      }
+                                    }
+                                  }
+                                }
+                                
+                                // Actualizar si el formato es válido (ahora permitimos hasta 10 dígitos + el formato)
+                                if (formatted.length <= 15) { // +56 9 XXXX XXXX = 15 caracteres (incluyendo espacios)
+                                  field.onChange(formatted);
+                                }
+                              }}
+                              onKeyDown={(e) => {
+                                // Permitir borrar y navegar con las flechas
+                                if (e.key === 'Backspace' || e.key === 'Delete' || 
+                                    e.key === 'ArrowLeft' || e.key === 'ArrowRight' ||
+                                    e.key === 'Tab') {
+                                  return;
+                                }
+                                // Solo permitir números
+                                if (!/^\d$/.test(e.key)) {
+                                  e.preventDefault();
+                                }
+                              }}
+                            />
                           </FormControl>
                           <FormDescription>Este número se usará para notificaciones importantes.</FormDescription>
                           <FormMessage />
@@ -605,9 +679,18 @@ export default function ProfilePage() {
                         <FormItem>
                           <FormLabel>Biografía</FormLabel>
                           <FormControl>
-                            <Textarea placeholder="Cuéntanos sobre ti..." className="resize-none" {...field} />
+                            <div className="relative">
+                              <Textarea 
+                                placeholder="Cuéntanos sobre ti..." 
+                                className="resize-none" 
+                                {...field} 
+                              />
+                              <div className="absolute bottom-2 right-2 text-xs text-muted-foreground">
+                                {field.value?.length || 0}/500
+                              </div>
+                            </div>
                           </FormControl>
-                          <FormDescription>Una breve descripción sobre ti.</FormDescription>
+                          <FormDescription>Una breve descripción sobre ti (máximo 500 caracteres).</FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
