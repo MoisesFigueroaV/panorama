@@ -4,6 +4,7 @@ import { eq, and } from 'drizzle-orm';
 import { CustomError } from '../../utils/errors';
 import type { CreateEventoPayload, UpdateEventoPayload } from './evento.types';
 
+
 /**
  * Servicio para crear un nuevo evento.
  */
@@ -33,8 +34,8 @@ export async function createEventoService(id_organizador: number, data: CreateEv
     id_organizador,
     id_estado_evento: data.id_estado_evento ?? null,
     fecha_registro: new Date().toISOString().split('T')[0],
-    latitud: data.latitud !== undefined ? data.latitud.toString() : null,
-    longitud: data.longitud !== undefined ? data.longitud.toString() : null,
+    latitud: data.latitud !== undefined ? Number(data.latitud) : null,
+    longitud: data.longitud !== undefined ? Number(data.longitud) : null,
 
     // 🔧 Para escalado futuro (no implementado actualmente):
     // creado_en: new Date(),
@@ -94,4 +95,45 @@ export async function getEventosByOrganizadorService(id_organizador: number) {
     // 🔧 A futuro: cuando se implemente soporte de múltiples categorías:
     // categorias: JSON.parse(e.categorias ?? "[]")
   }));
+}
+
+/**
+ * Servicio para obtener un evento por su ID
+ */
+export async function getEventoByIdService(id_evento: number) {
+  const [evento] = await db.select().from(eventoTable)
+    .where(eq(eventoTable.id_evento, id_evento));
+
+  if (!evento) {
+    throw new CustomError('Evento no encontrado', 404);
+  }
+
+  return {
+    ...evento,
+    // Conversión explícita de tipos para coordenadas
+    latitud: evento.latitud !== null ? Number(evento.latitud) : null,
+    longitud: evento.longitud !== null ? Number(evento.longitud) : null
+  };
+}
+
+/**
+ * Servicio para obtener un evento por su ID con verificación de organizador
+ */
+export async function getEventoByIdService(id_evento: number, id_organizador?: number) {
+  const whereClause = id_organizador 
+    ? and(eq(eventoTable.id_evento, id_evento), eq(eventoTable.id_organizador, id_organizador))
+    : eq(eventoTable.id_evento, id_evento);
+
+  const [evento] = await db.select().from(eventoTable)
+    .where(whereClause);
+
+  if (!evento) {
+    throw new CustomError('Evento no encontrado', 404);
+  }
+
+  return {
+    ...evento,
+    latitud: evento.latitud !== null ? Number(evento.latitud) : null,
+    longitud: evento.longitud !== null ? Number(evento.longitud) : null
+  };
 }
