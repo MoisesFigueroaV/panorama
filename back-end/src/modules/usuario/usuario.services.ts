@@ -23,10 +23,17 @@ export type UsuarioServiceResponse = {
     id_usuario: number;
     correo: string;
     nombre_usuario: string;
-    fecha_registro: Date;
+    fecha_registro: string; // Formato ISO
     sexo: string | null;
-    fecha_nacimiento: Date | null;
+    fecha_nacimiento: string | null; // Formato ISO
     id_rol: number | null;
+    // Campos de perfil
+    biografia: string | null;
+    intereses: string[] | null;
+    foto_perfil: string | null;
+    // Campos de contacto
+    telefono: string | null;
+    ubicacion: string | null;
 };
 
 export type UsuarioConRolServiceResponse = UsuarioServiceResponse & {
@@ -78,6 +85,10 @@ export async function registrarUsuarioComunService( // Renombrado para claridad
       id_rol: targetRolId, // Asigna el rol de usuario común
       sexo: data.sexo || null,
       fecha_nacimiento: data.fecha_nacimiento || null,
+      // Nuevos campos de perfil
+      biografia: data.biografia || null,
+      intereses: data.intereses || null,
+      foto_perfil: data.foto_perfil || null,
     };
 
     const [insertedUserBrief] = await db
@@ -105,10 +116,12 @@ export async function loginUsuarioService(
   }
 ): Promise<{ accessToken: string; refreshToken: string; usuario: UsuarioConRolServiceResponse }> {
   try {
+    console.log('🔍 Buscando usuario por correo:', payload.correo);
     const userFromDb = await db.query.usuarioTable.findFirst({
       where: eq(usuarioTable.correo, payload.correo),
-      with: { rol: true } // Trae el objeto rol relacionado
+      with: { rol: true }
     });
+    console.log('📥 Usuario encontrado:', userFromDb);
 
     if (!userFromDb || !userFromDb.contrasena) {
       throw new CustomError('Credenciales inválidas.', 401);
@@ -119,35 +132,44 @@ export async function loginUsuarioService(
       throw new CustomError('Credenciales inválidas.', 401);
     }
 
+    console.log('🔑 Contraseña válida, rol del usuario:', userFromDb.rol);
+
     const jwtAccessPayload: SignerAccessPayload = {
       sub: String(userFromDb.id_usuario),
       ...(userFromDb.id_rol !== null && { rol: userFromDb.id_rol }),
     };
     const jwtRefreshPayload: SignerRefreshPayload = {
-        sub: String(userFromDb.id_usuario)
+      sub: String(userFromDb.id_usuario)
     };
 
     const accessToken = await jwtSigners.access(jwtAccessPayload);
     const refreshToken = await jwtSigners.refresh(jwtRefreshPayload);
 
     const usuarioParaRespuesta: UsuarioConRolServiceResponse = {
-        id_usuario: userFromDb.id_usuario,
-        correo: userFromDb.correo,
-        nombre_usuario: userFromDb.nombre_usuario,
-        fecha_registro: new Date(userFromDb.fecha_registro as string), // Asegurar Date
-        sexo: userFromDb.sexo,
-        fecha_nacimiento: userFromDb.fecha_nacimiento ? new Date(userFromDb.fecha_nacimiento as string) : null, // Asegurar Date
-        id_rol: userFromDb.id_rol,
-        rol: userFromDb.rol ? { 
-            id_rol: userFromDb.rol.id_rol,
-            nombre_rol: userFromDb.rol.nombre_rol 
-        } : null,
+      id_usuario: userFromDb.id_usuario,
+      correo: userFromDb.correo,
+      nombre_usuario: userFromDb.nombre_usuario,
+      fecha_registro: new Date(userFromDb.fecha_registro).toISOString(),
+      sexo: userFromDb.sexo,
+      fecha_nacimiento: userFromDb.fecha_nacimiento ? new Date(userFromDb.fecha_nacimiento).toISOString() : null,
+      id_rol: userFromDb.id_rol,
+      biografia: userFromDb.biografia,
+      intereses: userFromDb.intereses,
+      foto_perfil: userFromDb.foto_perfil,
+      telefono: userFromDb.telefono,
+      ubicacion: userFromDb.ubicacion,
+      rol: userFromDb.rol ? {
+        id_rol: userFromDb.rol.id_rol,
+        nombre_rol: userFromDb.rol.nombre_rol,
+      } : null,
     };
+
+    console.log('📤 Respuesta final del login:', usuarioParaRespuesta);
+
     return { accessToken, refreshToken, usuario: usuarioParaRespuesta };
   } catch (error) {
-    if (error instanceof CustomError) throw error;
-    handleErrorLog(error, 'servicio loginUsuarioService');
-    throw new CustomError('Error interno durante el inicio de sesión.', 500);
+    handleErrorLog(error, 'loginUsuarioService');
+    throw error;
   }
 }
 
@@ -186,77 +208,162 @@ export async function refreshTokenService(
 
 export async function getUsuarioByIdService(id: number): Promise<UsuarioConRolServiceResponse> {
   try {
-    const userFromDb = await db.query.usuarioTable.findFirst({
+    const usuario = await db.query.usuarioTable.findFirst({
       where: eq(usuarioTable.id_usuario, id),
-      columns: { // Seleccionar explícitamente para excluir 'contrasena'
-        id_usuario: true, correo: true, nombre_usuario: true,
-        fecha_registro: true, sexo: true, fecha_nacimiento: true, id_rol: true,
+      with: {
+        rol: true,
       },
-      with: { rol: true }, // Incluir el objeto rol relacionado
+      columns: {
+        id_usuario: true,
+        correo: true,
+        nombre_usuario: true,
+        fecha_registro: true,
+        sexo: true,
+        fecha_nacimiento: true,
+        id_rol: true,
+        biografia: true,
+        intereses: true,
+        foto_perfil: true,
+        telefono: true,
+        ubicacion: true,
+      },
     });
 
-    if (!userFromDb) {
-      throw new CustomError(`Usuario con ID ${id} no encontrado.`, 404);
+    if (!usuario) {
+      throw new CustomError('Usuario no encontrado', 404);
     }
-    
-    return {
-        id_usuario: userFromDb.id_usuario,
-        correo: userFromDb.correo,
-        nombre_usuario: userFromDb.nombre_usuario,
-        fecha_registro: new Date(userFromDb.fecha_registro as string), // Asegurar Date
-        sexo: userFromDb.sexo,
-        fecha_nacimiento: userFromDb.fecha_nacimiento ? new Date(userFromDb.fecha_nacimiento as string) : null, // Asegurar Date
-        id_rol: userFromDb.id_rol,
-        rol: userFromDb.rol ? { 
-            id_rol: userFromDb.rol.id_rol,
-            nombre_rol: userFromDb.rol.nombre_rol 
-        } : null,
+
+    const response: UsuarioConRolServiceResponse = {
+      id_usuario: usuario.id_usuario,
+      correo: usuario.correo,
+      nombre_usuario: usuario.nombre_usuario,
+      fecha_registro: new Date(usuario.fecha_registro).toISOString(),
+      sexo: usuario.sexo,
+      fecha_nacimiento: usuario.fecha_nacimiento ? new Date(usuario.fecha_nacimiento).toISOString() : null,
+      id_rol: usuario.id_rol,
+      biografia: usuario.biografia,
+      intereses: usuario.intereses,
+      foto_perfil: usuario.foto_perfil,
+      telefono: usuario.telefono,
+      ubicacion: usuario.ubicacion,
+      rol: usuario.rol ? {
+        id_rol: usuario.rol.id_rol,
+        nombre_rol: usuario.rol.nombre_rol,
+      } : null,
     };
+
+    return response;
   } catch (error) {
-    if (error instanceof CustomError) throw error;
-    handleErrorLog(error, `servicio getUsuarioByIdService (id: ${id})`);
-    throw new CustomError('Error interno al obtener el perfil del usuario.', 500);
+    handleErrorLog(error, 'getUsuarioByIdService');
+    throw error;
   }
 }
 
 export async function updateUsuarioPerfilService(
-  userId: number,
+  id: number,
   data: UpdateUsuarioPerfilPayload
-): Promise<UsuarioConRolServiceResponse> { // Devolver el perfil completo con rol
-    try {
-        const currentUser = await db.query.usuarioTable.findFirst({
-            where: eq(usuarioTable.id_usuario, userId),
-            columns: { id_usuario: true } // Solo para verificar existencia
-        });
-        if (!currentUser) {
-            throw new CustomError('Usuario no encontrado para actualizar.', 404);
-        }
+): Promise<UsuarioConRolServiceResponse> {
+  try {
+    const usuario = await db.query.usuarioTable.findFirst({
+      where: eq(usuarioTable.id_usuario, id),
+      with: {
+        rol: true,
+      },
+      columns: {
+        id_usuario: true,
+        correo: true,
+        nombre_usuario: true,
+        fecha_registro: true,
+        sexo: true,
+        fecha_nacimiento: true,
+        id_rol: true,
+        biografia: true,
+        intereses: true,
+        foto_perfil: true,
+        telefono: true,
+        ubicacion: true,
+      },
+    });
 
-        // Campos que el usuario puede actualizar de su propio perfil
-        const updatePayloadForDb: Partial<Pick<DrizzleNewUsuario, 'nombre_usuario' | 'sexo' | 'fecha_nacimiento'>> = {};
-        if (data.nombre_usuario !== undefined) updatePayloadForDb.nombre_usuario = data.nombre_usuario;
-        if (data.hasOwnProperty('sexo')) updatePayloadForDb.sexo = data.sexo;
-        if (data.hasOwnProperty('fecha_nacimiento')) {
-          updatePayloadForDb.fecha_nacimiento = data.fecha_nacimiento; // Drizzle/pg maneja string para DATE
-        }
-
-        if (Object.keys(updatePayloadForDb).length === 0) {
-            return getUsuarioByIdService(userId); // No hay cambios, devolver el perfil actual
-        }
-
-        const [updatedUserRaw] = await db.update(usuarioTable)
-            .set(updatePayloadForDb)
-            .where(eq(usuarioTable.id_usuario, userId))
-            .returning({id_usuario: usuarioTable.id_usuario}); // Solo el ID para luego buscar completo
-
-        if (!updatedUserRaw || !updatedUserRaw.id_usuario) {
-            throw new CustomError('No se pudo actualizar el perfil del usuario.', 500);
-        }
-        // Devolver el perfil completo y actualizado
-        return getUsuarioByIdService(updatedUserRaw.id_usuario);
-    } catch (error) {
-        if (error instanceof CustomError) throw error;
-        handleErrorLog(error, `servicio updateUsuarioPerfilService (userId: ${userId})`);
-        throw new CustomError('Error interno al actualizar el perfil.', 500);
+    if (!usuario) {
+      throw new CustomError('Usuario no encontrado', 404);
     }
+
+    const updatedUsuario = await db
+      .update(usuarioTable)
+      .set({
+        nombre_usuario: data.nombre_usuario,
+        sexo: data.sexo,
+        fecha_nacimiento: data.fecha_nacimiento ? new Date(data.fecha_nacimiento).toISOString() : null,
+        biografia: data.biografia,
+        intereses: data.intereses,
+        foto_perfil: data.foto_perfil,
+        telefono: data.telefono,
+        ubicacion: data.ubicacion,
+      })
+      .where(eq(usuarioTable.id_usuario, id))
+      .returning();
+
+    if (!updatedUsuario[0]) {
+      throw new CustomError('Error al actualizar el usuario', 500);
+    }
+
+    // Convertir fechas a formato ISO string
+    const fechaRegistro = new Date(usuario.fecha_registro).toISOString();
+    const fechaNacimiento = usuario.fecha_nacimiento ? new Date(usuario.fecha_nacimiento).toISOString() : null;
+
+    const response: UsuarioConRolServiceResponse = {
+      ...updatedUsuario[0],
+      fecha_registro: fechaRegistro,
+      fecha_nacimiento: fechaNacimiento,
+      rol: usuario.rol ? {
+        id_rol: usuario.rol.id_rol,
+        nombre_rol: usuario.rol.nombre_rol,
+      } : null,
+    };
+
+    return response;
+  } catch (error) {
+    handleErrorLog(error);
+    throw error;
+  }
+}
+
+export async function updateUsuarioContrasenaService(
+  userId: number,
+  data: { contrasena_actual: string; nueva_contrasena: string }
+): Promise<void> {
+  try {
+    const userFromDb = await db.query.usuarioTable.findFirst({
+      where: eq(usuarioTable.id_usuario, userId),
+      columns: { id_usuario: true, contrasena: true }
+    });
+
+    if (!userFromDb || !userFromDb.contrasena) {
+      throw new CustomError('Usuario no encontrado.', 404);
+    }
+
+    // Verificar la contraseña actual
+    const contrasenaActualValida = await verifyPassword(data.contrasena_actual, userFromDb.contrasena);
+    if (!contrasenaActualValida) {
+      throw new CustomError('La contraseña actual es incorrecta.', 401);
+    }
+
+    // Hash de la nueva contraseña
+    const nuevaContrasenaHash = await hashPassword(data.nueva_contrasena);
+
+    // Actualizar la contraseña
+    const [updatedUser] = await db.update(usuarioTable)
+      .set({ contrasena: nuevaContrasenaHash })
+      .where(eq(usuarioTable.id_usuario, userId))
+      .returning({ id_usuario: usuarioTable.id_usuario });
+
+    if (!updatedUser) {
+      throw new CustomError('No se pudo actualizar la contraseña.', 500);
+    }
+  } catch (error) {
+    if (error instanceof CustomError) throw error;
+    handleErrorLog(error, `servicio updateUsuarioContrasenaService (userId: ${userId})`);
+    throw new CustomError('Error interno al actualizar la contraseña.', 500);
+  }
 }

@@ -2,12 +2,114 @@
 
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Search, Menu } from "lucide-react"
+import { Search, Menu, User, Bell, LayoutDashboard, Settings, LogOut } from "lucide-react"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useState } from "react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { useAuth } from "@/context/AuthContext"
+import { useRouter } from "next/navigation"
 
-export function PublicHeader() {
+interface PublicHeaderProps {
+  userRole?: number
+}
+
+export function PublicHeader({ userRole }: PublicHeaderProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const { logout } = useAuth()
+  const router = useRouter()
+
+  const handleSignOut = async () => {
+    await logout()
+    router.push('/')
+  }
+
+  const renderUserMenu = () => {
+    if (!userRole) {
+      return (
+        <div className="flex items-center gap-4">
+          <Link href="/login">
+            <Button variant="ghost">Iniciar sesión</Button>
+          </Link>
+          <Link href="/register">
+            <Button>Registrarse</Button>
+          </Link>
+        </div>
+      )
+    }
+
+    return (
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" size="icon" className="text-secondary-foreground hover:text-primary hover:bg-secondary-foreground/10">
+          <Bell className="h-5 w-5" />
+          <span className="sr-only">Notificaciones</span>
+        </Button>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="text-secondary-foreground hover:text-primary hover:bg-secondary-foreground/10">
+              <User className="h-5 w-5" />
+              <span className="sr-only">Menú de usuario</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>Mi cuenta</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {userRole === 1 && (
+              <>
+                <DropdownMenuItem asChild>
+                  <Link href="/admin">
+                    <LayoutDashboard className="mr-2 h-4 w-4" />
+                    Panel de Administrador
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            )}
+            {userRole === 2 && (
+              <>
+                <DropdownMenuItem asChild>
+                  <Link href="/organizer/dashboard">
+                    <LayoutDashboard className="mr-2 h-4 w-4" />
+                    Dashboard Organizador
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            )}
+            {userRole === 3 && (
+              <>
+                <DropdownMenuItem asChild>
+                  <Link href="/users/profile">
+                    <User className="mr-2 h-4 w-4" />
+                    Mi Perfil
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            )}
+            <DropdownMenuItem asChild>
+              <Link href="/settings">
+                <Settings className="mr-2 h-4 w-4" />
+                Configuración
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleSignOut}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Cerrar sesión
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    )
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-primary/30 bg-white text-secondary-foreground">
@@ -31,6 +133,7 @@ export function PublicHeader() {
             </Link>
           </nav>
         </div>
+
         <div className="flex items-center gap-4">
           <Button
             variant="ghost"
@@ -40,19 +143,9 @@ export function PublicHeader() {
             <Search className="h-5 w-5" />
             <span className="sr-only">Buscar</span>
           </Button>
-          <div className="hidden md:flex items-center gap-2">
-            <Link href="/login">
-              <Button
-                variant="ghost"
-                className="text-secondary-foreground hover:text-primary hover:bg-secondary-foreground/10"
-              >
-                Iniciar sesión
-              </Button>
-            </Link>
-            <Link href="/register">
-              <Button className="bg-primary text-white hover:bg-primary/90">Registrarse</Button>
-            </Link>
-          </div>
+
+          {renderUserMenu()}
+
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild className="md:hidden">
               <Button
@@ -97,19 +190,66 @@ export function PublicHeader() {
                 >
                   Categorías
                 </Link>
-                <div className="flex flex-col gap-2 mt-4">
-                  <Link href="/login" onClick={() => setIsOpen(false)}>
-                    <Button
-                      variant="outline"
-                      className="w-full border-primary/30 text-secondary-foreground hover:bg-secondary-foreground/10"
-                    >
-                      Iniciar sesión
-                    </Button>
-                  </Link>
-                  <Link href="/register" onClick={() => setIsOpen(false)}>
-                    <Button className="w-full bg-primary text-white hover:bg-primary/90">Registrarse</Button>
-                  </Link>
-                </div>
+                {userRole && (
+                  <>
+                    <DropdownMenuSeparator />
+                    {userRole === 1 ? (
+                      <>
+                        <Link
+                          href="/admin"
+                          className="text-lg font-medium transition-colors hover:text-primary"
+                          onClick={() => setIsOpen(false)}
+                        >
+                          Panel de Administrador
+                        </Link>
+                        <button
+                          onClick={() => {
+                            handleSignOut()
+                            setIsOpen(false)
+                          }}
+                          className="text-lg font-medium text-red-500 hover:text-red-600 text-left"
+                        >
+                          Cerrar sesión
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        {userRole === 3 && (
+                          <Link
+                            href="/organizer/dashboard"
+                            className="text-lg font-medium transition-colors hover:text-primary"
+                            onClick={() => setIsOpen(false)}
+                          >
+                            Dashboard Organizador
+                          </Link>
+                        )}
+                        <Link
+                          href="/profile"
+                          className="text-lg font-medium transition-colors hover:text-primary"
+                          onClick={() => setIsOpen(false)}
+                        >
+                          Perfil
+                        </Link>
+                        <Link
+                          href="/settings"
+                          className="text-lg font-medium transition-colors hover:text-primary"
+                          onClick={() => setIsOpen(false)}
+                        >
+                          Configuración
+                        </Link>
+                        <button
+                          onClick={() => {
+                            handleSignOut()
+                            setIsOpen(false)
+                          }}
+                          className="text-lg font-medium text-red-500 hover:text-red-600 text-left"
+                        >
+                          Cerrar sesión
+                        </button>
+                      </>
+                    )}
+                  </>
+                )}
               </div>
             </SheetContent>
           </Sheet>

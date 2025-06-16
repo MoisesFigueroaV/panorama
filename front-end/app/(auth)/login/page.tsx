@@ -14,32 +14,31 @@ import { ROLES, ROUTES_BY_ROLE } from "@/lib/constants"
 
 export default function LoginPage() {
   const router = useRouter()
-  const { login, user, isLoading: isAuthLoading, error: authError } = useAuth()
+  const { login, user, isLoadingSession } = useAuth()
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   
-  const [email, setEmail] = useState("admin@example.com")
-  const [password, setPassword] = useState("password")
-
-  // Mover la redirección a un useEffect
-  useEffect(() => {
-    if (user && !isAuthLoading) {
-      const userRolId = user.rol?.id_rol
-      if (userRolId && ROUTES_BY_ROLE[userRolId as keyof typeof ROUTES_BY_ROLE]) {
-        const targetRoute = ROUTES_BY_ROLE[userRolId as keyof typeof ROUTES_BY_ROLE]
-        router.replace(targetRoute)
-      }
-    }
-  }, [user, isAuthLoading, router])
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setIsLoading(true)
+    setError(null)
     try {
-      await login(email, password)
-    } catch (err) {
-      console.error('Error en login:', err)
+      console.log('Intentando login...');
+      await login({ correo: email, contrasena: password });
+      console.log('Login completado');
+    } catch (err: any) {
+      console.error('Error detallado en login:', err);
+      console.error('Respuesta del error:', err.response?.data);
+      setError(err.response?.data?.error || 'Error al iniciar sesión')
+    } finally {
+      setIsLoading(false)
     }
   }
 
-  if (isAuthLoading) {
+  if (isLoadingSession) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-muted/30">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
@@ -65,11 +64,11 @@ export default function LoginPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {authError && (
+          {error && (
             <Alert variant="destructive" className="mb-4">
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>Error de autenticación</AlertTitle>
-              <AlertDescription>{authError}</AlertDescription>
+              <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -78,11 +77,11 @@ export default function LoginPage() {
               <Input 
                 id="email" 
                 type="email" 
-                placeholder="tu@email.com" 
+                placeholder="ejemplo@email.com" 
                 value={email} 
                 onChange={(e) => setEmail(e.target.value)} 
                 required 
-                disabled={isAuthLoading}
+                disabled={isLoading}
               />
             </div>
             <div className="space-y-2">
@@ -95,14 +94,15 @@ export default function LoginPage() {
               <Input 
                 id="password" 
                 type="password" 
+                placeholder="••••••••" 
                 value={password} 
                 onChange={(e) => setPassword(e.target.value)} 
                 required 
-                disabled={isAuthLoading}
+                disabled={isLoading}
               />
             </div>
-            <Button type="submit" className="w-full" disabled={isAuthLoading}>
-              {isAuthLoading ? (
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Iniciando sesión...

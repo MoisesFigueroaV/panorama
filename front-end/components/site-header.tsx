@@ -1,6 +1,6 @@
 "use client"
 
-import { useAuth } from "@/components/auth-provider"
+import { useAuth } from "@/context/AuthContext"
 import { apiClient, handleLogoutClient } from "@/lib/api/apiClient"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -16,14 +16,26 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { toast } from "@/components/ui/use-toast"
 
 export default function SiteHeader() {
+  const { user, logout } = useAuth()
   const [isOpen, setIsOpen] = useState(false)
-  const { user, isAuthenticated } = useAuth()
+  const isAuthenticated = !!user
 
-  const handleSignOut = () => {
-    handleLogoutClient()
-  }
+  const handleSignOut = async () => {
+    try {
+      await logout();
+      // Recargar la página principal después de cerrar sesión
+      window.location.href = '/';
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Hubo un problema al cerrar sesión. Por favor, inténtalo de nuevo.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const getInitials = (name: string) => {
     if (!name) return "U"
@@ -81,6 +93,10 @@ export default function SiteHeader() {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                     <Avatar className="h-8 w-8">
+                      <AvatarImage 
+                        src={user?.foto_perfil || "/placeholder.svg"} 
+                        alt={user?.nombre_usuario || "Usuario"} 
+                      />
                       <AvatarFallback>{getInitials(user?.nombre_usuario || "")}</AvatarFallback>
                     </Avatar>
                   </Button>
@@ -94,15 +110,9 @@ export default function SiteHeader() {
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link href="/dashboard">
+                    <Link href="/users/profile">
                       <User className="mr-2 h-4 w-4" />
-                      <span>Mi Dashboard</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/profile">
-                      <User className="mr-2 h-4 w-4" />
-                      <span>Mi Perfil</span>
+                      <span>Perfil</span>
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
@@ -148,6 +158,10 @@ export default function SiteHeader() {
                 {isAuthenticated && (
                   <div className="flex items-center gap-4 mb-2 pb-4 border-b border-primary/10">
                     <Avatar className="h-10 w-10">
+                      <AvatarImage 
+                        src={user?.foto_perfil || "/placeholder.svg"} 
+                        alt={user?.nombre_usuario || "Usuario"} 
+                      />
                       <AvatarFallback>{getInitials(user?.nombre_usuario || "")}</AvatarFallback>
                     </Avatar>
                     <div>
@@ -188,15 +202,7 @@ export default function SiteHeader() {
 
                 {isAuthenticated ? (
                   <div className="flex flex-col gap-2 mt-4">
-                    <Link href="/dashboard" onClick={() => setIsOpen(false)}>
-                      <Button
-                        variant="outline"
-                        className="w-full border-primary/30 text-secondary-foreground hover:bg-secondary-foreground/10"
-                      >
-                        Mi Dashboard
-                      </Button>
-                    </Link>
-                    <Link href="/profile" onClick={() => setIsOpen(false)}>
+                    <Link href="/users/profile" onClick={() => setIsOpen(false)}>
                       <Button
                         variant="outline"
                         className="w-full border-primary/30 text-secondary-foreground hover:bg-secondary-foreground/10"

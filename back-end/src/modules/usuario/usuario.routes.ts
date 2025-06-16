@@ -15,6 +15,7 @@ import {
   refreshTokenService,
   getUsuarioByIdService,
   updateUsuarioPerfilService,
+  updateUsuarioContrasenaService,
 } from './usuario.services';
 import {
   registroUsuarioSchema,
@@ -22,6 +23,7 @@ import {
   loginResponseSchema,
   usuariosResponseSchema,
   updateUsuarioPerfilSchema,
+  updateContrasenaSchema,
   errorResponseSchema,
   refreshTokenSchema,
   accessTokenResponseSchema,
@@ -138,5 +140,25 @@ export const userProfileRoutes = new Elysia({
         body: updateUsuarioPerfilSchema,
         response: { 200: usuariosResponseSchema, 400: errorResponseSchema, 401: errorResponseSchema, 404: errorResponseSchema, 500: errorResponseSchema },
         detail: { summary: 'Actualizar mi perfil de usuario', security: [{ bearerAuth: [] }] },
+    }
+)
+.put(
+    '/yo/contrasena',
+    async (context) => {
+        const session = (context as any).session as AppSession;
+        const currentSession = requireAuth()(session);
+        await updateUsuarioContrasenaService(currentSession.subAsNumber, context.body as Static<typeof updateContrasenaSchema>);
+        return { message: 'Contraseña actualizada correctamente' };
+    },
+    {
+        body: updateContrasenaSchema,
+        response: { 
+            200: t.Object({ message: t.String() }), 
+            400: errorResponseSchema, 
+            401: errorResponseSchema, 
+            404: errorResponseSchema, 
+            500: errorResponseSchema 
+        },
+        detail: { summary: 'Actualizar mi contraseña', security: [{ bearerAuth: [] }] },
     }
 );
