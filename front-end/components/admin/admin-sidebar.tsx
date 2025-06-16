@@ -6,6 +6,8 @@ import { BarChart, Calendar, Flag, Home, LogOut, Settings, Shield, Tag, Users, M
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { useAuth } from "@/context/AuthContext"
+import { toast } from "@/components/ui/use-toast"
 
 interface Route {
   href: string
@@ -17,10 +19,19 @@ interface Route {
 export function AdminSidebar() {
   const pathname = usePathname()
   const router = useRouter()
+  const { logout } = useAuth()
 
-  // Función simulada de cierre de sesión
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
+    try {
+      await logout()
     router.push("/")
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Hubo un problema al cerrar sesión. Por favor, inténtalo de nuevo.",
+        variant: "destructive",
+      })
+    }
   }
 
   const routes: Route[] = [

@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { Bell, Menu, User } from "lucide-react"
+import { Bell, Menu, User, LayoutDashboard, Globe, Settings, LogOut } from "lucide-react"
 import Link from "next/link"
 import { OrganizerSidebar } from "./organizer-sidebar"
 import { useRouter } from "next/navigation"
@@ -51,16 +51,28 @@ export function OrganizerHeader() {
             <DropdownMenuLabel>Mi cuenta</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <Link href="/organizer/profile">Mi perfil</Link>
+              <Link href="/organizer/profile">
+                <LayoutDashboard className="mr-2 h-4 w-4" />
+                Dashboard
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link href="/organizer/profile/public">Perfil público</Link>
+              <Link href="/organizer/profile/public">
+                <Globe className="mr-2 h-4 w-4" />
+                Perfil público
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link href="/organizer/settings">Configuración</Link>
+              <Link href="/organizer/settings">
+                <Settings className="mr-2 h-4 w-4" />
+                Configuración
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => router.push("/")}>Cerrar sesión</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => router.push("/")}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Cerrar sesión
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

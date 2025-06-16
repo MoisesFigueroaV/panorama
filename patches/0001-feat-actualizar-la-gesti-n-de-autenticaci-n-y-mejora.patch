@@ -1,0 +1,335 @@
+From ea242e2db0d7543a6860b13e00fc920ff60bce53 Mon Sep 17 00:00:00 2001
+From: MoisesFigueroaDeveloper <moisesfigueroadeveloper@gmail.com>
+Date: Sun, 15 Jun 2025 18:54:19 -0400
+Subject: [PATCH 1/5] =?UTF-8?q?feat:=20actualizar=20la=20gesti=C3=B3n=20de?=
+ =?UTF-8?q?=20autenticaci=C3=B3n=20y=20mejorar=20la=20estructura=20del=20p?=
+ =?UTF-8?q?royecto?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- Se modificó la importación del contexto de autenticación para utilizar la nueva ruta.
+- Se refactorizó el contexto de autenticación para incluir tipos más específicos y mejorar la gestión de sesión.
+- Se ajustaron los scripts en package.json y se actualizaron las dependencias.
+- Se realizaron cambios en la configuración de TypeScript para optimizar la inclusión de tipos.
+- Se mejoró la lógica de redirección en el layout de administración para gestionar el acceso de usuarios.
+---
+ back-end/bun.lockb                            | Bin 23207 -> 23207 bytes
+ back-end/package.json                         |  14 +--
+ back-end/tsconfig.json                        |   4 +-
+ front-end/app/(auth)/login/page.tsx           |   2 +-
+ .../(authtenticated)/users/profile/page.tsx   |   2 +-
+ front-end/app/admin/layout.tsx                |  24 ++++
+ front-end/app/layout.tsx                      |   2 +-
+ front-end/components/site-header.tsx          |   2 +-
+ front-end/context/AuthContext.tsx             | 108 ++++++++++++------
+ 9 files changed, 111 insertions(+), 47 deletions(-)
+
+diff --git a/back-end/bun.lockb b/back-end/bun.lockb
+index 1b9a0144c43caacde0ec39737a264a60b3e237b1..c72ed98e70e92a86d951bdd752f0878fd5ecec3a 100755
+GIT binary patch
+delta 153
+zcmV;K0A~NEwE?HK0gx^rLL=WT<u_7asSKAs9z>O^yRsX}<=JFc2K3J~nz-y>u}*pt
+zlY|5;v-A?N7eR6*%dB;HJ$AA7@$XW(FS>tKJyDKV2HR{Ae-iy%Up;o0AsI4)X&{gR
+zIrH2%*aIaNq9|WXRkX5zxHvU?xBLOKF)Ts>vnVX(5(fcZGA=kSHM0~y_8J8?E_7#l
+HlkqB;dYwRu
+
+delta 155
+zcmV;M0A&BCwE?HK0gx^r9w&s$=_J4BbYCXU>O&+xf#wqQP+y9D4~aaansBXpu}*pt
+z0S}Xb1}n4l60sLSHLB4eq`rvekW*4me<Gn~ZUC`EtHDF6MA6vMd`R$OJdKQEEpps;
+zHVhlp3QOnkS*sk@>@|kfeF1&AbU&%%0kbhILIJZVEaegh0ssI2000296hHPF1vM^o
+JXL^(IDwr7RLEZoW
+
+diff --git a/back-end/package.json b/back-end/package.json
+index 1103334..69602f4 100644
+--- a/back-end/package.json
++++ b/back-end/package.json
+@@ -1,10 +1,7 @@
+ {
+   "name": "app",
+   "version": "1.0.50",
+-  "scripts": {
+-    "test": "echo \"Error: no test specified\" && exit 1",
+-    "dev": "bun run --watch src/index.ts"
+-  },
++  "module": "src/index.js",
+   "dependencies": {
+     "@elysiajs/cors": "^1.3.3",
+     "@elysiajs/jwt": "^1.3.1",
+@@ -17,8 +14,11 @@
+     "elysia": "latest",
+     "pg": "^8.16.0"
+   },
+-  "devDependencies": {
+-    "bun-types": "latest"
++  "scripts": {
++    "test": "echo \"Error: no test specified\" && exit 1",
++    "dev": "bun run --watch src/index.ts"
+   },
+-  "module": "src/index.js"
++  "devDependencies": {
++    "bun-types": "^1.2.16"
++  }
+ }
+\ No newline at end of file
+diff --git a/back-end/tsconfig.json b/back-end/tsconfig.json
+index 1ca2350..395c7f7 100644
+--- a/back-end/tsconfig.json
++++ b/back-end/tsconfig.json
+@@ -31,8 +31,8 @@
+     // "baseUrl": "./",                                  /* Specify the base directory to resolve non-relative module names. */
+     // "paths": {},                                      /* Specify a set of entries that re-map imports to additional lookup locations. */
+     // "rootDirs": [],                                   /* Allow multiple folders to be treated as one when resolving modules. */
+-    // "typeRoots": [],                                  /* Specify multiple folders that act like './node_modules/@types'. */
+-    "types": ["bun-types"],                                      /* Specify type package names to be included without being referenced in a source file. */
++    "typeRoots": [],
++    "types": [],                                      /* Specify type package names to be included without being referenced in a source file. */
+     // "allowUmdGlobalAccess": true,                     /* Allow accessing UMD globals from modules. */
+     // "moduleSuffixes": [],                             /* List of file name suffixes to search when resolving a module. */
+     // "resolveJsonModule": true,                        /* Enable importing .json files. */
+diff --git a/front-end/app/(auth)/login/page.tsx b/front-end/app/(auth)/login/page.tsx
+index c572e05..d04d82e 100644
+--- a/front-end/app/(auth)/login/page.tsx
++++ b/front-end/app/(auth)/login/page.tsx
+@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
+ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+ import { AlertCircle, Loader2 } from "lucide-react"
+ import Link from "next/link"
+-import { useAuth } from "@/app/context/AuthContext"
++import { useAuth } from "@/context/AuthContext"
+ import { ROLES, ROUTES_BY_ROLE } from "@/lib/constants"
+ 
+ export default function LoginPage() {
+diff --git a/front-end/app/(authtenticated)/users/profile/page.tsx b/front-end/app/(authtenticated)/users/profile/page.tsx
+index 4ae44eb..28b86c6 100644
+--- a/front-end/app/(authtenticated)/users/profile/page.tsx
++++ b/front-end/app/(authtenticated)/users/profile/page.tsx
+@@ -17,7 +17,7 @@ import { toast } from "@/components/ui/use-toast"
+ import { Separator } from "@/components/ui/separator"
+ import { ArrowLeft, Camera, Lock, LogOut, Bell, Bookmark, Home } from "lucide-react"
+ import Link from "next/link"
+-import { useAuth } from "@/app/context/AuthContext"
++import { useAuth } from "@/context/AuthContext"
+ import { apiClient } from "@/lib/api/apiClient"
+ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+ import { CheckCircle2 } from "lucide-react"
+diff --git a/front-end/app/admin/layout.tsx b/front-end/app/admin/layout.tsx
+index a53b2e9..21a0722 100644
+--- a/front-end/app/admin/layout.tsx
++++ b/front-end/app/admin/layout.tsx
+@@ -2,8 +2,32 @@
+ 
+ import { AdminSidebar } from "@/components/admin/admin-sidebar"
+ import { AdminHeader } from "@/components/admin/admin-header"
++import { useAuth } from "@/context/AuthContext"
++import { useRouter } from "next/navigation"
++import { useEffect } from "react"
+ 
+ export default function AdminLayout({ children }: { children: React.ReactNode }) {
++  const { user, isLoadingSession } = useAuth()
++  const router = useRouter()
++
++  useEffect(() => {
++    if (!isLoadingSession && (!user || user.rol?.id_rol !== 1)) {
++      router.push('/login')
++    }
++  }, [user, isLoadingSession, router])
++
++  if (isLoadingSession) {
++    return (
++      <div className="flex items-center justify-center min-h-screen">
++        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
++      </div>
++    )
++  }
++
++  if (!user || user.rol?.id_rol !== 1) {
++    return null
++  }
++
+   return (
+     <div className="min-h-screen bg-background">
+       <AdminSidebar />
+diff --git a/front-end/app/layout.tsx b/front-end/app/layout.tsx
+index a2d159a..c3ebfd1 100644
+--- a/front-end/app/layout.tsx
++++ b/front-end/app/layout.tsx
+@@ -3,7 +3,7 @@ import "@/app/globals.css"
+ import { Inter } from "next/font/google"
+ import { ThemeProvider } from "@/components/theme-provider"
+ import { Toaster } from "@/components/ui/toaster"
+-import { AuthProvider } from "@/app/context/AuthContext"
++import { AuthProvider } from "@/context/AuthContext"
+ import { ScrollToTop } from "@/components/scroll-to-top"
+ 
+ const inter = Inter({ subsets: ["latin"] })
+diff --git a/front-end/components/site-header.tsx b/front-end/components/site-header.tsx
+index a47fc48..e7ee66f 100644
+--- a/front-end/components/site-header.tsx
++++ b/front-end/components/site-header.tsx
+@@ -1,6 +1,6 @@
+ "use client"
+ 
+-import { useAuth } from "@/app/context/AuthContext"
++import { useAuth } from "@/context/AuthContext"
+ import { apiClient, handleLogoutClient } from "@/lib/api/apiClient"
+ import Link from "next/link"
+ import { Button } from "@/components/ui/button"
+diff --git a/front-end/context/AuthContext.tsx b/front-end/context/AuthContext.tsx
+index 2d49d14..5e4a38c 100644
+--- a/front-end/context/AuthContext.tsx
++++ b/front-end/context/AuthContext.tsx
+@@ -5,21 +5,46 @@ import { apiClient, setAccessToken, setRefreshToken, getAccessToken, clearAuthTo
+ import { useRouter } from 'next/navigation'
+ import { deleteCookie, getCookie } from 'cookies-next'
+ 
++// Definir tipos para el payload y la respuesta del usuario
++interface UsuarioAuth {
++  id_usuario: number;
++  nombre_usuario: string;
++  correo: string;
++  fecha_registro: string;
++  rol?: { id_rol: number; nombre_rol: string } | null;
++  foto_perfil?: string | null;
++  biografia?: string | null;
++  intereses?: string[];
++}
++
++interface LoginUsuarioPayload {
++  correo: string;
++  contrasena: string;
++}
++
++interface RegistroUsuarioPayload {
++  nombre_usuario: string;
++  correo: string;
++  contrasena: string;
++}
++
+ interface AuthContextType {
+-  user: any | null
+-  login: (email: string, password: string) => Promise<void>
+-  logout: () => Promise<void>
+-  isLoading: boolean
+-  error: string | null
++  isAuthenticated: boolean;
++  user: UsuarioAuth | null;
++  accessToken: string | null;
++  isLoadingSession: boolean;
++  login: (credentials: LoginUsuarioPayload) => Promise<void>;
++  register: (data: RegistroUsuarioPayload) => Promise<UsuarioAuth>;
++  logout: () => void;
+ }
+ 
+ const AuthContext = createContext<AuthContextType | undefined>(undefined)
+ 
+-export function AuthProvider({ children }: { children: React.ReactNode }) {
+-  const [user, setUser] = useState<any | null>(null)
+-  const [isLoading, setIsLoading] = useState(true)
+-  const [error, setError] = useState<string | null>(null)
+-  const router = useRouter()
++export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
++  const [user, setUser] = useState<UsuarioAuth | null>(null);
++  const [localAccessToken, setLocalAccessToken] = useState<string | null>(null);
++  const [isLoadingSession, setIsLoadingSession] = useState(true);
++  const router = useRouter();
+ 
+   useEffect(() => {
+     checkSession()
+@@ -44,7 +69,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
+       console.error('Error al verificar sesión:', err)
+       await clearSession()
+     } finally {
+-      setIsLoading(false)
++      setIsLoadingSession(false)
+     }
+   }
+ 
+@@ -59,7 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
+       
+       // Limpiar estado
+       setUser(null)
+-      setError(null)
++      setLocalAccessToken(null)
+       
+       // Limpiar headers de la API
+       delete apiClient.defaults.headers.common['Authorization']
+@@ -68,29 +93,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
+     }
+   }
+ 
+-  const login = async (email: string, password: string) => {
++  const login = async (credentials: LoginUsuarioPayload) => {
+     try {
+-      setError(null)
+-      setIsLoading(true)
+-      const response = await apiClient.post('/auth/login', { correo: email, contrasena: password })
+-      
+-      // Guardar tokens
+-      setAccessToken(response.data.accessToken)
+-      setRefreshToken(response.data.refreshToken)
+-      
+-      // Guardar usuario
+-      setUser(response.data.usuario)
+-      
+-      // Configurar el token en el cliente API
+-      apiClient.defaults.headers.common['Authorization'] = `Bearer ${response.data.accessToken}`
+-    } catch (err: any) {
+-      setError(err.message || 'Error al iniciar sesión')
+-      await clearSession()
+-      throw err
+-    } finally {
+-      setIsLoading(false)
++      const { data: response } = await apiClient.post<{ accessToken: string; refreshToken: string; usuario: UsuarioAuth }>('/auth/login', credentials);
++      setAccessToken(response.accessToken);
++      setRefreshToken(response.refreshToken);
++      setUser(response.usuario);
++      setLocalAccessToken(response.accessToken);
++
++      if (response.usuario.rol?.id_rol === 1) {
++        router.push('/admin/dashboard');
++      } else if (response.usuario.rol?.id_rol === 3) {
++        router.push('/organizadores/dashboard');
++      } else {
++        router.push('/');
++      }
++    } catch (error) {
++      console.error("Error en login (AuthContext):", error);
++      throw error;
+     }
+-  }
++  };
+ 
+   const logout = async () => {
+     try {
+@@ -120,8 +142,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
+     }
+   }
+ 
++  const register = async (data: RegistroUsuarioPayload): Promise<UsuarioAuth> => {
++    try {
++      const { data: registeredUser } = await apiClient.post<UsuarioAuth>('/auth/registro', data);
++      return registeredUser;
++    } catch (error) {
++      console.error("Error en register (AuthContext):", error);
++      throw error;
++    }
++  };
++
+   return (
+-    <AuthContext.Provider value={{ user, login, logout, isLoading, error }}>
++    <AuthContext.Provider value={{ 
++      isAuthenticated: !!localAccessToken && !!user, 
++      user, 
++      accessToken: localAccessToken, 
++      isLoadingSession, 
++      login, 
++      register,
++      logout 
++    }}>
+       {children}
+     </AuthContext.Provider>
+   )
+-- 
+2.45.2
+

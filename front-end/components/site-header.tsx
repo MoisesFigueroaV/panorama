@@ -1,6 +1,6 @@
 "use client"
 
-import { useAuth } from "@/app/context/AuthContext"
+import { useAuth } from "@/context/AuthContext"
 import { apiClient, handleLogoutClient } from "@/lib/api/apiClient"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -93,6 +93,10 @@ export default function SiteHeader() {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                     <Avatar className="h-8 w-8">
+                      <AvatarImage 
+                        src={user?.foto_perfil || "/placeholder.svg"} 
+                        alt={user?.nombre_usuario || "Usuario"} 
+                      />
                       <AvatarFallback>{getInitials(user?.nombre_usuario || "")}</AvatarFallback>
                     </Avatar>
                   </Button>
@@ -108,7 +112,7 @@ export default function SiteHeader() {
                   <DropdownMenuItem asChild>
                     <Link href="/users/profile">
                       <User className="mr-2 h-4 w-4" />
-                      <span>Mi Perfil</span>
+                      <span>Perfil</span>
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
@@ -154,6 +158,10 @@ export default function SiteHeader() {
                 {isAuthenticated && (
                   <div className="flex items-center gap-4 mb-2 pb-4 border-b border-primary/10">
                     <Avatar className="h-10 w-10">
+                      <AvatarImage 
+                        src={user?.foto_perfil || "/placeholder.svg"} 
+                        alt={user?.nombre_usuario || "Usuario"} 
+                      />
                       <AvatarFallback>{getInitials(user?.nombre_usuario || "")}</AvatarFallback>
                     </Avatar>
                     <div>

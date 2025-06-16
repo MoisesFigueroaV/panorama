@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircle, Loader2 } from "lucide-react"
 import Link from "next/link"
-import { useAuth } from "@/app/context/AuthContext"
+import { useAuth } from "@/context/AuthContext"
 import { ROLES, ROUTES_BY_ROLE } from "@/lib/constants"
 
 export default function LoginPage() {
@@ -18,28 +18,20 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   
-  const [email, setEmail] = useState("admin@example.com")
-  const [password, setPassword] = useState("password")
-
-  // Mover la redirección a un useEffect
-  useEffect(() => {
-    if (user && !isLoadingSession) {
-      const userRolId = user.rol?.id_rol
-      if (userRolId && ROUTES_BY_ROLE[userRolId as keyof typeof ROUTES_BY_ROLE]) {
-        const targetRoute = ROUTES_BY_ROLE[userRolId as keyof typeof ROUTES_BY_ROLE]
-        router.replace(targetRoute)
-      }
-    }
-  }, [user, isLoadingSession, router])
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     setError(null)
     try {
-      await login({ correo: email, contrasena: password })
+      console.log('Intentando login...');
+      await login({ correo: email, contrasena: password });
+      console.log('Login completado');
     } catch (err: any) {
-      console.error('Error en login:', err)
+      console.error('Error detallado en login:', err);
+      console.error('Respuesta del error:', err.response?.data);
       setError(err.response?.data?.error || 'Error al iniciar sesión')
     } finally {
       setIsLoading(false)
@@ -85,7 +77,7 @@ export default function LoginPage() {
               <Input 
                 id="email" 
                 type="email" 
-                placeholder="tu@email.com" 
+                placeholder="ejemplo@email.com" 
                 value={email} 
                 onChange={(e) => setEmail(e.target.value)} 
                 required 
@@ -102,6 +94,7 @@ export default function LoginPage() {
               <Input 
                 id="password" 
                 type="password" 
+                placeholder="••••••••" 
                 value={password} 
                 onChange={(e) => setPassword(e.target.value)} 
                 required 

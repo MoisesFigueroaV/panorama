@@ -1,0 +1,1969 @@
+From 4478829b67334e4ff9361b87fe1f125660f05d2d Mon Sep 17 00:00:00 2001
+From: MoisesFigueroaDeveloper <moisesfigueroadeveloper@gmail.com>
+Date: Sun, 15 Jun 2025 19:50:30 -0400
+Subject: [PATCH 2/5] feat: agregar campos de contacto al perfil de usuario y
+ actualizar la interfaz
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- Se añadieron los campos de teléfono y ubicación a la tabla 'usuario' en la base de datos.
+- Se actualizaron los esquemas y tipos en el backend para incluir los nuevos campos de contacto.
+- Se implementaron cambios en los servicios para manejar la obtención y actualización de los nuevos campos.
+- Se mejoró la interfaz de usuario en el frontend para permitir la visualización y edición de los campos de contacto en el perfil de usuario.
+---
+ .../drizzle/0010_add_user_contact_fields.sql  |   7 +
+ back-end/src/db/schema/usuario.schema.ts      |   3 +
+ .../src/modules/usuario/usuario.services.ts   | 212 +++++----
+ back-end/src/modules/usuario/usuario.types.ts |   8 +-
+ front-end/app/(auth)/login/page.tsx           |   7 +-
+ .../(authtenticated)/users/profile/page.tsx   |  95 +++-
+ front-end/app/(public)/layout.tsx             |  15 +-
+ front-end/app/admin/chat/page.tsx             | 138 +-----
+ front-end/app/admin/layout.tsx                |   2 +-
+ front-end/app/admin/page.tsx                  |   2 +
+ front-end/app/admin/profile/page.tsx          | 158 +++++++
+ front-end/app/admin/settings/page.tsx         | 431 +-----------------
+ front-end/app/page.tsx                        |   3 +-
+ front-end/components/admin/admin-header.tsx   |  34 +-
+ front-end/components/admin/admin-sidebar.tsx  |  17 +-
+ front-end/components/dynamic-header.tsx       |  18 +
+ .../components/organizer/organizer-header.tsx |  22 +-
+ front-end/components/public/public-header.tsx | 198 ++++++--
+ front-end/components/site-header.tsx          |   2 +-
+ front-end/context/AuthContext.tsx             |   2 +
+ front-end/package.json                        |   2 +
+ front-end/pnpm-lock.yaml                      |  40 ++
+ 22 files changed, 711 insertions(+), 705 deletions(-)
+ create mode 100644 back-end/drizzle/0010_add_user_contact_fields.sql
+ create mode 100644 front-end/app/admin/profile/page.tsx
+ create mode 100644 front-end/components/dynamic-header.tsx
+
+diff --git a/back-end/drizzle/0010_add_user_contact_fields.sql b/back-end/drizzle/0010_add_user_contact_fields.sql
+new file mode 100644
+index 0000000..23796ac
+--- /dev/null
++++ b/back-end/drizzle/0010_add_user_contact_fields.sql
+@@ -0,0 +1,7 @@
++-- Agregar campos de contacto a la tabla usuario de forma simple
++ALTER TABLE usuario ADD COLUMN IF NOT EXISTS telefono VARCHAR(20);
++ALTER TABLE usuario ADD COLUMN IF NOT EXISTS ubicacion VARCHAR(100);
++
++-- Comentarios para documentar los nuevos campos
++COMMENT ON COLUMN usuario.telefono IS 'Número de teléfono del usuario en formato +56 9 XXXX XXXX';
++COMMENT ON COLUMN usuario.ubicacion IS 'Ubicación o ciudad del usuario'; 
+\ No newline at end of file
+diff --git a/back-end/src/db/schema/usuario.schema.ts b/back-end/src/db/schema/usuario.schema.ts
+index 133325a..df2596c 100644
+--- a/back-end/src/db/schema/usuario.schema.ts
++++ b/back-end/src/db/schema/usuario.schema.ts
+@@ -18,6 +18,9 @@ export const usuarioTable = pgTable('usuario', {
+   biografia: text('biografia'),
+   intereses: text('intereses').array(),
+   foto_perfil: varchar('foto_perfil', { length: 250 }),
++  // Campos de contacto
++  telefono: varchar('telefono', { length: 20 }),
++  ubicacion: varchar('ubicacion', { length: 100 }),
+ });
+ 
+ export const usuarioRelations = relations(usuarioTable, ({ one }) => ({
+diff --git a/back-end/src/modules/usuario/usuario.services.ts b/back-end/src/modules/usuario/usuario.services.ts
+index 54355dd..f41607c 100644
+--- a/back-end/src/modules/usuario/usuario.services.ts
++++ b/back-end/src/modules/usuario/usuario.services.ts
+@@ -23,14 +23,17 @@ export type UsuarioServiceResponse = {
+     id_usuario: number;
+     correo: string;
+     nombre_usuario: string;
+-    fecha_registro: Date;
++    fecha_registro: string; // Formato ISO
+     sexo: string | null;
+-    fecha_nacimiento: Date | null;
++    fecha_nacimiento: string | null; // Formato ISO
+     id_rol: number | null;
+-    // Nuevos campos de perfil
++    // Campos de perfil
+     biografia: string | null;
+     intereses: string[] | null;
+     foto_perfil: string | null;
++    // Campos de contacto
++    telefono: string | null;
++    ubicacion: string | null;
+ };
+ 
+ export type UsuarioConRolServiceResponse = UsuarioServiceResponse & {
+@@ -115,7 +118,7 @@ export async function loginUsuarioService(
+   try {
+     const userFromDb = await db.query.usuarioTable.findFirst({
+       where: eq(usuarioTable.correo, payload.correo),
+-      with: { rol: true } // Trae el objeto rol relacionado
++      with: { rol: true }
+     });
+ 
+     if (!userFromDb || !userFromDb.contrasena) {
+@@ -132,34 +135,35 @@ export async function loginUsuarioService(
+       ...(userFromDb.id_rol !== null && { rol: userFromDb.id_rol }),
+     };
+     const jwtRefreshPayload: SignerRefreshPayload = {
+-        sub: String(userFromDb.id_usuario)
++      sub: String(userFromDb.id_usuario)
+     };
+ 
+     const accessToken = await jwtSigners.access(jwtAccessPayload);
+     const refreshToken = await jwtSigners.refresh(jwtRefreshPayload);
+ 
+     const usuarioParaRespuesta: UsuarioConRolServiceResponse = {
+-        id_usuario: userFromDb.id_usuario,
+-        correo: userFromDb.correo,
+-        nombre_usuario: userFromDb.nombre_usuario,
+-        fecha_registro: new Date(userFromDb.fecha_registro as string), // Asegurar Date
+-        sexo: userFromDb.sexo,
+-        fecha_nacimiento: userFromDb.fecha_nacimiento ? new Date(userFromDb.fecha_nacimiento as string) : null, // Asegurar Date
+-        id_rol: userFromDb.id_rol,
+-        // Nuevos campos de perfil
+-        biografia: userFromDb.biografia,
+-        intereses: userFromDb.intereses,
+-        foto_perfil: userFromDb.foto_perfil,
+-        rol: userFromDb.rol ? { 
+-            id_rol: userFromDb.rol.id_rol,
+-            nombre_rol: userFromDb.rol.nombre_rol 
+-        } : null,
++      id_usuario: userFromDb.id_usuario,
++      correo: userFromDb.correo,
++      nombre_usuario: userFromDb.nombre_usuario,
++      fecha_registro: new Date(userFromDb.fecha_registro).toISOString(),
++      sexo: userFromDb.sexo,
++      fecha_nacimiento: userFromDb.fecha_nacimiento ? new Date(userFromDb.fecha_nacimiento).toISOString() : null,
++      id_rol: userFromDb.id_rol,
++      biografia: userFromDb.biografia,
++      intereses: userFromDb.intereses,
++      foto_perfil: userFromDb.foto_perfil,
++      telefono: userFromDb.telefono,
++      ubicacion: userFromDb.ubicacion,
++      rol: userFromDb.rol ? {
++        id_rol: userFromDb.rol.id_rol,
++        nombre_rol: userFromDb.rol.nombre_rol,
++      } : null,
+     };
++
+     return { accessToken, refreshToken, usuario: usuarioParaRespuesta };
+   } catch (error) {
+-    if (error instanceof CustomError) throw error;
+-    handleErrorLog(error, 'servicio loginUsuarioService');
+-    throw new CustomError('Error interno durante el inicio de sesión.', 500);
++    handleErrorLog(error, 'loginUsuarioService');
++    throw error;
+   }
+ }
+ 
+@@ -198,8 +202,11 @@ export async function refreshTokenService(
+ 
+ export async function getUsuarioByIdService(id: number): Promise<UsuarioConRolServiceResponse> {
+   try {
+-    const userFromDb = await db.query.usuarioTable.findFirst({
++    const usuario = await db.query.usuarioTable.findFirst({
+       where: eq(usuarioTable.id_usuario, id),
++      with: {
++        rol: true,
++      },
+       columns: {
+         id_usuario: true,
+         correo: true,
+@@ -208,87 +215,112 @@ export async function getUsuarioByIdService(id: number): Promise<UsuarioConRolSe
+         sexo: true,
+         fecha_nacimiento: true,
+         id_rol: true,
+-        // Nuevos campos de perfil
+         biografia: true,
+         intereses: true,
+         foto_perfil: true,
++        telefono: true,
++        ubicacion: true,
+       },
+-      with: { rol: true },
+     });
+ 
+-    if (!userFromDb) {
+-      throw new CustomError(`Usuario con ID ${id} no encontrado.`, 404);
++    if (!usuario) {
++      throw new CustomError('Usuario no encontrado', 404);
+     }
+-    
+-    return {
+-        id_usuario: userFromDb.id_usuario,
+-        correo: userFromDb.correo,
+-        nombre_usuario: userFromDb.nombre_usuario,
+-        fecha_registro: new Date(userFromDb.fecha_registro as string),
+-        sexo: userFromDb.sexo,
+-        fecha_nacimiento: userFromDb.fecha_nacimiento ? new Date(userFromDb.fecha_nacimiento as string) : null,
+-        id_rol: userFromDb.id_rol,
+-        // Nuevos campos de perfil
+-        biografia: userFromDb.biografia,
+-        intereses: userFromDb.intereses,
+-        foto_perfil: userFromDb.foto_perfil,
+-        rol: userFromDb.rol ? { 
+-            id_rol: userFromDb.rol.id_rol,
+-            nombre_rol: userFromDb.rol.nombre_rol 
+-        } : null,
++
++    const response: UsuarioConRolServiceResponse = {
++      id_usuario: usuario.id_usuario,
++      correo: usuario.correo,
++      nombre_usuario: usuario.nombre_usuario,
++      fecha_registro: new Date(usuario.fecha_registro).toISOString(),
++      sexo: usuario.sexo,
++      fecha_nacimiento: usuario.fecha_nacimiento ? new Date(usuario.fecha_nacimiento).toISOString() : null,
++      id_rol: usuario.id_rol,
++      biografia: usuario.biografia,
++      intereses: usuario.intereses,
++      foto_perfil: usuario.foto_perfil,
++      telefono: usuario.telefono,
++      ubicacion: usuario.ubicacion,
++      rol: usuario.rol ? {
++        id_rol: usuario.rol.id_rol,
++        nombre_rol: usuario.rol.nombre_rol,
++      } : null,
+     };
++
++    return response;
+   } catch (error) {
+-    if (error instanceof CustomError) throw error;
+-    handleErrorLog(error, `servicio getUsuarioByIdService (id: ${id})`);
+-    throw new CustomError('Error interno al obtener el perfil del usuario.', 500);
++    handleErrorLog(error, 'getUsuarioByIdService');
++    throw error;
+   }
+ }
+ 
+ export async function updateUsuarioPerfilService(
+-  userId: number,
++  id: number,
+   data: UpdateUsuarioPerfilPayload
+-): Promise<UsuarioConRolServiceResponse> { // Devolver el perfil completo con rol
+-    try {
+-        const currentUser = await db.query.usuarioTable.findFirst({
+-            where: eq(usuarioTable.id_usuario, userId),
+-            columns: { id_usuario: true } // Solo para verificar existencia
+-        });
+-        if (!currentUser) {
+-            throw new CustomError('Usuario no encontrado para actualizar.', 404);
+-        }
+-
+-        // Campos que el usuario puede actualizar de su propio perfil
+-        const updatePayloadForDb: Partial<Pick<DrizzleNewUsuario, 
+-            'nombre_usuario' | 'sexo' | 'fecha_nacimiento' | 'biografia' | 'intereses' | 'foto_perfil'
+-        >> = {};
+-
+-        if (data.nombre_usuario !== undefined) updatePayloadForDb.nombre_usuario = data.nombre_usuario;
+-        if (data.hasOwnProperty('sexo')) updatePayloadForDb.sexo = data.sexo;
+-        if (data.hasOwnProperty('fecha_nacimiento')) updatePayloadForDb.fecha_nacimiento = data.fecha_nacimiento;
+-        // Nuevos campos de perfil
+-        if (data.hasOwnProperty('biografia')) updatePayloadForDb.biografia = data.biografia;
+-        if (data.hasOwnProperty('intereses')) updatePayloadForDb.intereses = data.intereses;
+-        if (data.hasOwnProperty('foto_perfil')) updatePayloadForDb.foto_perfil = data.foto_perfil;
+-
+-        if (Object.keys(updatePayloadForDb).length === 0) {
+-            return getUsuarioByIdService(userId); // No hay cambios, devolver el perfil actual
+-        }
+-
+-        const [updatedUserRaw] = await db.update(usuarioTable)
+-            .set(updatePayloadForDb)
+-            .where(eq(usuarioTable.id_usuario, userId))
+-            .returning({id_usuario: usuarioTable.id_usuario}); // Solo el ID para luego buscar completo
+-
+-        if (!updatedUserRaw || !updatedUserRaw.id_usuario) {
+-            throw new CustomError('No se pudo actualizar el perfil del usuario.', 500);
+-        }
+-        // Devolver el perfil completo y actualizado
+-        return getUsuarioByIdService(updatedUserRaw.id_usuario);
+-    } catch (error) {
+-        if (error instanceof CustomError) throw error;
+-        handleErrorLog(error, `servicio updateUsuarioPerfilService (userId: ${userId})`);
+-        throw new CustomError('Error interno al actualizar el perfil.', 500);
++): Promise<UsuarioConRolServiceResponse> {
++  try {
++    const usuario = await db.query.usuarioTable.findFirst({
++      where: eq(usuarioTable.id_usuario, id),
++      with: {
++        rol: true,
++      },
++      columns: {
++        id_usuario: true,
++        correo: true,
++        nombre_usuario: true,
++        fecha_registro: true,
++        sexo: true,
++        fecha_nacimiento: true,
++        id_rol: true,
++        biografia: true,
++        intereses: true,
++        foto_perfil: true,
++        telefono: true,
++        ubicacion: true,
++      },
++    });
++
++    if (!usuario) {
++      throw new CustomError('Usuario no encontrado', 404);
++    }
++
++    const updatedUsuario = await db
++      .update(usuarioTable)
++      .set({
++        nombre_usuario: data.nombre_usuario,
++        sexo: data.sexo,
++        fecha_nacimiento: data.fecha_nacimiento ? new Date(data.fecha_nacimiento).toISOString() : null,
++        biografia: data.biografia,
++        intereses: data.intereses,
++        foto_perfil: data.foto_perfil,
++        telefono: data.telefono,
++        ubicacion: data.ubicacion,
++      })
++      .where(eq(usuarioTable.id_usuario, id))
++      .returning();
++
++    if (!updatedUsuario[0]) {
++      throw new CustomError('Error al actualizar el usuario', 500);
+     }
++
++    // Convertir fechas a formato ISO string
++    const fechaRegistro = new Date(usuario.fecha_registro).toISOString();
++    const fechaNacimiento = usuario.fecha_nacimiento ? new Date(usuario.fecha_nacimiento).toISOString() : null;
++
++    const response: UsuarioConRolServiceResponse = {
++      ...updatedUsuario[0],
++      fecha_registro: fechaRegistro,
++      fecha_nacimiento: fechaNacimiento,
++      rol: usuario.rol ? {
++        id_rol: usuario.rol.id_rol,
++        nombre_rol: usuario.rol.nombre_rol,
++      } : null,
++    };
++
++    return response;
++  } catch (error) {
++    handleErrorLog(error);
++    throw error;
++  }
+ }
+ 
+ export async function updateUsuarioContrasenaService(
+diff --git a/back-end/src/modules/usuario/usuario.types.ts b/back-end/src/modules/usuario/usuario.types.ts
+index 6dc6fb8..634f863 100644
+--- a/back-end/src/modules/usuario/usuario.types.ts
++++ b/back-end/src/modules/usuario/usuario.types.ts
+@@ -5,12 +5,14 @@ import { rolUsuarioBaseSchema } from '../rolUsuario/rolUsuario.types'; // Asume
+ export const usuarioBaseResponseSchema = t.Object({
+   correo: t.String({ format: 'email', description: "Correo electrónico del usuario" }),
+   nombre_usuario: t.String({ description: "Nombre completo o de usuario" }),
+-  fecha_registro: t.Date({ description: "Fecha de registro del usuario" }),
++  fecha_registro: t.String({ format: 'date-time', description: "Fecha de registro del usuario" }),
+   sexo: t.Nullable(t.String({ minLength: 1, maxLength: 1, pattern: '^[MFO]$', description: "Sexo: M, F, O (Otro)" })),
+-  fecha_nacimiento: t.Nullable(t.Date({ description: "Fecha de nacimiento" })),
++  fecha_nacimiento: t.Nullable(t.String({ format: 'date-time', description: "Fecha de nacimiento" })),
+   biografia: t.Nullable(t.String({ description: "Biografía o descripción personal del usuario" })),
+   intereses: t.Nullable(t.Array(t.String(), { description: "Array de intereses o temas de interés" })),
+   foto_perfil: t.Nullable(t.String({ description: "URL de la foto de perfil" })),
++  telefono: t.Nullable(t.String({ pattern: '^\\+56 9 \\d{4} \\d{4}$', description: "Número de teléfono en formato +56 9 XXXX XXXX" })),
++  ubicacion: t.Nullable(t.String({ maxLength: 100, description: "Ubicación o ciudad del usuario" })),
+ });
+ 
+ export const registroUsuarioSchema = t.Object({
+@@ -44,6 +46,8 @@ export const updateUsuarioPerfilSchema = t.Partial(t.Object({
+   biografia: t.Nullable(t.String()),
+   intereses: t.Nullable(t.Array(t.String())),
+   foto_perfil: t.Nullable(t.String()),
++  telefono: t.Nullable(t.String({ pattern: '^\\+56 9 \\d{4} \\d{4}$' })),
++  ubicacion: t.Nullable(t.String({ maxLength: 100 })),
+ }));
+ export type UpdateUsuarioPerfilPayload = typeof updateUsuarioPerfilSchema.static;
+ 
+diff --git a/front-end/app/(auth)/login/page.tsx b/front-end/app/(auth)/login/page.tsx
+index d04d82e..bbacc40 100644
+--- a/front-end/app/(auth)/login/page.tsx
++++ b/front-end/app/(auth)/login/page.tsx
+@@ -18,8 +18,8 @@ export default function LoginPage() {
+   const [isLoading, setIsLoading] = useState(false)
+   const [error, setError] = useState<string | null>(null)
+   
+-  const [email, setEmail] = useState("admin@example.com")
+-  const [password, setPassword] = useState("password")
++  const [email, setEmail] = useState("")
++  const [password, setPassword] = useState("")
+ 
+   // Mover la redirección a un useEffect
+   useEffect(() => {
+@@ -85,7 +85,7 @@ export default function LoginPage() {
+               <Input 
+                 id="email" 
+                 type="email" 
+-                placeholder="tu@email.com" 
++                placeholder="ejemplo@email.com" 
+                 value={email} 
+                 onChange={(e) => setEmail(e.target.value)} 
+                 required 
+@@ -102,6 +102,7 @@ export default function LoginPage() {
+               <Input 
+                 id="password" 
+                 type="password" 
++                placeholder="••••••••" 
+                 value={password} 
+                 onChange={(e) => setPassword(e.target.value)} 
+                 required 
+diff --git a/front-end/app/(authtenticated)/users/profile/page.tsx b/front-end/app/(authtenticated)/users/profile/page.tsx
+index 28b86c6..8b907c8 100644
+--- a/front-end/app/(authtenticated)/users/profile/page.tsx
++++ b/front-end/app/(authtenticated)/users/profile/page.tsx
+@@ -1,6 +1,6 @@
+ "use client"
+ 
+-import { useState, useEffect } from "react"
++import React, { useState, useEffect } from "react"
+ import { zodResolver } from "@hookform/resolvers/zod"
+ import { useForm } from "react-hook-form"
+ import * as z from "zod"
+@@ -24,6 +24,7 @@ import { CheckCircle2 } from "lucide-react"
+ import { CategoriaTags } from "@/components/ui/categoria-tag"
+ import { CATEGORIAS } from "@/constants/categorias"
+ import { Checkbox } from "@/components/ui/checkbox"
++import { cn } from "@/lib/utils"
+ import {
+   DropdownMenu,
+   DropdownMenuContent,
+@@ -46,8 +47,14 @@ const profileFormSchema = z.object({
+       message: "La biografía no puede tener más de 500 caracteres.",
+     })
+     .optional(),
+-  phone: z.string().optional(),
+-  location: z.string().optional(),
++  phone: z.string()
++    .regex(/^\+56 9 \d{4} \d{4}$/, {
++      message: "El teléfono debe tener el formato +56 9 XXXX XXXX",
++    })
++    .optional(),
++  location: z.string().min(2, {
++    message: "La ubicación debe tener al menos 2 caracteres.",
++  }),
+   interests: z.array(z.string())
+     .min(1, "Selecciona al menos un interés")
+     .refine(
+@@ -187,6 +194,8 @@ export default function ProfilePage() {
+         biografia: data.bio,
+         intereses: data.interests,
+         foto_perfil: avatar,
++        telefono: data.phone,
++        ubicacion: data.location,
+       }
+       
+       console.log('Datos a enviar al backend:', updateData);
+@@ -453,6 +462,18 @@ export default function ProfilePage() {
+                         {user?.biografia || "No has agregado una biografía aún."}
+                       </p>
+                     </div>
++                    <div>
++                      <p className="font-medium text-muted-foreground">Teléfono</p>
++                      <p className="text-foreground">
++                        {user?.telefono || "No has agregado un número de teléfono."}
++                      </p>
++                    </div>
++                    <div>
++                      <p className="font-medium text-muted-foreground">Ubicación</p>
++                      <p className="text-foreground">
++                        {user?.ubicacion || "No has especificado tu ubicación."}
++                      </p>
++                    </div>
+                     <div className="space-y-2">
+                       <h4 className="text-sm font-medium">Intereses</h4>
+                       {user ? (
+@@ -532,7 +553,60 @@ export default function ProfilePage() {
+                         <FormItem>
+                           <FormLabel>Teléfono</FormLabel>
+                           <FormControl>
+-                            <Input placeholder="+56 9 1234 5678" {...field} />
++                            <Input 
++                              placeholder="+56 9 1234 5678" 
++                              {...field}
++                              value={field.value || ''}
++                              onChange={(e) => {
++                                const input = e.target.value;
++                                // Si el usuario está borrando, permitir borrar normalmente
++                                if (input.length < (field.value?.length || 0)) {
++                                  field.onChange(input);
++                                  return;
++                                }
++                                
++                                // Limpiar el input de caracteres no numéricos
++                                const numbers = input.replace(/\D/g, '');
++                                
++                                // Si no hay números, limpiar el campo
++                                if (numbers.length === 0) {
++                                  field.onChange('');
++                                  return;
++                                }
++                                
++                                // Formatear el número
++                                let formatted = '';
++                                if (numbers.length > 0) {
++                                  formatted = '+56';
++                                  if (numbers.length > 2) {
++                                    formatted += ' 9';
++                                    if (numbers.length > 3) {
++                                      formatted += ' ' + numbers.slice(2, 6);
++                                      if (numbers.length > 6) {
++                                        formatted += ' ' + numbers.slice(6, 10);
++                                      }
++                                    }
++                                  }
++                                }
++                                
++                                // Actualizar si el formato es válido (ahora permitimos hasta 10 dígitos + el formato)
++                                if (formatted.length <= 15) { // +56 9 XXXX XXXX = 15 caracteres (incluyendo espacios)
++                                  field.onChange(formatted);
++                                }
++                              }}
++                              onKeyDown={(e) => {
++                                // Permitir borrar y navegar con las flechas
++                                if (e.key === 'Backspace' || e.key === 'Delete' || 
++                                    e.key === 'ArrowLeft' || e.key === 'ArrowRight' ||
++                                    e.key === 'Tab') {
++                                  return;
++                                }
++                                // Solo permitir números
++                                if (!/^\d$/.test(e.key)) {
++                                  e.preventDefault();
++                                }
++                              }}
++                            />
+                           </FormControl>
+                           <FormDescription>Este número se usará para notificaciones importantes.</FormDescription>
+                           <FormMessage />
+@@ -605,9 +679,18 @@ export default function ProfilePage() {
+                         <FormItem>
+                           <FormLabel>Biografía</FormLabel>
+                           <FormControl>
+-                            <Textarea placeholder="Cuéntanos sobre ti..." className="resize-none" {...field} />
++                            <div className="relative">
++                              <Textarea 
++                                placeholder="Cuéntanos sobre ti..." 
++                                className="resize-none" 
++                                {...field} 
++                              />
++                              <div className="absolute bottom-2 right-2 text-xs text-muted-foreground">
++                                {field.value?.length || 0}/500
++                              </div>
++                            </div>
+                           </FormControl>
+-                          <FormDescription>Una breve descripción sobre ti.</FormDescription>
++                          <FormDescription>Una breve descripción sobre ti (máximo 500 caracteres).</FormDescription>
+                           <FormMessage />
+                         </FormItem>
+                       )}
+diff --git a/front-end/app/(public)/layout.tsx b/front-end/app/(public)/layout.tsx
+index b0ccb5b..758b2c5 100644
+--- a/front-end/app/(public)/layout.tsx
++++ b/front-end/app/(public)/layout.tsx
+@@ -1,15 +1,26 @@
++"use client"
++
+ import type React from "react"
+-import { PublicHeader } from "@/components/public/public-header"
++import { DynamicHeader } from "@/components/dynamic-header"
+ import { PublicFooter } from "@/components/public/public-footer"
++import { usePathname } from "next/navigation"
+ 
+ export default function PublicLayout({
+   children,
+ }: {
+   children: React.ReactNode
+ }) {
++  const pathname = usePathname()
++  const isAdminRoute = pathname.startsWith('/admin')
++
++  // No mostrar el header ni el footer en rutas de admin
++  if (isAdminRoute) {
++    return <>{children}</>
++  }
++
+   return (
+     <div className="flex min-h-screen flex-col">
+-      <PublicHeader />
++      <DynamicHeader />
+       <div className="flex-1">{children}</div>
+       <PublicFooter />
+     </div>
+diff --git a/front-end/app/admin/chat/page.tsx b/front-end/app/admin/chat/page.tsx
+index bda23ee..a45dc5b 100644
+--- a/front-end/app/admin/chat/page.tsx
++++ b/front-end/app/admin/chat/page.tsx
+@@ -18,138 +18,14 @@ const chatUsers = [
+   { id: 5, name: "Laura Sánchez", role: "Organizador", avatar: "/placeholder.svg?height=40&width=40", unread: 3 },
+ ]
+ 
+-export default function AdminChat() {
+-  const [activeChat, setActiveChat] = useState<number | null>(null)
+-  const [activeTab, setActiveTab] = useState("all")
+-
+-  // Filtrar usuarios según la pestaña activa
+-  const filteredUsers = chatUsers.filter((user) => {
+-    if (activeTab === "all") return true
+-    if (activeTab === "organizers") return user.role === "Organizador"
+-    if (activeTab === "users") return user.role === "Usuario"
+-    return true
+-  })
+-
+-  // Configuración del chat con AI SDK
+-  const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
+-    api: "/api/chat",
+-    id: activeChat ? `chat-${activeChat}` : undefined,
+-  })
+-
++export default function ChatPage() {
+   return (
+-    <div className="p-6">
+-      <h1 className="text-2xl font-bold mb-6">Centro de Mensajes</h1>
+-
+-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[calc(100vh-200px)]">
+-        {/* Panel de contactos */}
+-        <Card className="md:col-span-1">
+-          <CardHeader>
+-            <CardTitle>Conversaciones</CardTitle>
+-            <Tabs defaultValue="all" className="w-full" onValueChange={setActiveTab}>
+-              <TabsList className="grid grid-cols-3 w-full">
+-                <TabsTrigger value="all">Todos</TabsTrigger>
+-                <TabsTrigger value="organizers">Organizadores</TabsTrigger>
+-                <TabsTrigger value="users">Usuarios</TabsTrigger>
+-              </TabsList>
+-            </Tabs>
+-          </CardHeader>
+-          <CardContent>
+-            <ScrollArea className="h-[calc(100vh-320px)]">
+-              <div className="space-y-2">
+-                {filteredUsers.map((user) => (
+-                  <div
+-                    key={user.id}
+-                    className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors ${activeChat === user.id ? "bg-gray-100" : ""}`}
+-                    onClick={() => setActiveChat(user.id)}
+-                  >
+-                    <Avatar>
+-                      <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.name} />
+-                      <AvatarFallback>{user.name.substring(0, 2)}</AvatarFallback>
+-                    </Avatar>
+-                    <div className="flex-1">
+-                      <div className="flex justify-between">
+-                        <p className="font-medium">{user.name}</p>
+-                        {user.unread > 0 && (
+-                          <span className="bg-primary text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+-                            {user.unread}
+-                          </span>
+-                        )}
+-                      </div>
+-                      <p className="text-sm text-gray-500">{user.role}</p>
+-                    </div>
+-                  </div>
+-                ))}
+-              </div>
+-            </ScrollArea>
+-          </CardContent>
+-        </Card>
+-
+-        {/* Panel de chat */}
+-        <Card className="md:col-span-2">
+-          {activeChat ? (
+-            <>
+-              <CardHeader className="border-b">
+-                <div className="flex items-center gap-3">
+-                  <Avatar>
+-                    <AvatarImage
+-                      src={chatUsers.find((u) => u.id === activeChat)?.avatar || "/placeholder.svg"}
+-                      alt={chatUsers.find((u) => u.id === activeChat)?.name}
+-                    />
+-                    <AvatarFallback>{chatUsers.find((u) => u.id === activeChat)?.name.substring(0, 2)}</AvatarFallback>
+-                  </Avatar>
+-                  <div>
+-                    <CardTitle>{chatUsers.find((u) => u.id === activeChat)?.name}</CardTitle>
+-                    <p className="text-sm text-gray-500">{chatUsers.find((u) => u.id === activeChat)?.role}</p>
+-                  </div>
+-                </div>
+-              </CardHeader>
+-              <CardContent>
+-                <ScrollArea className="h-[calc(100vh-420px)] py-4">
+-                  <div className="space-y-4">
+-                    {messages.length === 0 ? (
+-                      <div className="text-center text-gray-500 py-8">No hay mensajes. Comienza la conversación.</div>
+-                    ) : (
+-                      messages.map((message) => (
+-                        <div
+-                          key={message.id}
+-                          className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
+-                        >
+-                          <div
+-                            className={`max-w-[80%] p-3 rounded-lg ${
+-                              message.role === "user"
+-                                ? "bg-primary text-white rounded-tr-none"
+-                                : "bg-gray-100 rounded-tl-none"
+-                            }`}
+-                          >
+-                            {message.content}
+-                          </div>
+-                        </div>
+-                      ))
+-                    )}
+-                  </div>
+-                </ScrollArea>
+-              </CardContent>
+-              <CardFooter className="border-t p-3">
+-                <form onSubmit={handleSubmit} className="flex w-full gap-2">
+-                  <Input
+-                    value={input}
+-                    onChange={handleInputChange}
+-                    placeholder="Escribe un mensaje..."
+-                    className="flex-1"
+-                    disabled={isLoading}
+-                  />
+-                  <Button type="submit" disabled={isLoading || !input.trim()}>
+-                    Enviar
+-                  </Button>
+-                </form>
+-              </CardFooter>
+-            </>
+-          ) : (
+-            <div className="h-full flex items-center justify-center text-gray-500">
+-              Selecciona una conversación para comenzar
+-            </div>
+-          )}
+-        </Card>
++    <div className="container mx-auto p-4">
++      <div className="bg-card rounded-lg border p-8 text-center">
++        <h1 className="text-2xl font-bold mb-2">Chat temporalmente deshabilitado</h1>
++        <p className="text-muted-foreground">
++          El sistema de chat está en desarrollo y no estará disponible por el momento.
++        </p>
+       </div>
+     </div>
+   )
+diff --git a/front-end/app/admin/layout.tsx b/front-end/app/admin/layout.tsx
+index 21a0722..4a28685 100644
+--- a/front-end/app/admin/layout.tsx
++++ b/front-end/app/admin/layout.tsx
+@@ -33,7 +33,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
+       <AdminSidebar />
+       <div className="md:pl-64">
+         <AdminHeader />
+-        <main className="min-h-[calc(100vh-4rem)]">
++        <main className="min-h-[calc(100vh-4rem)] p-6">
+           {children}
+         </main>
+       </div>
+diff --git a/front-end/app/admin/page.tsx b/front-end/app/admin/page.tsx
+index 0739e72..08e5c9f 100644
+--- a/front-end/app/admin/page.tsx
++++ b/front-end/app/admin/page.tsx
+@@ -44,12 +44,14 @@ export default function AdminDashboardPage() {
+           <p className="text-sm sm:text-base text-muted-foreground">Gestiona usuarios y eventos de la plataforma.</p>
+         </div>
+         <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
++          {/* Comentado temporalmente hasta que se implemente la funcionalidad
+           <Link href="/admin/settings" className="w-full sm:w-auto">
+             <Button variant="outline" className="w-full sm:w-auto gap-2">
+               <Settings className="h-4 w-4" />
+               Configuración
+             </Button>
+           </Link>
++          */}
+           <Link href="/admin/events/create" className="w-full sm:w-auto">
+             <Button className="w-full sm:w-auto gap-2">
+               <PlusCircle className="h-4 w-4" />
+diff --git a/front-end/app/admin/profile/page.tsx b/front-end/app/admin/profile/page.tsx
+new file mode 100644
+index 0000000..69b67d1
+--- /dev/null
++++ b/front-end/app/admin/profile/page.tsx
+@@ -0,0 +1,158 @@
++"use client"
++
++import { useAuth } from "@/context/AuthContext"
++import { Button } from "@/components/ui/button"
++import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
++import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
++import { Camera, Lock } from "lucide-react"
++import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
++import { Separator } from "@/components/ui/separator"
++import { Input } from "@/components/ui/input"
++import { Label } from "@/components/ui/label"
++import { Textarea } from "@/components/ui/textarea"
++import { useState } from "react"
++import { toast } from "@/components/ui/use-toast"
++
++export default function AdminProfilePage() {
++  const { user } = useAuth()
++  const [isEditing, setIsEditing] = useState(false)
++  const [formData, setFormData] = useState({
++    nombre_usuario: user?.nombre_usuario || "",
++    biografia: user?.biografia || "",
++  })
++
++  const handleSubmit = async (e: React.FormEvent) => {
++    e.preventDefault()
++    try {
++      // TODO: Implementar actualización del perfil
++      toast({
++        title: "Perfil actualizado",
++        description: "Tu información ha sido actualizada correctamente.",
++      })
++      setIsEditing(false)
++    } catch (error) {
++      toast({
++        title: "Error",
++        description: "Hubo un problema al actualizar tu perfil. Por favor, inténtalo de nuevo.",
++        variant: "destructive",
++      })
++    }
++  }
++
++  return (
++    <div className="container py-10 space-y-6">
++      <div>
++        <h1 className="text-3xl font-bold tracking-tight">Perfil de Administrador</h1>
++        <p className="text-muted-foreground">
++          Administra tu información personal y configura tus preferencias de cuenta.
++        </p>
++      </div>
++
++      <Tabs defaultValue="general" className="space-y-6">
++        <TabsList>
++          <TabsTrigger value="general">General</TabsTrigger>
++          <TabsTrigger value="security">Seguridad</TabsTrigger>
++        </TabsList>
++
++        <TabsContent value="general" className="space-y-6">
++          <Card>
++            <CardHeader>
++              <CardTitle>Información personal</CardTitle>
++              <CardDescription>Actualiza tu información personal y de contacto.</CardDescription>
++            </CardHeader>
++            <CardContent className="space-y-6">
++              <div className="flex flex-col items-center space-y-4">
++                <Avatar className="h-32 w-32">
++                  <AvatarImage src={user?.foto_perfil || "/placeholder.svg"} alt={user?.nombre_usuario || "Admin"} />
++                  <AvatarFallback>{user?.nombre_usuario?.slice(0, 2).toUpperCase() || "A"}</AvatarFallback>
++                </Avatar>
++                <Button variant="outline" className="gap-2">
++                  <Camera className="h-4 w-4" />
++                  Cambiar foto
++                </Button>
++              </div>
++
++              <Separator />
++
++              <form onSubmit={handleSubmit} className="space-y-4">
++                <div className="space-y-2">
++                  <Label htmlFor="nombre">Nombre</Label>
++                  <Input
++                    id="nombre"
++                    value={formData.nombre_usuario}
++                    onChange={(e) => setFormData({ ...formData, nombre_usuario: e.target.value })}
++                    disabled={!isEditing}
++                  />
++                </div>
++
++                <div className="space-y-2">
++                  <Label htmlFor="email">Correo electrónico</Label>
++                  <Input
++                    id="email"
++                    type="email"
++                    value={user?.correo || ""}
++                    disabled
++                    className="bg-muted"
++                  />
++                </div>
++
++                <div className="space-y-2">
++                  <Label htmlFor="biografia">Biografía</Label>
++                  <Textarea
++                    id="biografia"
++                    value={formData.biografia}
++                    onChange={(e) => setFormData({ ...formData, biografia: e.target.value })}
++                    disabled={!isEditing}
++                    rows={4}
++                  />
++                </div>
++
++                <div className="flex justify-end gap-2">
++                  {isEditing ? (
++                    <>
++                      <Button type="button" variant="outline" onClick={() => setIsEditing(false)}>
++                        Cancelar
++                      </Button>
++                      <Button type="submit">Guardar cambios</Button>
++                    </>
++                  ) : (
++                    <Button type="button" onClick={() => setIsEditing(true)}>
++                      Editar perfil
++                    </Button>
++                  )}
++                </div>
++              </form>
++            </CardContent>
++          </Card>
++        </TabsContent>
++
++        <TabsContent value="security" className="space-y-6">
++          <Card>
++            <CardHeader>
++              <CardTitle>Seguridad</CardTitle>
++              <CardDescription>Actualiza tu contraseña y configura la seguridad de tu cuenta.</CardDescription>
++            </CardHeader>
++            <CardContent className="space-y-4">
++              <div className="space-y-2">
++                <Label htmlFor="current-password">Contraseña actual</Label>
++                <Input id="current-password" type="password" />
++              </div>
++              <div className="space-y-2">
++                <Label htmlFor="new-password">Nueva contraseña</Label>
++                <Input id="new-password" type="password" />
++              </div>
++              <div className="space-y-2">
++                <Label htmlFor="confirm-password">Confirmar nueva contraseña</Label>
++                <Input id="confirm-password" type="password" />
++              </div>
++              <Button className="gap-2">
++                <Lock className="h-4 w-4" />
++                Actualizar contraseña
++              </Button>
++            </CardContent>
++          </Card>
++        </TabsContent>
++      </Tabs>
++    </div>
++  )
++} 
+\ No newline at end of file
+diff --git a/front-end/app/admin/settings/page.tsx b/front-end/app/admin/settings/page.tsx
+index 1d58e05..711a0cb 100644
+--- a/front-end/app/admin/settings/page.tsx
++++ b/front-end/app/admin/settings/page.tsx
+@@ -1,431 +1,12 @@
+-import { Button } from "@/components/ui/button"
+-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+-import { Input } from "@/components/ui/input"
+-import { Label } from "@/components/ui/label"
+-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+-import { Textarea } from "@/components/ui/textarea"
+-import { Switch } from "@/components/ui/switch"
+-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+-import { Separator } from "@/components/ui/separator"
+-
+ export default function SettingsPage() {
+   return (
+-    <div className="space-y-8">
+-      <div>
+-        <h1 className="text-3xl font-bold tracking-tight">Configuración</h1>
+-        <p className="text-muted-foreground">Gestiona la configuración de la plataforma</p>
++    <div className="container mx-auto p-4">
++      <div className="bg-card rounded-lg border p-8 text-center">
++        <h1 className="text-2xl font-bold mb-2">Configuración temporalmente deshabilitada</h1>
++        <p className="text-muted-foreground">
++          Esta sección está en desarrollo y no estará disponible por el momento.
++        </p>
+       </div>
+-
+-      <Tabs defaultValue="general" className="space-y-6">
+-        <TabsList>
+-          <TabsTrigger value="general">General</TabsTrigger>
+-          <TabsTrigger value="appearance">Apariencia</TabsTrigger>
+-          <TabsTrigger value="notifications">Notificaciones</TabsTrigger>
+-          <TabsTrigger value="security">Seguridad</TabsTrigger>
+-          <TabsTrigger value="api">API</TabsTrigger>
+-        </TabsList>
+-
+-        <TabsContent value="general" className="space-y-6">
+-          <Card>
+-            <CardHeader>
+-              <CardTitle>Información de la plataforma</CardTitle>
+-              <CardDescription>Configura la información básica de la plataforma</CardDescription>
+-            </CardHeader>
+-            <CardContent className="space-y-4">
+-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+-                <div className="space-y-2">
+-                  <Label htmlFor="platform-name">Nombre de la plataforma</Label>
+-                  <Input id="platform-name" defaultValue="Panorama" />
+-                </div>
+-                <div className="space-y-2">
+-                  <Label htmlFor="contact-email">Email de contacto</Label>
+-                  <Input id="contact-email" defaultValue="contacto@panorama.com" type="email" />
+-                </div>
+-              </div>
+-              <div className="space-y-2">
+-                <Label htmlFor="platform-description">Descripción</Label>
+-                <Textarea
+-                  id="platform-description"
+-                  defaultValue="Plataforma de eventos culturales y de entretenimiento"
+-                  rows={3}
+-                />
+-              </div>
+-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+-                <div className="space-y-2">
+-                  <Label htmlFor="timezone">Zona horaria</Label>
+-                  <Select defaultValue="america_santiago">
+-                    <SelectTrigger id="timezone">
+-                      <SelectValue placeholder="Seleccionar zona horaria" />
+-                    </SelectTrigger>
+-                    <SelectContent>
+-                      <SelectItem value="america_santiago">América/Santiago</SelectItem>
+-                      <SelectItem value="america_bogota">América/Bogotá</SelectItem>
+-                      <SelectItem value="america_mexico_city">América/Ciudad de México</SelectItem>
+-                      <SelectItem value="america_buenos_aires">América/Buenos Aires</SelectItem>
+-                      <SelectItem value="europe_madrid">Europa/Madrid</SelectItem>
+-                    </SelectContent>
+-                  </Select>
+-                </div>
+-                <div className="space-y-2">
+-                  <Label htmlFor="language">Idioma predeterminado</Label>
+-                  <Select defaultValue="es">
+-                    <SelectTrigger id="language">
+-                      <SelectValue placeholder="Seleccionar idioma" />
+-                    </SelectTrigger>
+-                    <SelectContent>
+-                      <SelectItem value="es">Español</SelectItem>
+-                      <SelectItem value="en">Inglés</SelectItem>
+-                      <SelectItem value="pt">Portugués</SelectItem>
+-                      <SelectItem value="fr">Francés</SelectItem>
+-                    </SelectContent>
+-                  </Select>
+-                </div>
+-              </div>
+-            </CardContent>
+-            <CardFooter className="flex justify-end gap-2">
+-              <Button variant="outline">Cancelar</Button>
+-              <Button>Guardar cambios</Button>
+-            </CardFooter>
+-          </Card>
+-
+-          <Card>
+-            <CardHeader>
+-              <CardTitle>Configuración de eventos</CardTitle>
+-              <CardDescription>Configura los parámetros para la creación y gestión de eventos</CardDescription>
+-            </CardHeader>
+-            <CardContent className="space-y-4">
+-              <div className="flex items-center justify-between">
+-                <div className="space-y-0.5">
+-                  <Label>Aprobación manual de eventos</Label>
+-                  <p className="text-sm text-muted-foreground">
+-                    Requiere aprobación de un administrador para publicar eventos
+-                  </p>
+-                </div>
+-                <Switch defaultChecked />
+-              </div>
+-              <Separator />
+-              <div className="flex items-center justify-between">
+-                <div className="space-y-0.5">
+-                  <Label>Límite de eventos por organizador</Label>
+-                  <p className="text-sm text-muted-foreground">
+-                    Establece un límite máximo de eventos activos por organizador
+-                  </p>
+-                </div>
+-                <div className="w-20">
+-                  <Input type="number" defaultValue="10" min="1" />
+-                </div>
+-              </div>
+-              <Separator />
+-              <div className="flex items-center justify-between">
+-                <div className="space-y-0.5">
+-                  <Label>Permitir eventos privados</Label>
+-                  <p className="text-sm text-muted-foreground">
+-                    Permite a los organizadores crear eventos privados con acceso restringido
+-                  </p>
+-                </div>
+-                <Switch defaultChecked />
+-              </div>
+-            </CardContent>
+-            <CardFooter className="flex justify-end gap-2">
+-              <Button variant="outline">Cancelar</Button>
+-              <Button>Guardar cambios</Button>
+-            </CardFooter>
+-          </Card>
+-        </TabsContent>
+-
+-        <TabsContent value="appearance" className="space-y-6">
+-          <Card>
+-            <CardHeader>
+-              <CardTitle>Personalización</CardTitle>
+-              <CardDescription>Personaliza la apariencia de la plataforma</CardDescription>
+-            </CardHeader>
+-            <CardContent className="space-y-4">
+-              <div className="space-y-2">
+-                <Label>Tema de color</Label>
+-                <div className="grid grid-cols-5 gap-2">
+-                  <div className="w-10 h-10 rounded-full bg-[#f47c6c] cursor-pointer ring-2 ring-offset-2 ring-[#f47c6c]"></div>
+-                  <div className="w-10 h-10 rounded-full bg-[#f9a05d] cursor-pointer"></div>
+-                  <div className="w-10 h-10 rounded-full bg-[#a3d7e0] cursor-pointer"></div>
+-                  <div className="w-10 h-10 rounded-full bg-[#f1c84b] cursor-pointer"></div>
+-                  <div className="w-10 h-10 rounded-full bg-[#fdf1e8] cursor-pointer border"></div>
+-                </div>
+-              </div>
+-              <Separator />
+-              <div className="flex items-center justify-between">
+-                <div className="space-y-0.5">
+-                  <Label>Modo oscuro</Label>
+-                  <p className="text-sm text-muted-foreground">Activa el modo oscuro para la plataforma</p>
+-                </div>
+-                <Switch />
+-              </div>
+-              <Separator />
+-              <div className="space-y-2">
+-                <Label htmlFor="logo">Logo de la plataforma</Label>
+-                <div className="flex items-center gap-4">
+-                  <div className="w-16 h-16 bg-muted rounded flex items-center justify-center">
+-                    <span className="font-bold text-xl">P</span>
+-                  </div>
+-                  <Button variant="outline">Cambiar logo</Button>
+-                </div>
+-              </div>
+-            </CardContent>
+-            <CardFooter className="flex justify-end gap-2">
+-              <Button variant="outline">Cancelar</Button>
+-              <Button>Guardar cambios</Button>
+-            </CardFooter>
+-          </Card>
+-
+-          <Card>
+-            <CardHeader>
+-              <CardTitle>Página de inicio</CardTitle>
+-              <CardDescription>Configura la apariencia de la página de inicio</CardDescription>
+-            </CardHeader>
+-            <CardContent className="space-y-4">
+-              <div className="flex items-center justify-between">
+-                <div className="space-y-0.5">
+-                  <Label>Mostrar eventos destacados</Label>
+-                  <p className="text-sm text-muted-foreground">
+-                    Muestra una sección de eventos destacados en la página de inicio
+-                  </p>
+-                </div>
+-                <Switch defaultChecked />
+-              </div>
+-              <Separator />
+-              <div className="flex items-center justify-between">
+-                <div className="space-y-0.5">
+-                  <Label>Mostrar organizadores destacados</Label>
+-                  <p className="text-sm text-muted-foreground">
+-                    Muestra una sección de organizadores destacados en la página de inicio
+-                  </p>
+-                </div>
+-                <Switch defaultChecked />
+-              </div>
+-              <Separator />
+-              <div className="flex items-center justify-between">
+-                <div className="space-y-0.5">
+-                  <Label>Mostrar testimonios</Label>
+-                  <p className="text-sm text-muted-foreground">
+-                    Muestra una sección de testimonios de usuarios en la página de inicio
+-                  </p>
+-                </div>
+-                <Switch defaultChecked />
+-              </div>
+-            </CardContent>
+-            <CardFooter className="flex justify-end gap-2">
+-              <Button variant="outline">Cancelar</Button>
+-              <Button>Guardar cambios</Button>
+-            </CardFooter>
+-          </Card>
+-        </TabsContent>
+-
+-        <TabsContent value="notifications" className="space-y-6">
+-          <Card>
+-            <CardHeader>
+-              <CardTitle>Configuración de notificaciones</CardTitle>
+-              <CardDescription>Configura las notificaciones del sistema</CardDescription>
+-            </CardHeader>
+-            <CardContent className="space-y-4">
+-              <div className="flex items-center justify-between">
+-                <div className="space-y-0.5">
+-                  <Label>Notificaciones por email</Label>
+-                  <p className="text-sm text-muted-foreground">Envía notificaciones por email a los usuarios</p>
+-                </div>
+-                <Switch defaultChecked />
+-              </div>
+-              <Separator />
+-              <div className="flex items-center justify-between">
+-                <div className="space-y-0.5">
+-                  <Label>Notificaciones push</Label>
+-                  <p className="text-sm text-muted-foreground">Envía notificaciones push a los usuarios</p>
+-                </div>
+-                <Switch defaultChecked />
+-              </div>
+-              <Separator />
+-              <div className="flex items-center justify-between">
+-                <div className="space-y-0.5">
+-                  <Label>Notificaciones de nuevos eventos</Label>
+-                  <p className="text-sm text-muted-foreground">
+-                    Notifica a los usuarios cuando se publican nuevos eventos de su interés
+-                  </p>
+-                </div>
+-                <Switch defaultChecked />
+-              </div>
+-              <Separator />
+-              <div className="flex items-center justify-between">
+-                <div className="space-y-0.5">
+-                  <Label>Notificaciones de reportes</Label>
+-                  <p className="text-sm text-muted-foreground">
+-                    Notifica a los administradores cuando se reciben nuevos reportes
+-                  </p>
+-                </div>
+-                <Switch defaultChecked />
+-              </div>
+-            </CardContent>
+-            <CardFooter className="flex justify-end gap-2">
+-              <Button variant="outline">Cancelar</Button>
+-              <Button>Guardar cambios</Button>
+-            </CardFooter>
+-          </Card>
+-
+-          <Card>
+-            <CardHeader>
+-              <CardTitle>Plantillas de email</CardTitle>
+-              <CardDescription>Configura las plantillas de email para las notificaciones</CardDescription>
+-            </CardHeader>
+-            <CardContent className="space-y-4">
+-              <div className="space-y-2">
+-                <Label htmlFor="welcome-template">Plantilla de bienvenida</Label>
+-                <Textarea
+-                  id="welcome-template"
+-                  defaultValue="¡Bienvenido a Panorama! Gracias por registrarte en nuestra plataforma de eventos."
+-                  rows={3}
+-                />
+-              </div>
+-              <div className="space-y-2">
+-                <Label htmlFor="event-approval-template">Plantilla de aprobación de evento</Label>
+-                <Textarea
+-                  id="event-approval-template"
+-                  defaultValue="¡Felicidades! Tu evento ha sido aprobado y ya está publicado en Panorama."
+-                  rows={3}
+-                />
+-              </div>
+-            </CardContent>
+-            <CardFooter className="flex justify-end gap-2">
+-              <Button variant="outline">Cancelar</Button>
+-              <Button>Guardar cambios</Button>
+-            </CardFooter>
+-          </Card>
+-        </TabsContent>
+-
+-        <TabsContent value="security" className="space-y-6">
+-          <Card>
+-            <CardHeader>
+-              <CardTitle>Seguridad de la cuenta</CardTitle>
+-              <CardDescription>Configura las opciones de seguridad de la plataforma</CardDescription>
+-            </CardHeader>
+-            <CardContent className="space-y-4">
+-              <div className="flex items-center justify-between">
+-                <div className="space-y-0.5">
+-                  <Label>Autenticación de dos factores</Label>
+-                  <p className="text-sm text-muted-foreground">Requiere verificación adicional al iniciar sesión</p>
+-                </div>
+-                <Switch defaultChecked />
+-              </div>
+-              <Separator />
+-              <div className="flex items-center justify-between">
+-                <div className="space-y-0.5">
+-                  <Label>Bloqueo de cuenta</Label>
+-                  <p className="text-sm text-muted-foreground">
+-                    Bloquea la cuenta después de múltiples intentos fallidos
+-                  </p>
+-                </div>
+-                <Switch defaultChecked />
+-              </div>
+-              <Separator />
+-              <div className="space-y-2">
+-                <Label htmlFor="max-attempts">Intentos máximos de inicio de sesión</Label>
+-                <Input id="max-attempts" type="number" defaultValue="5" min="1" max="10" className="w-20" />
+-              </div>
+-            </CardContent>
+-            <CardFooter className="flex justify-end gap-2">
+-              <Button variant="outline">Cancelar</Button>
+-              <Button>Guardar cambios</Button>
+-            </CardFooter>
+-          </Card>
+-
+-          <Card>
+-            <CardHeader>
+-              <CardTitle>Políticas de privacidad</CardTitle>
+-              <CardDescription>Configura las políticas de privacidad de la plataforma</CardDescription>
+-            </CardHeader>
+-            <CardContent className="space-y-4">
+-              <div className="space-y-2">
+-                <Label htmlFor="privacy-policy">Política de privacidad</Label>
+-                <Textarea
+-                  id="privacy-policy"
+-                  defaultValue="Panorama se compromete a proteger la privacidad de sus usuarios..."
+-                  rows={5}
+-                />
+-              </div>
+-              <div className="space-y-2">
+-                <Label htmlFor="terms-of-service">Términos de servicio</Label>
+-                <Textarea
+-                  id="terms-of-service"
+-                  defaultValue="Al utilizar Panorama, aceptas los siguientes términos y condiciones..."
+-                  rows={5}
+-                />
+-              </div>
+-            </CardContent>
+-            <CardFooter className="flex justify-end gap-2">
+-              <Button variant="outline">Cancelar</Button>
+-              <Button>Guardar cambios</Button>
+-            </CardFooter>
+-          </Card>
+-        </TabsContent>
+-
+-        <TabsContent value="api" className="space-y-6">
+-          <Card>
+-            <CardHeader>
+-              <CardTitle>Claves API</CardTitle>
+-              <CardDescription>Gestiona las claves API para integraciones externas</CardDescription>
+-            </CardHeader>
+-            <CardContent className="space-y-4">
+-              <div className="space-y-2">
+-                <Label htmlFor="api-key">Clave API</Label>
+-                <div className="flex gap-2">
+-                  <Input id="api-key" defaultValue="sk_live_51NxXXXXXXXXXXXXXXXXXXXXXX" type="password" />
+-                  <Button variant="outline">Mostrar</Button>
+-                  <Button variant="outline">Regenerar</Button>
+-                </div>
+-              </div>
+-              <div className="space-y-2">
+-                <Label htmlFor="webhook-url">URL de Webhook</Label>
+-                <Input id="webhook-url" defaultValue="https://api.panorama.com/webhooks/events" />
+-              </div>
+-            </CardContent>
+-            <CardFooter className="flex justify-end gap-2">
+-              <Button variant="outline">Cancelar</Button>
+-              <Button>Guardar cambios</Button>
+-            </CardFooter>
+-          </Card>
+-
+-          <Card>
+-            <CardHeader>
+-              <CardTitle>Integraciones</CardTitle>
+-              <CardDescription>Configura las integraciones con servicios externos</CardDescription>
+-            </CardHeader>
+-            <CardContent className="space-y-4">
+-              <div className="flex items-center justify-between">
+-                <div className="space-y-0.5">
+-                  <Label>Google Maps API</Label>
+-                  <p className="text-sm text-muted-foreground">Integración para mostrar mapas y ubicaciones</p>
+-                </div>
+-                <Switch defaultChecked />
+-              </div>
+-              <Separator />
+-              <div className="flex items-center justify-between">
+-                <div className="space-y-0.5">
+-                  <Label>Pasarela de pagos</Label>
+-                  <p className="text-sm text-muted-foreground">Integración para procesar pagos de tickets</p>
+-                </div>
+-                <Switch defaultChecked />
+-              </div>
+-              <Separator />
+-              <div className="flex items-center justify-between">
+-                <div className="space-y-0.5">
+-                  <Label>Redes sociales</Label>
+-                  <p className="text-sm text-muted-foreground">Integración para compartir eventos en redes sociales</p>
+-                </div>
+-                <Switch defaultChecked />
+-              </div>
+-            </CardContent>
+-            <CardFooter className="flex justify-end gap-2">
+-              <Button variant="outline">Cancelar</Button>
+-              <Button>Guardar cambios</Button>
+-            </CardFooter>
+-          </Card>
+-        </TabsContent>
+-      </Tabs>
+     </div>
+   )
+ }
+diff --git a/front-end/app/page.tsx b/front-end/app/page.tsx
+index 6e3adab..656044b 100644
+--- a/front-end/app/page.tsx
++++ b/front-end/app/page.tsx
+@@ -34,6 +34,7 @@ import PromotedEventsCarousel from "@/components/promoted-events-carousel"
+ import CategoryCard from "@/components/category-card"
+ import TestimonialCard from "@/components/testimonial-card"
+ import FeaturedOrganizers from "@/components/featured-organizers"
++import { DynamicHeader } from "@/components/dynamic-header"
+ 
+ export default function Home() {
+   // Categorías para mostrar
+@@ -62,7 +63,7 @@ export default function Home() {
+ 
+   return (
+     <div className="flex min-h-screen flex-col">
+-      <SiteHeader />
++      <DynamicHeader />
+       <main className="flex-1">
+         {/* Hero Section */}
+         <section className="relative bg-gradient-to-r from-primary via-accent to-highlight h-[600px] flex items-center overflow-hidden">
+diff --git a/front-end/components/admin/admin-header.tsx b/front-end/components/admin/admin-header.tsx
+index 3c93095..8e23884 100644
+--- a/front-end/components/admin/admin-header.tsx
++++ b/front-end/components/admin/admin-header.tsx
+@@ -9,16 +9,27 @@ import {
+   DropdownMenuSeparator,
+   DropdownMenuTrigger,
+ } from "@/components/ui/dropdown-menu"
+-import { Bell, User } from "lucide-react"
++import { Bell, User, Home, Settings, LogOut } from "lucide-react"
+ import Link from "next/link"
+ import { useRouter } from "next/navigation"
++import { useAuth } from "@/context/AuthContext"
++import { toast } from "@/components/ui/use-toast"
+ 
+ export function AdminHeader() {
+   const router = useRouter()
++  const { logout } = useAuth()
+ 
+-  // Función simulada de cierre de sesión
+-  const handleSignOut = () => {
+-    router.push("/")
++  const handleSignOut = async () => {
++    try {
++      await logout()
++      router.push("/")
++    } catch (error) {
++      toast({
++        title: "Error",
++        description: "Hubo un problema al cerrar sesión. Por favor, inténtalo de nuevo.",
++        variant: "destructive",
++      })
++    }
+   }
+ 
+   return (
+@@ -41,13 +52,22 @@ export function AdminHeader() {
+               <DropdownMenuLabel>Mi cuenta</DropdownMenuLabel>
+               <DropdownMenuSeparator />
+               <DropdownMenuItem asChild>
+-                <Link href="/admin/profile">Perfil</Link>
++                <Link href="/admin/profile">
++                  <User className="mr-2 h-4 w-4" />
++                  Panel de Administración
++                </Link>
+               </DropdownMenuItem>
+               <DropdownMenuItem asChild>
+-                <Link href="/admin/settings">Configuración</Link>
++                <Link href="/admin/settings">
++                  <Settings className="mr-2 h-4 w-4" />
++                  Configuración
++                </Link>
+               </DropdownMenuItem>
+               <DropdownMenuSeparator />
+-              <DropdownMenuItem onClick={handleSignOut}>Cerrar sesión</DropdownMenuItem>
++              <DropdownMenuItem onClick={handleSignOut}>
++                <LogOut className="mr-2 h-4 w-4" />
++                Cerrar sesión
++              </DropdownMenuItem>
+             </DropdownMenuContent>
+           </DropdownMenu>
+         </div>
+diff --git a/front-end/components/admin/admin-sidebar.tsx b/front-end/components/admin/admin-sidebar.tsx
+index 7ed691a..85b2d55 100644
+--- a/front-end/components/admin/admin-sidebar.tsx
++++ b/front-end/components/admin/admin-sidebar.tsx
+@@ -6,6 +6,8 @@ import { BarChart, Calendar, Flag, Home, LogOut, Settings, Shield, Tag, Users, M
+ import { cn } from "@/lib/utils"
+ import { Button } from "@/components/ui/button"
+ import { Badge } from "@/components/ui/badge"
++import { useAuth } from "@/context/AuthContext"
++import { toast } from "@/components/ui/use-toast"
+ 
+ interface Route {
+   href: string
+@@ -17,10 +19,19 @@ interface Route {
+ export function AdminSidebar() {
+   const pathname = usePathname()
+   const router = useRouter()
++  const { logout } = useAuth()
+ 
+-  // Función simulada de cierre de sesión
+-  const handleSignOut = () => {
+-    router.push("/")
++  const handleSignOut = async () => {
++    try {
++      await logout()
++      router.push("/")
++    } catch (error) {
++      toast({
++        title: "Error",
++        description: "Hubo un problema al cerrar sesión. Por favor, inténtalo de nuevo.",
++        variant: "destructive",
++      })
++    }
+   }
+ 
+   const routes: Route[] = [
+diff --git a/front-end/components/dynamic-header.tsx b/front-end/components/dynamic-header.tsx
+new file mode 100644
+index 0000000..66a183e
+--- /dev/null
++++ b/front-end/components/dynamic-header.tsx
+@@ -0,0 +1,18 @@
++"use client"
++
++import { useAuth } from "@/context/AuthContext"
++import { PublicHeader } from "@/components/public/public-header"
++import { usePathname } from "next/navigation"
++
++export function DynamicHeader() {
++  const { user, isLoadingSession } = useAuth()
++  const pathname = usePathname()
++
++  // No mostrar ningún header en rutas de admin o si está cargando
++  if (isLoadingSession || pathname.startsWith('/admin')) {
++    return null
++  }
++
++  // Siempre mostrar el header público, pero con diferentes opciones según el rol
++  return <PublicHeader userRole={user?.rol?.id_rol} />
++} 
+\ No newline at end of file
+diff --git a/front-end/components/organizer/organizer-header.tsx b/front-end/components/organizer/organizer-header.tsx
+index b108ecc..efbe804 100644
+--- a/front-end/components/organizer/organizer-header.tsx
++++ b/front-end/components/organizer/organizer-header.tsx
+@@ -10,7 +10,7 @@ import {
+   DropdownMenuTrigger,
+ } from "@/components/ui/dropdown-menu"
+ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+-import { Bell, Menu, User } from "lucide-react"
++import { Bell, Menu, User, LayoutDashboard, Globe, Settings, LogOut } from "lucide-react"
+ import Link from "next/link"
+ import { OrganizerSidebar } from "./organizer-sidebar"
+ import { useRouter } from "next/navigation"
+@@ -51,16 +51,28 @@ export function OrganizerHeader() {
+             <DropdownMenuLabel>Mi cuenta</DropdownMenuLabel>
+             <DropdownMenuSeparator />
+             <DropdownMenuItem asChild>
+-              <Link href="/organizer/profile">Mi perfil</Link>
++              <Link href="/organizer/profile">
++                <LayoutDashboard className="mr-2 h-4 w-4" />
++                Dashboard
++              </Link>
+             </DropdownMenuItem>
+             <DropdownMenuItem asChild>
+-              <Link href="/organizer/profile/public">Perfil público</Link>
++              <Link href="/organizer/profile/public">
++                <Globe className="mr-2 h-4 w-4" />
++                Perfil público
++              </Link>
+             </DropdownMenuItem>
+             <DropdownMenuItem asChild>
+-              <Link href="/organizer/settings">Configuración</Link>
++              <Link href="/organizer/settings">
++                <Settings className="mr-2 h-4 w-4" />
++                Configuración
++              </Link>
+             </DropdownMenuItem>
+             <DropdownMenuSeparator />
+-            <DropdownMenuItem onClick={() => router.push("/")}>Cerrar sesión</DropdownMenuItem>
++            <DropdownMenuItem onClick={() => router.push("/")}>
++              <LogOut className="mr-2 h-4 w-4" />
++              Cerrar sesión
++            </DropdownMenuItem>
+           </DropdownMenuContent>
+         </DropdownMenu>
+       </div>
+diff --git a/front-end/components/public/public-header.tsx b/front-end/components/public/public-header.tsx
+index 0f13ae6..29a1a6f 100644
+--- a/front-end/components/public/public-header.tsx
++++ b/front-end/components/public/public-header.tsx
+@@ -2,12 +2,116 @@
+ 
+ import Link from "next/link"
+ import { Button } from "@/components/ui/button"
+-import { Search, Menu } from "lucide-react"
++import { Search, Menu, User, Bell, LayoutDashboard, Settings, LogOut } from "lucide-react"
+ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+ import { useState } from "react"
++import {
++  DropdownMenu,
++  DropdownMenuContent,
++  DropdownMenuItem,
++  DropdownMenuLabel,
++  DropdownMenuSeparator,
++  DropdownMenuTrigger,
++} from "@/components/ui/dropdown-menu"
++import { useAuth } from "@/context/AuthContext"
++import { useRouter } from "next/navigation"
+ 
+-export function PublicHeader() {
++interface PublicHeaderProps {
++  userRole?: number
++}
++
++export function PublicHeader({ userRole }: PublicHeaderProps) {
+   const [isOpen, setIsOpen] = useState(false)
++  const { logout } = useAuth()
++  const router = useRouter()
++
++  const handleSignOut = async () => {
++    await logout()
++    router.push('/')
++  }
++
++  const renderUserMenu = () => {
++    if (!userRole) {
++      return (
++        <div className="flex items-center gap-4">
++          <Link href="/login">
++            <Button variant="ghost">Iniciar sesión</Button>
++          </Link>
++          <Link href="/register">
++            <Button>Registrarse</Button>
++          </Link>
++        </div>
++      )
++    }
++
++    return (
++      <div className="flex items-center gap-4">
++        <Button variant="ghost" size="icon" className="text-secondary-foreground hover:text-primary hover:bg-secondary-foreground/10">
++          <Bell className="h-5 w-5" />
++          <span className="sr-only">Notificaciones</span>
++        </Button>
++
++        <DropdownMenu>
++          <DropdownMenuTrigger asChild>
++            <Button variant="ghost" size="icon" className="text-secondary-foreground hover:text-primary hover:bg-secondary-foreground/10">
++              <User className="h-5 w-5" />
++              <span className="sr-only">Menú de usuario</span>
++            </Button>
++          </DropdownMenuTrigger>
++          <DropdownMenuContent align="end">
++            {userRole === 1 ? (
++              <>
++                <DropdownMenuItem asChild>
++                  <Link href="/admin">
++                    <LayoutDashboard className="mr-2 h-4 w-4" />
++                    Panel de Administrador
++                  </Link>
++                </DropdownMenuItem>
++                <DropdownMenuSeparator />
++                <DropdownMenuItem onClick={handleSignOut}>
++                  <LogOut className="mr-2 h-4 w-4" />
++                  Cerrar sesión
++                </DropdownMenuItem>
++              </>
++            ) : (
++              <>
++                <DropdownMenuLabel>Mi cuenta</DropdownMenuLabel>
++                <DropdownMenuSeparator />
++                {userRole === 3 && (
++                  <>
++                    <DropdownMenuItem asChild>
++                      <Link href="/organizer/dashboard">
++                        <LayoutDashboard className="mr-2 h-4 w-4" />
++                        Dashboard Organizador
++                      </Link>
++                    </DropdownMenuItem>
++                    <DropdownMenuSeparator />
++                  </>
++                )}
++                <DropdownMenuItem asChild>
++                  <Link href="/profile">
++                    <User className="mr-2 h-4 w-4" />
++                    Perfil
++                  </Link>
++                </DropdownMenuItem>
++                <DropdownMenuItem asChild>
++                  <Link href="/settings">
++                    <Settings className="mr-2 h-4 w-4" />
++                    Configuración
++                  </Link>
++                </DropdownMenuItem>
++                <DropdownMenuSeparator />
++                <DropdownMenuItem onClick={handleSignOut}>
++                  <LogOut className="mr-2 h-4 w-4" />
++                  Cerrar sesión
++                </DropdownMenuItem>
++              </>
++            )}
++          </DropdownMenuContent>
++        </DropdownMenu>
++      </div>
++    )
++  }
+ 
+   return (
+     <header className="sticky top-0 z-50 w-full border-b border-primary/30 bg-white text-secondary-foreground">
+@@ -31,6 +135,7 @@ export function PublicHeader() {
+             </Link>
+           </nav>
+         </div>
++
+         <div className="flex items-center gap-4">
+           <Button
+             variant="ghost"
+@@ -40,19 +145,9 @@ export function PublicHeader() {
+             <Search className="h-5 w-5" />
+             <span className="sr-only">Buscar</span>
+           </Button>
+-          <div className="hidden md:flex items-center gap-2">
+-            <Link href="/login">
+-              <Button
+-                variant="ghost"
+-                className="text-secondary-foreground hover:text-primary hover:bg-secondary-foreground/10"
+-              >
+-                Iniciar sesión
+-              </Button>
+-            </Link>
+-            <Link href="/register">
+-              <Button className="bg-primary text-white hover:bg-primary/90">Registrarse</Button>
+-            </Link>
+-          </div>
++
++          {renderUserMenu()}
++
+           <Sheet open={isOpen} onOpenChange={setIsOpen}>
+             <SheetTrigger asChild className="md:hidden">
+               <Button
+@@ -97,19 +192,66 @@ export function PublicHeader() {
+                 >
+                   Categorías
+                 </Link>
+-                <div className="flex flex-col gap-2 mt-4">
+-                  <Link href="/login" onClick={() => setIsOpen(false)}>
+-                    <Button
+-                      variant="outline"
+-                      className="w-full border-primary/30 text-secondary-foreground hover:bg-secondary-foreground/10"
+-                    >
+-                      Iniciar sesión
+-                    </Button>
+-                  </Link>
+-                  <Link href="/register" onClick={() => setIsOpen(false)}>
+-                    <Button className="w-full bg-primary text-white hover:bg-primary/90">Registrarse</Button>
+-                  </Link>
+-                </div>
++                {userRole && (
++                  <>
++                    <DropdownMenuSeparator />
++                    {userRole === 1 ? (
++                      <>
++                        <Link
++                          href="/admin"
++                          className="text-lg font-medium transition-colors hover:text-primary"
++                          onClick={() => setIsOpen(false)}
++                        >
++                          Panel de Administrador
++                        </Link>
++                        <button
++                          onClick={() => {
++                            handleSignOut()
++                            setIsOpen(false)
++                          }}
++                          className="text-lg font-medium text-red-500 hover:text-red-600 text-left"
++                        >
++                          Cerrar sesión
++                        </button>
++                      </>
++                    ) : (
++                      <>
++                        {userRole === 3 && (
++                          <Link
++                            href="/organizer/dashboard"
++                            className="text-lg font-medium transition-colors hover:text-primary"
++                            onClick={() => setIsOpen(false)}
++                          >
++                            Dashboard Organizador
++                          </Link>
++                        )}
++                        <Link
++                          href="/profile"
++                          className="text-lg font-medium transition-colors hover:text-primary"
++                          onClick={() => setIsOpen(false)}
++                        >
++                          Perfil
++                        </Link>
++                        <Link
++                          href="/settings"
++                          className="text-lg font-medium transition-colors hover:text-primary"
++                          onClick={() => setIsOpen(false)}
++                        >
++                          Configuración
++                        </Link>
++                        <button
++                          onClick={() => {
++                            handleSignOut()
++                            setIsOpen(false)
++                          }}
++                          className="text-lg font-medium text-red-500 hover:text-red-600 text-left"
++                        >
++                          Cerrar sesión
++                        </button>
++                      </>
++                    )}
++                  </>
++                )}
+               </div>
+             </SheetContent>
+           </Sheet>
+diff --git a/front-end/components/site-header.tsx b/front-end/components/site-header.tsx
+index e7ee66f..8dae246 100644
+--- a/front-end/components/site-header.tsx
++++ b/front-end/components/site-header.tsx
+@@ -108,7 +108,7 @@ export default function SiteHeader() {
+                   <DropdownMenuItem asChild>
+                     <Link href="/users/profile">
+                       <User className="mr-2 h-4 w-4" />
+-                      <span>Mi Perfil</span>
++                      <span>Perfil</span>
+                     </Link>
+                   </DropdownMenuItem>
+                   <DropdownMenuSeparator />
+diff --git a/front-end/context/AuthContext.tsx b/front-end/context/AuthContext.tsx
+index 5e4a38c..3aa8951 100644
+--- a/front-end/context/AuthContext.tsx
++++ b/front-end/context/AuthContext.tsx
+@@ -15,6 +15,8 @@ interface UsuarioAuth {
+   foto_perfil?: string | null;
+   biografia?: string | null;
+   intereses?: string[];
++  telefono?: string | null;
++  ubicacion?: string | null;
+ }
+ 
+ interface LoginUsuarioPayload {
+diff --git a/front-end/package.json b/front-end/package.json
+index eb6b64d..f72f18f 100644
+--- a/front-end/package.json
++++ b/front-end/package.json
+@@ -40,6 +40,7 @@
+     "@radix-ui/react-toggle-group": "1.1.1",
+     "@radix-ui/react-tooltip": "1.1.6",
+     "@supabase/ssr": "^0.6.1",
++    "@types/react-input-mask": "^3.0.6",
+     "ai": "^4.3.16",
+     "autoprefixer": "^10.4.20",
+     "axios": "^1.9.0",
+@@ -63,6 +64,7 @@
+     "react-day-picker": "8.10.1",
+     "react-dom": "^19",
+     "react-hook-form": "latest",
++    "react-input-mask": "^2.0.4",
+     "react-leaflet": "latest",
+     "react-resizable-panels": "^2.1.7",
+     "recharts": "2.15.0",
+diff --git a/front-end/pnpm-lock.yaml b/front-end/pnpm-lock.yaml
+index 7b5b79a..0a72b96 100644
+--- a/front-end/pnpm-lock.yaml
++++ b/front-end/pnpm-lock.yaml
+@@ -101,6 +101,9 @@ importers:
+       '@supabase/ssr':
+         specifier: ^0.6.1
+         version: 0.6.1(@supabase/supabase-js@2.49.8)
++      '@types/react-input-mask':
++        specifier: ^3.0.6
++        version: 3.0.6
+       ai:
+         specifier: ^4.3.16
+         version: 4.3.16(react@19.1.0)(zod@3.24.4)
+@@ -170,6 +173,9 @@ importers:
+       react-hook-form:
+         specifier: latest
+         version: 7.56.4(react@19.1.0)
++      react-input-mask:
++        specifier: ^2.0.4
++        version: 2.0.4(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+       react-leaflet:
+         specifier: latest
+         version: 5.0.0(leaflet@1.9.4)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+@@ -1228,6 +1234,9 @@ packages:
+     peerDependencies:
+       '@types/react': ^19.0.0
+ 
++  '@types/react-input-mask@3.0.6':
++    resolution: {integrity: sha512-+5I18WKyG3eWIj7TVPWfK1VitI9mPpS9y6jE/BfmTCe+iL27NfBw/yzKRvCFp1DRBvlvvcsiZf05bub0YC1k8A==}
++
+   '@types/react@19.1.4':
+     resolution: {integrity: sha512-EB1yiiYdvySuIITtD5lhW4yPyJ31RkJkkDw794LaQYrxCSaQV/47y5o1FMC4zF9ZyjUjzJMZwbovEnT5yHTW6g==}
+ 
+@@ -1633,6 +1642,9 @@ packages:
+     resolution: {integrity: sha512-5Hh7Y1wQbvY5ooGgPbDaL5iYLAPzMTUrjMulskHLH6wnv/A+1q5rgEaiuqEjB+oxGXIVZs1FF+R/KPN3ZSQYYg==}
+     engines: {node: '>=12'}
+ 
++  invariant@2.2.4:
++    resolution: {integrity: sha512-phJfQVBuaJM5raOpJjSfkiD6BpbCE4Ns//LaXl6wGYtUBY83nWS6Rf9tXm2e8VaK60JEjYldbPif/A2B1C2gNA==}
++
+   is-arrayish@0.3.2:
+     resolution: {integrity: sha512-eVRqCvVlZbuw3GrM63ovNSNAeA1K16kaR/LRY/92w0zxQ5/1YzwblUX652i4Xs9RwAGjW9d9y6X88t8OaAJfWQ==}
+ 
+@@ -1950,6 +1962,12 @@ packages:
+     peerDependencies:
+       react: ^16.8.0 || ^17 || ^18 || ^19
+ 
++  react-input-mask@2.0.4:
++    resolution: {integrity: sha512-1hwzMr/aO9tXfiroiVCx5EtKohKwLk/NT8QlJXHQ4N+yJJFyUuMT+zfTpLBwX/lK3PkuMlievIffncpMZ3HGRQ==}
++    peerDependencies:
++      react: '>=0.14.0'
++      react-dom: '>=0.14.0'
++
+   react-is@16.13.1:
+     resolution: {integrity: sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==}
+ 
+@@ -2226,6 +2244,9 @@ packages:
+   victory-vendor@36.9.2:
+     resolution: {integrity: sha512-PnpQQMuxlwYdocC8fIJqVXvkeViHYzotI+NJrCuav0ZYFoq912ZHBk3mCeuj+5/VpodOjPe1z0Fk2ihgzlXqjQ==}
+ 
++  warning@4.0.3:
++    resolution: {integrity: sha512-rpJyN222KWIvHJ/F53XSZv0Zl/accqHR8et1kpaMTD/fLCRxtV8iX8czMzY7sVZupTI3zcUTg8eycS2kNF9l6w==}
++
+   webidl-conversions@3.0.1:
+     resolution: {integrity: sha512-2JAn3z8AR6rjK8Sm8orRC0h/bcl/DqL7tRPdGZ4I1CjdF+EaMLmYxBHyXuKL849eucPFhvBoxMsflfOb8kxaeQ==}
+ 
+@@ -3281,6 +3302,10 @@ snapshots:
+     dependencies:
+       '@types/react': 19.1.4
+ 
++  '@types/react-input-mask@3.0.6':
++    dependencies:
++      '@types/react': 19.1.4
++
+   '@types/react@19.1.4':
+     dependencies:
+       csstype: 3.1.3
+@@ -3670,6 +3695,10 @@ snapshots:
+ 
+   internmap@2.0.3: {}
+ 
++  invariant@2.2.4:
++    dependencies:
++      loose-envify: 1.4.0
++
+   is-arrayish@0.3.2:
+     optional: true
+ 
+@@ -3943,6 +3972,13 @@ snapshots:
+     dependencies:
+       react: 19.1.0
+ 
++  react-input-mask@2.0.4(react-dom@19.1.0(react@19.1.0))(react@19.1.0):
++    dependencies:
++      invariant: 2.2.4
++      react: 19.1.0
++      react-dom: 19.1.0(react@19.1.0)
++      warning: 4.0.3
++
+   react-is@16.13.1: {}
+ 
+   react-is@18.3.1: {}
+@@ -4255,6 +4291,10 @@ snapshots:
+       d3-time: 3.1.0
+       d3-timer: 3.0.1
+ 
++  warning@4.0.3:
++    dependencies:
++      loose-envify: 1.4.0
++
+   webidl-conversions@3.0.1: {}
+ 
+   whatwg-url@5.0.0:
+-- 
+2.45.2
+
