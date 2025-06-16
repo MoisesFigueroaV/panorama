@@ -1,0 +1,316 @@
+From 974a842bfcca0fdaee58a54c0bc46c6d02792f18 Mon Sep 17 00:00:00 2001
+From: MoisesFigueroaDeveloper <moisesfigueroadeveloper@gmail.com>
+Date: Sun, 15 Jun 2025 20:10:45 -0400
+Subject: [PATCH 3/5] =?UTF-8?q?feat:=20mejorar=20la=20gesti=C3=B3n=20de=20?=
+ =?UTF-8?q?inicio=20de=20sesi=C3=B3n=20y=20actualizar=20la=20interfaz=20de?=
+ =?UTF-8?q?=20usuario?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- Se añadieron logs para depuración en el servicio de inicio de sesión, mostrando información sobre el usuario y el proceso de autenticación.
+- Se actualizaron los esquemas de respuesta para incluir el rol del usuario en la respuesta del login.
+- Se mejoró la lógica de redirección en el contexto de autenticación según el rol del usuario.
+- Se optimizó la interfaz de usuario para mostrar la foto de perfil y el nombre del usuario en el encabezado del sitio.
+---
+ .../src/modules/usuario/usuario.services.ts   |  6 ++
+ back-end/src/modules/usuario/usuario.types.ts |  8 ++-
+ front-end/app/(auth)/login/page.tsx           | 18 ++----
+ front-end/components/public/public-header.tsx | 56 +++++++++----------
+ front-end/components/site-header.tsx          |  8 +++
+ front-end/context/AuthContext.tsx             | 17 +++++-
+ front-end/lib/constants.ts                    | 13 +----
+ 7 files changed, 71 insertions(+), 55 deletions(-)
+
+diff --git a/back-end/src/modules/usuario/usuario.services.ts b/back-end/src/modules/usuario/usuario.services.ts
+index f41607c..5b12824 100644
+--- a/back-end/src/modules/usuario/usuario.services.ts
++++ b/back-end/src/modules/usuario/usuario.services.ts
+@@ -116,10 +116,12 @@ export async function loginUsuarioService(
+   }
+ ): Promise<{ accessToken: string; refreshToken: string; usuario: UsuarioConRolServiceResponse }> {
+   try {
++    console.log('🔍 Buscando usuario por correo:', payload.correo);
+     const userFromDb = await db.query.usuarioTable.findFirst({
+       where: eq(usuarioTable.correo, payload.correo),
+       with: { rol: true }
+     });
++    console.log('📥 Usuario encontrado:', userFromDb);
+ 
+     if (!userFromDb || !userFromDb.contrasena) {
+       throw new CustomError('Credenciales inválidas.', 401);
+@@ -130,6 +132,8 @@ export async function loginUsuarioService(
+       throw new CustomError('Credenciales inválidas.', 401);
+     }
+ 
++    console.log('🔑 Contraseña válida, rol del usuario:', userFromDb.rol);
++
+     const jwtAccessPayload: SignerAccessPayload = {
+       sub: String(userFromDb.id_usuario),
+       ...(userFromDb.id_rol !== null && { rol: userFromDb.id_rol }),
+@@ -160,6 +164,8 @@ export async function loginUsuarioService(
+       } : null,
+     };
+ 
++    console.log('📤 Respuesta final del login:', usuarioParaRespuesta);
++
+     return { accessToken, refreshToken, usuario: usuarioParaRespuesta };
+   } catch (error) {
+     handleErrorLog(error, 'loginUsuarioService');
+diff --git a/back-end/src/modules/usuario/usuario.types.ts b/back-end/src/modules/usuario/usuario.types.ts
+index 634f863..1ae668c 100644
+--- a/back-end/src/modules/usuario/usuario.types.ts
++++ b/back-end/src/modules/usuario/usuario.types.ts
+@@ -3,16 +3,22 @@ import { t } from 'elysia';
+ import { rolUsuarioBaseSchema } from '../rolUsuario/rolUsuario.types'; // Asume que este exporta rolUsuarioBaseSchema
+ 
+ export const usuarioBaseResponseSchema = t.Object({
++  id_usuario: t.Number(),
+   correo: t.String({ format: 'email', description: "Correo electrónico del usuario" }),
+   nombre_usuario: t.String({ description: "Nombre completo o de usuario" }),
+   fecha_registro: t.String({ format: 'date-time', description: "Fecha de registro del usuario" }),
+   sexo: t.Nullable(t.String({ minLength: 1, maxLength: 1, pattern: '^[MFO]$', description: "Sexo: M, F, O (Otro)" })),
+   fecha_nacimiento: t.Nullable(t.String({ format: 'date-time', description: "Fecha de nacimiento" })),
++  id_rol: t.Nullable(t.Number()),
+   biografia: t.Nullable(t.String({ description: "Biografía o descripción personal del usuario" })),
+   intereses: t.Nullable(t.Array(t.String(), { description: "Array de intereses o temas de interés" })),
+   foto_perfil: t.Nullable(t.String({ description: "URL de la foto de perfil" })),
+   telefono: t.Nullable(t.String({ pattern: '^\\+56 9 \\d{4} \\d{4}$', description: "Número de teléfono en formato +56 9 XXXX XXXX" })),
+   ubicacion: t.Nullable(t.String({ maxLength: 100, description: "Ubicación o ciudad del usuario" })),
++  rol: t.Nullable(t.Object({
++    id_rol: t.Number(),
++    nombre_rol: t.String()
++  }))
+ });
+ 
+ export const registroUsuarioSchema = t.Object({
+@@ -36,7 +42,7 @@ export type LoginUsuarioPayload = typeof loginUsuarioSchema.static;
+ export const loginResponseSchema = t.Object({
+   accessToken: t.String(),
+   refreshToken: t.String(),
+-  usuario: usuarioBaseResponseSchema,
++  usuario: usuarioBaseResponseSchema
+ });
+ 
+ export const updateUsuarioPerfilSchema = t.Partial(t.Object({
+diff --git a/front-end/app/(auth)/login/page.tsx b/front-end/app/(auth)/login/page.tsx
+index bbacc40..f40a2fa 100644
+--- a/front-end/app/(auth)/login/page.tsx
++++ b/front-end/app/(auth)/login/page.tsx
+@@ -21,25 +21,17 @@ export default function LoginPage() {
+   const [email, setEmail] = useState("")
+   const [password, setPassword] = useState("")
+ 
+-  // Mover la redirección a un useEffect
+-  useEffect(() => {
+-    if (user && !isLoadingSession) {
+-      const userRolId = user.rol?.id_rol
+-      if (userRolId && ROUTES_BY_ROLE[userRolId as keyof typeof ROUTES_BY_ROLE]) {
+-        const targetRoute = ROUTES_BY_ROLE[userRolId as keyof typeof ROUTES_BY_ROLE]
+-        router.replace(targetRoute)
+-      }
+-    }
+-  }, [user, isLoadingSession, router])
+-
+   const handleSubmit = async (e: React.FormEvent) => {
+     e.preventDefault()
+     setIsLoading(true)
+     setError(null)
+     try {
+-      await login({ correo: email, contrasena: password })
++      console.log('Intentando login...');
++      await login({ correo: email, contrasena: password });
++      console.log('Login completado');
+     } catch (err: any) {
+-      console.error('Error en login:', err)
++      console.error('Error detallado en login:', err);
++      console.error('Respuesta del error:', err.response?.data);
+       setError(err.response?.data?.error || 'Error al iniciar sesión')
+     } finally {
+       setIsLoading(false)
+diff --git a/front-end/components/public/public-header.tsx b/front-end/components/public/public-header.tsx
+index 29a1a6f..52b51ae 100644
+--- a/front-end/components/public/public-header.tsx
++++ b/front-end/components/public/public-header.tsx
+@@ -59,7 +59,9 @@ export function PublicHeader({ userRole }: PublicHeaderProps) {
+             </Button>
+           </DropdownMenuTrigger>
+           <DropdownMenuContent align="end">
+-            {userRole === 1 ? (
++            <DropdownMenuLabel>Mi cuenta</DropdownMenuLabel>
++            <DropdownMenuSeparator />
++            {userRole === 1 && (
+               <>
+                 <DropdownMenuItem asChild>
+                   <Link href="/admin">
+@@ -68,45 +70,41 @@ export function PublicHeader({ userRole }: PublicHeaderProps) {
+                   </Link>
+                 </DropdownMenuItem>
+                 <DropdownMenuSeparator />
+-                <DropdownMenuItem onClick={handleSignOut}>
+-                  <LogOut className="mr-2 h-4 w-4" />
+-                  Cerrar sesión
+-                </DropdownMenuItem>
+               </>
+-            ) : (
++            )}
++            {userRole === 2 && (
+               <>
+-                <DropdownMenuLabel>Mi cuenta</DropdownMenuLabel>
+-                <DropdownMenuSeparator />
+-                {userRole === 3 && (
+-                  <>
+-                    <DropdownMenuItem asChild>
+-                      <Link href="/organizer/dashboard">
+-                        <LayoutDashboard className="mr-2 h-4 w-4" />
+-                        Dashboard Organizador
+-                      </Link>
+-                    </DropdownMenuItem>
+-                    <DropdownMenuSeparator />
+-                  </>
+-                )}
+                 <DropdownMenuItem asChild>
+-                  <Link href="/profile">
+-                    <User className="mr-2 h-4 w-4" />
+-                    Perfil
++                  <Link href="/organizer/dashboard">
++                    <LayoutDashboard className="mr-2 h-4 w-4" />
++                    Dashboard Organizador
+                   </Link>
+                 </DropdownMenuItem>
++                <DropdownMenuSeparator />
++              </>
++            )}
++            {userRole === 3 && (
++              <>
+                 <DropdownMenuItem asChild>
+-                  <Link href="/settings">
+-                    <Settings className="mr-2 h-4 w-4" />
+-                    Configuración
++                  <Link href="/users/profile">
++                    <User className="mr-2 h-4 w-4" />
++                    Mi Perfil
+                   </Link>
+                 </DropdownMenuItem>
+                 <DropdownMenuSeparator />
+-                <DropdownMenuItem onClick={handleSignOut}>
+-                  <LogOut className="mr-2 h-4 w-4" />
+-                  Cerrar sesión
+-                </DropdownMenuItem>
+               </>
+             )}
++            <DropdownMenuItem asChild>
++              <Link href="/settings">
++                <Settings className="mr-2 h-4 w-4" />
++                Configuración
++              </Link>
++            </DropdownMenuItem>
++            <DropdownMenuSeparator />
++            <DropdownMenuItem onClick={handleSignOut}>
++              <LogOut className="mr-2 h-4 w-4" />
++              Cerrar sesión
++            </DropdownMenuItem>
+           </DropdownMenuContent>
+         </DropdownMenu>
+       </div>
+diff --git a/front-end/components/site-header.tsx b/front-end/components/site-header.tsx
+index 8dae246..07e925b 100644
+--- a/front-end/components/site-header.tsx
++++ b/front-end/components/site-header.tsx
+@@ -93,6 +93,10 @@ export default function SiteHeader() {
+                 <DropdownMenuTrigger asChild>
+                   <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                     <Avatar className="h-8 w-8">
++                      <AvatarImage 
++                        src={user?.foto_perfil || "/placeholder.svg"} 
++                        alt={user?.nombre_usuario || "Usuario"} 
++                      />
+                       <AvatarFallback>{getInitials(user?.nombre_usuario || "")}</AvatarFallback>
+                     </Avatar>
+                   </Button>
+@@ -154,6 +158,10 @@ export default function SiteHeader() {
+                 {isAuthenticated && (
+                   <div className="flex items-center gap-4 mb-2 pb-4 border-b border-primary/10">
+                     <Avatar className="h-10 w-10">
++                      <AvatarImage 
++                        src={user?.foto_perfil || "/placeholder.svg"} 
++                        alt={user?.nombre_usuario || "Usuario"} 
++                      />
+                       <AvatarFallback>{getInitials(user?.nombre_usuario || "")}</AvatarFallback>
+                     </Avatar>
+                     <div>
+diff --git a/front-end/context/AuthContext.tsx b/front-end/context/AuthContext.tsx
+index 3aa8951..5c464dd 100644
+--- a/front-end/context/AuthContext.tsx
++++ b/front-end/context/AuthContext.tsx
+@@ -97,17 +97,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+ 
+   const login = async (credentials: LoginUsuarioPayload) => {
+     try {
++      console.log('Iniciando login con:', credentials.correo);
+       const { data: response } = await apiClient.post<{ accessToken: string; refreshToken: string; usuario: UsuarioAuth }>('/auth/login', credentials);
++      console.log('Respuesta del login:', response);
++      
+       setAccessToken(response.accessToken);
+       setRefreshToken(response.refreshToken);
+       setUser(response.usuario);
+       setLocalAccessToken(response.accessToken);
+ 
++      console.log('Usuario después del login:', response.usuario);
++      console.log('Rol del usuario:', response.usuario.rol);
++
++      // Redirección específica por rol
+       if (response.usuario.rol?.id_rol === 1) {
+-        router.push('/admin/dashboard');
++        console.log('Redirigiendo a /admin');
++        router.push('/admin');
++      } else if (response.usuario.rol?.id_rol === 2) {
++        console.log('Redirigiendo a /organizer/dashboard');
++        router.push('/organizer/dashboard');
+       } else if (response.usuario.rol?.id_rol === 3) {
+-        router.push('/organizadores/dashboard');
++        console.log('Redirigiendo a /users/profile');
++        router.push('/users/profile');
+       } else {
++        console.log('No se encontró rol válido, redirigiendo a /');
+         router.push('/');
+       }
+     } catch (error) {
+diff --git a/front-end/lib/constants.ts b/front-end/lib/constants.ts
+index da1b219..2e605bb 100644
+--- a/front-end/lib/constants.ts
++++ b/front-end/lib/constants.ts
+@@ -11,14 +11,14 @@ export const ESTADOS_ACREDITACION = {
+   APROBADO: 2
+ } as const;
+ 
+-// Rutas por rol
++// Rutas por rol (usar esta constante para redirecciones)
+ export const ROUTES_BY_ROLE = {
+   [ROLES.ADMINISTRADOR]: '/admin',
+-  [ROLES.ORGANIZADOR]: '/organizers/dashboard',
++  [ROLES.ORGANIZADOR]: '/organizer/dashboard',
+   [ROLES.USUARIO]: '/users/profile'
+ } as const;
+ 
+-// IDs de roles de usuario
++// IDs de roles de usuario (mantener por compatibilidad)
+ export const ROLES_IDS = {
+   ADMINISTRADOR: 1,
+   ORGANIZADOR: 2,
+@@ -30,11 +30,4 @@ export const ESTADOS_ACREDITACION_IDS = {
+   PENDIENTE: 1,
+   APROBADO: 2,
+   RECHAZADO: 3,
+-} as const;
+-
+-// Rutas por rol
+-export const ROUTES_BY_ROLE_IDS = {
+-  [ROLES_IDS.ADMINISTRADOR]: '/admin',
+-  [ROLES_IDS.ORGANIZADOR]: '/organizer',
+-  [ROLES_IDS.USUARIO_COMUN]: '/',
+ } as const; 
+\ No newline at end of file
+-- 
+2.45.2
+

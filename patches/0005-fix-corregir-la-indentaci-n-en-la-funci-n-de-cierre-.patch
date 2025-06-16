@@ -1,0 +1,54 @@
+From 1dd7c270de387166268bea53eae414cdade8420f Mon Sep 17 00:00:00 2001
+From: MoisesFigueroaDeveloper <moisesfigueroadeveloper@gmail.com>
+Date: Mon, 16 Jun 2025 11:45:11 -0400
+Subject: [PATCH 5/5] =?UTF-8?q?fix:=20corregir=20la=20indentaci=C3=B3n=20e?=
+ =?UTF-8?q?n=20la=20funci=C3=B3n=20de=20cierre=20de=20sesi=C3=B3n=20en=20l?=
+ =?UTF-8?q?os=20componentes=20de=20administraci=C3=B3n?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ back-end/bun.lockb                           | Bin 23207 -> 23207 bytes
+ front-end/components/admin/admin-header.tsx  |   2 +-
+ front-end/components/admin/admin-sidebar.tsx |   2 +-
+ 3 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/back-end/bun.lockb b/back-end/bun.lockb
+index c72ed98e70e92a86d951bdd752f0878fd5ecec3a..64e5b684398f59c6111d4f049476710d136f3437 100755
+GIT binary patch
+delta 35
+ncmZ3!m2vr2#tnsb9E@>>dPaJNW|J%Jrm!<HfWc-F`^nM(#bgOW
+
+delta 35
+rcmZ3!m2vr2#tnsb985WhC8@<F43jJErm!={8R=Q*nQj)bpDYak=dlZ<
+
+diff --git a/front-end/components/admin/admin-header.tsx b/front-end/components/admin/admin-header.tsx
+index 8e23884..6d600c5 100644
+--- a/front-end/components/admin/admin-header.tsx
++++ b/front-end/components/admin/admin-header.tsx
+@@ -22,7 +22,7 @@ export function AdminHeader() {
+   const handleSignOut = async () => {
+     try {
+       await logout()
+-      router.push("/")
++    router.push("/")
+     } catch (error) {
+       toast({
+         title: "Error",
+diff --git a/front-end/components/admin/admin-sidebar.tsx b/front-end/components/admin/admin-sidebar.tsx
+index 85b2d55..dc23fc9 100644
+--- a/front-end/components/admin/admin-sidebar.tsx
++++ b/front-end/components/admin/admin-sidebar.tsx
+@@ -24,7 +24,7 @@ export function AdminSidebar() {
+   const handleSignOut = async () => {
+     try {
+       await logout()
+-      router.push("/")
++    router.push("/")
+     } catch (error) {
+       toast({
+         title: "Error",
+-- 
+2.45.2
+
