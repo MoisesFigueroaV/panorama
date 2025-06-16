@@ -8,6 +8,9 @@ export const usuarioBaseResponseSchema = t.Object({
   fecha_registro: t.Date({ description: "Fecha de registro del usuario" }),
   sexo: t.Nullable(t.String({ minLength: 1, maxLength: 1, pattern: '^[MFO]$', description: "Sexo: M, F, O (Otro)" })),
   fecha_nacimiento: t.Nullable(t.Date({ description: "Fecha de nacimiento" })),
+  biografia: t.Nullable(t.String({ description: "Biografía o descripción personal del usuario" })),
+  intereses: t.Nullable(t.Array(t.String(), { description: "Array de intereses o temas de interés" })),
+  foto_perfil: t.Nullable(t.String({ description: "URL de la foto de perfil" })),
 });
 
 export const registroUsuarioSchema = t.Object({
@@ -16,6 +19,9 @@ export const registroUsuarioSchema = t.Object({
   contrasena: t.String({ minLength: 8 }),
   sexo: t.Optional(t.Nullable(t.String({ enum: ['M', 'F', 'O'] }))),
   fecha_nacimiento: t.Optional(t.Nullable(t.String({ format: 'date', description: "Formato YYYY-MM-DD" }))),
+  biografia: t.Optional(t.Nullable(t.String())),
+  intereses: t.Optional(t.Nullable(t.Array(t.String()))),
+  foto_perfil: t.Optional(t.Nullable(t.String())),
 });
 export type RegistroUsuarioPayload = typeof registroUsuarioSchema.static;
 
@@ -35,6 +41,9 @@ export const updateUsuarioPerfilSchema = t.Partial(t.Object({
   nombre_usuario: t.String({ minLength: 3, maxLength: 100 }),
   sexo: t.Nullable(t.String({ enum: ['M', 'F', 'O'] })),
   fecha_nacimiento: t.Nullable(t.String({ format: 'date' })),
+  biografia: t.Nullable(t.String()),
+  intereses: t.Nullable(t.Array(t.String())),
+  foto_perfil: t.Nullable(t.String()),
 }));
 export type UpdateUsuarioPerfilPayload = typeof updateUsuarioPerfilSchema.static;
 

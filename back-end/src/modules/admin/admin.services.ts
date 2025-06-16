@@ -75,8 +75,9 @@ export async function getAllOrganizersService() {
             fecha_registro: true
           }
         },
-        estadoAcreditacionActual: { // <-- Esto ahora funciona gracias a los cambios
+        estadoAcreditacionActual: {
           columns: {
+            id_estado_acreditacion: true,
             nombre_estado: true
           }
         }
@@ -84,7 +85,7 @@ export async function getAllOrganizersService() {
       orderBy: [desc(organizadorTable.id_organizador)],
     });
 
-    // Mapeamos para asegurar que el formato de fecha sea consistente para la API (string ISO)
+    // Mapeamos para asegurar que el formato de fecha sea consistente y que los estados estén correctamente definidos
     return organizers.map(org => ({
       ...org,
       acreditado: org.acreditado ?? false,
@@ -92,6 +93,10 @@ export async function getAllOrganizersService() {
         ...org.usuario,
         fecha_registro: new Date(org.usuario.fecha_registro).toISOString()
       } : null,
+      estadoAcreditacionActual: org.estadoAcreditacionActual ?? {
+        id_estado_acreditacion: 1, // Por defecto, estado pendiente
+        nombre_estado: 'Pendiente'
+      }
     }));
   } catch (error) {
     handleErrorLog(error, 'servicio getAllOrganizersService');
@@ -104,30 +109,41 @@ export async function getAllOrganizersService() {
  */
 export async function updateAcreditationStatusService(organizadorId: number, nuevoEstadoId: number, adminUserId: number, notasAdmin: string | null) {
   return db.transaction(async (tx) => {
-    // 1. Actualizamos el estado actual en la tabla principal del organizador
+    // 1. Actualizamos SOLO el estado actual en la tabla principal del organizador
     const [updatedOrganizador] = await tx
       .update(organizadorTable)
       .set({
-        id_estado_acreditacion_actual: nuevoEstadoId, // <-- Actualizamos el "atajo"
-        acreditado: nuevoEstadoId === ESTADOS_ACREDITACION_IDS.APROBADO,
+        id_estado_acreditacion_actual: nuevoEstadoId,
       })
       .where(eq(organizadorTable.id_organizador, organizadorId))
-      .returning({ id: organizadorTable.id_organizador });
+      .returning({ 
+        id: organizadorTable.id_organizador,
+        estadoActual: organizadorTable.id_estado_acreditacion_actual 
+      });
     
     if (!updatedOrganizador) {
       throw new CustomError(`Organizador con ID ${organizadorId} no encontrado.`, 404);
     }
 
-    // 2. Insertamos un registro en el historial para auditoría (el porqué del cambio)
+    // 2. Insertamos un registro en el historial para auditoría
     const newHistorial: NewHistorialEstadoAcreditacion = {
       id_organizador: organizadorId,
       id_estado_acreditacion: nuevoEstadoId,
-      id_admin_responsable: adminUserId, // <-- Usamos la nueva columna
-      notas_cambio: notasAdmin,         // <-- Usamos la nueva columna
+      id_admin_responsable: adminUserId,
+      notas_cambio: notasAdmin,
     };
-    await tx.insert(historialEstadoAcreditacionTable).values(newHistorial);
 
-    return { message: "Estado de acreditación actualizado correctamente." };
+    try {
+      await tx.insert(historialEstadoAcreditacionTable).values(newHistorial);
+    } catch (error) {
+      console.error('Error al insertar en historial:', error);
+      throw new CustomError('Error al registrar el cambio en el historial.', 500);
+    }
+
+    return { 
+      message: "Estado de acreditación actualizado correctamente.",
+      nuevoEstado: nuevoEstadoId
+    };
   });
 }
 

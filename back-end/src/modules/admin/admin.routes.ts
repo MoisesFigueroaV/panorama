@@ -33,7 +33,7 @@ export const adminRoutes = new Elysia({
 .patch('/organizers/:id/acreditation', 
   ({ params, body, session }: { 
     params: { id: number }, 
-    body: { id_estado_acreditacion: number, notas_admin?: string },
+    body: { id_estado_acreditacion: number, notas_admin: string | null },
     session: AppSession 
   }) => {
     const adminId = (session as NonNullable<AppSession>).subAsNumber;
@@ -41,14 +41,14 @@ export const adminRoutes = new Elysia({
       params.id,
       body.id_estado_acreditacion,
       adminId,
-      body.notas_admin ?? null
+      body.notas_admin
     );
   },
   { 
     params: t.Object({ id: t.Numeric() }),
     body: t.Object({ 
       id_estado_acreditacion: t.Numeric(),
-      notas_admin: t.Optional(t.String())
+      notas_admin: t.Union([t.String(), t.Null()])
     }),
     detail: { summary: 'Actualizar estado de acreditación de un organizador' }
   }
