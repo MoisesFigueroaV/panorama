@@ -2,6 +2,8 @@
 import axios from 'axios';
 import { getCookie, setCookie, deleteCookie } from 'cookies-next';
 
+// Cliente API para hacer peticiones al backend
+// URL base incluye el prefijo /api/v1 para el servidor Bun
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
 
 export const apiClient = axios.create({
