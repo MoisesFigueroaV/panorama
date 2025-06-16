@@ -116,10 +116,12 @@ export async function loginUsuarioService(
   }
 ): Promise<{ accessToken: string; refreshToken: string; usuario: UsuarioConRolServiceResponse }> {
   try {
+    console.log('🔍 Buscando usuario por correo:', payload.correo);
     const userFromDb = await db.query.usuarioTable.findFirst({
       where: eq(usuarioTable.correo, payload.correo),
       with: { rol: true }
     });
+    console.log('📥 Usuario encontrado:', userFromDb);
 
     if (!userFromDb || !userFromDb.contrasena) {
       throw new CustomError('Credenciales inválidas.', 401);
@@ -129,6 +131,8 @@ export async function loginUsuarioService(
     if (!contrasenaValida) {
       throw new CustomError('Credenciales inválidas.', 401);
     }
+
+    console.log('🔑 Contraseña válida, rol del usuario:', userFromDb.rol);
 
     const jwtAccessPayload: SignerAccessPayload = {
       sub: String(userFromDb.id_usuario),
@@ -159,6 +163,8 @@ export async function loginUsuarioService(
         nombre_rol: userFromDb.rol.nombre_rol,
       } : null,
     };
+
+    console.log('📤 Respuesta final del login:', usuarioParaRespuesta);
 
     return { accessToken, refreshToken, usuario: usuarioParaRespuesta };
   } catch (error) {

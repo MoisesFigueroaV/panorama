@@ -21,25 +21,17 @@ export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
 
-  // Mover la redirección a un useEffect
-  useEffect(() => {
-    if (user && !isLoadingSession) {
-      const userRolId = user.rol?.id_rol
-      if (userRolId && ROUTES_BY_ROLE[userRolId as keyof typeof ROUTES_BY_ROLE]) {
-        const targetRoute = ROUTES_BY_ROLE[userRolId as keyof typeof ROUTES_BY_ROLE]
-        router.replace(targetRoute)
-      }
-    }
-  }, [user, isLoadingSession, router])
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     setError(null)
     try {
-      await login({ correo: email, contrasena: password })
+      console.log('Intentando login...');
+      await login({ correo: email, contrasena: password });
+      console.log('Login completado');
     } catch (err: any) {
-      console.error('Error en login:', err)
+      console.error('Error detallado en login:', err);
+      console.error('Respuesta del error:', err.response?.data);
       setError(err.response?.data?.error || 'Error al iniciar sesión')
     } finally {
       setIsLoading(false)

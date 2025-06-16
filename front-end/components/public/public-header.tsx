@@ -59,7 +59,9 @@ export function PublicHeader({ userRole }: PublicHeaderProps) {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            {userRole === 1 ? (
+            <DropdownMenuLabel>Mi cuenta</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {userRole === 1 && (
               <>
                 <DropdownMenuItem asChild>
                   <Link href="/admin">
@@ -68,45 +70,41 @@ export function PublicHeader({ userRole }: PublicHeaderProps) {
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Cerrar sesión
-                </DropdownMenuItem>
-              </>
-            ) : (
-              <>
-                <DropdownMenuLabel>Mi cuenta</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {userRole === 3 && (
-                  <>
-                    <DropdownMenuItem asChild>
-                      <Link href="/organizer/dashboard">
-                        <LayoutDashboard className="mr-2 h-4 w-4" />
-                        Dashboard Organizador
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                  </>
-                )}
-                <DropdownMenuItem asChild>
-                  <Link href="/profile">
-                    <User className="mr-2 h-4 w-4" />
-                    Perfil
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/settings">
-                    <Settings className="mr-2 h-4 w-4" />
-                    Configuración
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Cerrar sesión
-                </DropdownMenuItem>
               </>
             )}
+            {userRole === 2 && (
+              <>
+                <DropdownMenuItem asChild>
+                  <Link href="/organizer/dashboard">
+                    <LayoutDashboard className="mr-2 h-4 w-4" />
+                    Dashboard Organizador
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            )}
+            {userRole === 3 && (
+              <>
+                <DropdownMenuItem asChild>
+                  <Link href="/users/profile">
+                    <User className="mr-2 h-4 w-4" />
+                    Mi Perfil
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            )}
+            <DropdownMenuItem asChild>
+              <Link href="/settings">
+                <Settings className="mr-2 h-4 w-4" />
+                Configuración
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleSignOut}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Cerrar sesión
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

@@ -97,17 +97,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const login = async (credentials: LoginUsuarioPayload) => {
     try {
+      console.log('Iniciando login con:', credentials.correo);
       const { data: response } = await apiClient.post<{ accessToken: string; refreshToken: string; usuario: UsuarioAuth }>('/auth/login', credentials);
+      console.log('Respuesta del login:', response);
+      
       setAccessToken(response.accessToken);
       setRefreshToken(response.refreshToken);
       setUser(response.usuario);
       setLocalAccessToken(response.accessToken);
 
+      console.log('Usuario después del login:', response.usuario);
+      console.log('Rol del usuario:', response.usuario.rol);
+
+      // Redirección específica por rol
       if (response.usuario.rol?.id_rol === 1) {
-        router.push('/admin/dashboard');
+        console.log('Redirigiendo a /admin');
+        router.push('/admin');
+      } else if (response.usuario.rol?.id_rol === 2) {
+        console.log('Redirigiendo a /organizer/dashboard');
+        router.push('/organizer/dashboard');
       } else if (response.usuario.rol?.id_rol === 3) {
-        router.push('/organizadores/dashboard');
+        console.log('Redirigiendo a /users/profile');
+        router.push('/users/profile');
       } else {
+        console.log('No se encontró rol válido, redirigiendo a /');
         router.push('/');
       }
     } catch (error) {

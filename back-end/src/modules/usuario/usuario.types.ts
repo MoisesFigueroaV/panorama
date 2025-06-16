@@ -3,16 +3,22 @@ import { t } from 'elysia';
 import { rolUsuarioBaseSchema } from '../rolUsuario/rolUsuario.types'; // Asume que este exporta rolUsuarioBaseSchema
 
 export const usuarioBaseResponseSchema = t.Object({
+  id_usuario: t.Number(),
   correo: t.String({ format: 'email', description: "Correo electrónico del usuario" }),
   nombre_usuario: t.String({ description: "Nombre completo o de usuario" }),
   fecha_registro: t.String({ format: 'date-time', description: "Fecha de registro del usuario" }),
   sexo: t.Nullable(t.String({ minLength: 1, maxLength: 1, pattern: '^[MFO]$', description: "Sexo: M, F, O (Otro)" })),
   fecha_nacimiento: t.Nullable(t.String({ format: 'date-time', description: "Fecha de nacimiento" })),
+  id_rol: t.Nullable(t.Number()),
   biografia: t.Nullable(t.String({ description: "Biografía o descripción personal del usuario" })),
   intereses: t.Nullable(t.Array(t.String(), { description: "Array de intereses o temas de interés" })),
   foto_perfil: t.Nullable(t.String({ description: "URL de la foto de perfil" })),
   telefono: t.Nullable(t.String({ pattern: '^\\+56 9 \\d{4} \\d{4}$', description: "Número de teléfono en formato +56 9 XXXX XXXX" })),
   ubicacion: t.Nullable(t.String({ maxLength: 100, description: "Ubicación o ciudad del usuario" })),
+  rol: t.Nullable(t.Object({
+    id_rol: t.Number(),
+    nombre_rol: t.String()
+  }))
 });
 
 export const registroUsuarioSchema = t.Object({
@@ -36,7 +42,7 @@ export type LoginUsuarioPayload = typeof loginUsuarioSchema.static;
 export const loginResponseSchema = t.Object({
   accessToken: t.String(),
   refreshToken: t.String(),
-  usuario: usuarioBaseResponseSchema,
+  usuario: usuarioBaseResponseSchema
 });
 
 export const updateUsuarioPerfilSchema = t.Partial(t.Object({
