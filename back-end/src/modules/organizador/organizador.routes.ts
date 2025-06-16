@@ -1,3 +1,4 @@
+// src/modules/organizador/organizador.routes.ts
 import Elysia, { t } from 'elysia';
 import { authMiddleware, requireAuth } from '../../middleware/auth.middleware';
 import {
@@ -5,19 +6,18 @@ import {
   crearPerfilOrganizadorService,
   getOrganizadorByIdService,
   getOrganizadorByUserIdService,
-  updateOrganizadorPerfilService,
+  updateOrganizadorPerfilService
 } from './organizador.services';
 import {
   registroCompletoOrganizadorSchema,
   createOrganizadorPerfilSchema,
   updateOrganizadorPerfilSchema,
-  organizadorParamsSchema,
+  organizadorParamsSchema
 } from './organizador.types';
 
-/* ==========================================================
-   1️⃣ Registro inicial (cuenta + perfil organizador) - Público
-   ========================================================== */
-
+/** 
+ * 1️⃣ REGISTRO COMPLETO - Público (usuario nuevo + organizador)
+ */
 export const authOrganizadorRoutes = new Elysia({ prefix: '/auth' })
   .post(
     '/registro-organizador',
@@ -31,20 +31,17 @@ export const authOrganizadorRoutes = new Elysia({ prefix: '/auth' })
       body: registroCompletoOrganizadorSchema,
       detail: {
         tags: ['Autenticación'],
-        summary: 'Registro completo de Organizador',
-        description: 'Permite crear una cuenta de usuario y su perfil de organizador en un solo paso (registro inicial).'
+        summary: 'Registrar nuevo Organizador',
+        description: 'Registro inicial para nuevos organizadores. Crea usuario + perfil de organización en un único paso.'
       }
     }
   );
 
-/* ==========================================================
-   2️⃣ Perfil de Organizador - Gestión propia (requiere autenticación)
-   ========================================================== */
-
+/** 
+ * 2️⃣ CRUD PERSONAL - Organizador autenticado
+ */
 export const organizadorUsuarioRoutes = new Elysia({ prefix: '/organizadores' })
   .use(authMiddleware)
-
-  // Crear perfil de organizador (cuando el usuario ya tiene cuenta)
   .post(
     '/',
     async ({ session, body, set }) => {
@@ -59,12 +56,10 @@ export const organizadorUsuarioRoutes = new Elysia({ prefix: '/organizadores' })
       detail: {
         tags: ['Organizadores'],
         summary: 'Crear mi perfil de Organizador',
-        description: 'Permite a un usuario autenticado crear su perfil de organizador (solo perfil, no cuenta).'
+        description: 'Permite crear el perfil de organizador para usuarios previamente registrados.'
       }
     }
   )
-
-  // Consultar perfil personal de organizador
   .get(
     '/yo',
     async ({ session }) => {
@@ -75,12 +70,10 @@ export const organizadorUsuarioRoutes = new Elysia({ prefix: '/organizadores' })
       detail: {
         tags: ['Organizadores'],
         summary: 'Ver mi perfil de Organizador',
-        description: 'Obtiene el perfil de organizador asociado al usuario autenticado.'
+        description: 'Consulta el perfil de organizador vinculado a tu cuenta actual.'
       }
     }
   )
-
-  // Actualizar perfil personal de organizador
   .put(
     '/yo',
     async ({ session, body }) => {
@@ -93,15 +86,14 @@ export const organizadorUsuarioRoutes = new Elysia({ prefix: '/organizadores' })
       detail: {
         tags: ['Organizadores'],
         summary: 'Actualizar mi perfil de Organizador',
-        description: 'Permite modificar los datos del perfil de organizador (requiere login).'
+        description: 'Permite actualizar los datos de tu perfil de organización.'
       }
     }
   );
 
-/* ==========================================================
-   3️⃣ Visualización pública de perfiles de organizadores
-   ========================================================== */
-
+/** 
+ * 3️⃣ CONSULTA PÚBLICA - Ver organizadores por ID
+ */
 export const publicOrganizadorRoutes = new Elysia({ prefix: '/organizadores' })
   .get(
     '/:id',
@@ -110,8 +102,8 @@ export const publicOrganizadorRoutes = new Elysia({ prefix: '/organizadores' })
       params: organizadorParamsSchema,
       detail: {
         tags: ['Organizadores'],
-        summary: 'Consultar perfil público de Organizador',
-        description: 'Permite visualizar información pública de un organizador por su ID.'
+        summary: 'Consultar organizador público',
+        description: 'Consulta pública de perfiles de organizadores mediante su ID.'
       }
     }
   );
