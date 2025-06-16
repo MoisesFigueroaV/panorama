@@ -1,8 +1,10 @@
 import Elysia, { t } from 'elysia';
 import { authMiddleware, requireAuth } from '../../middleware/auth.middleware';
-import { createEventoService, updateEventoService, getEventosByOrganizadorService } from './evento.services';
+import { createEventoService, updateEventoService, getEventosByOrganizadorService , getEventoByIdService} from './evento.services';
 import { createEventoSchema, updateEventoSchema, eventoResponseSchema, eventosResponseSchema } from './evento.types';
 import { CustomError } from '../../utils/errors';
+import { getOrganizadorByUserIdService } from '../organizador/organizador.services';
+import { z } from 'zod';
 
 /**
  * Mapeador de eventos para ajustar el formato de respuesta.
@@ -20,23 +22,11 @@ function mapEventoToResponse(evento: any) {
     id_categoria: evento.id_categoria,
     id_estado_evento: evento.id_estado_evento ?? undefined,
     fecha_registro: evento.fecha_registro,
-    latitud: evento.latitud !== null ? parseFloat(evento.latitud) : undefined,
-    longitud: evento.longitud !== null ? parseFloat(evento.longitud) : undefined,
+    // Conversión explícita a number si no es null
+    latitud: evento.latitud !== null && evento.latitud !== undefined ? Number(evento.latitud) : undefined,
+    longitud: evento.longitud !== null && evento.longitud !== undefined ? Number(evento.longitud) : undefined,
   };
 }
-    /**
-     * 🔧 Para futuras migraciones de fechas completas (timestamps):
-     * creado_en, actualizado_en
-     */
-
-    /**
-     * 🔧 Para futuras migraciones de múltiples categorías:
-     * categorias: Array.isArray(evento.categorias)
-     *   ? evento.categorias
-     *   : (typeof evento.categorias === 'string'
-     *         ? JSON.parse(evento.categorias)
-     *         : [])
-     */
 
 export const eventoRoutes = new Elysia({ prefix: '/eventos', detail: { tags: ['Eventos'] } })
   .use(authMiddleware)
@@ -48,7 +38,14 @@ export const eventoRoutes = new Elysia({ prefix: '/eventos', detail: { tags: ['E
     '/',
     async (context) => {
       const currentSession = requireAuth()(context.session);
-      const evento = await createEventoService(currentSession.subAsNumber, context.body);
+
+      // Buscar el perfil de organizador del usuario autenticado
+      const organizador = await getOrganizadorByUserIdService(currentSession.subAsNumber);
+      if (!organizador) {
+        throw new CustomError('No tienes un perfil de organizador asociado.', 403);
+      }
+
+      const evento = await createEventoService(organizador.id_organizador, context.body);
       context.set.status = 201;
       return mapEventoToResponse(evento);
     },
@@ -66,11 +63,19 @@ export const eventoRoutes = new Elysia({ prefix: '/eventos', detail: { tags: ['E
     '/mis-eventos',
     async (context) => {
       const currentSession = requireAuth()(context.session);
-      const eventos = await getEventosByOrganizadorService(currentSession.subAsNumber);
+
+      // Buscar el perfil de organizador del usuario autenticado
+      const organizador = await getOrganizadorByUserIdService(currentSession.subAsNumber);
+      if (!organizador) {
+        throw new CustomError('No tienes un perfil de organizador asociado.', 403);
+      }
+
+      // Buscar solo los eventos de este organizador
+      const eventos = await getEventosByOrganizadorService(organizador.id_organizador);
       return eventos.map(mapEventoToResponse);
     },
     {
-      response: { 200: eventosResponseSchema, 401: eventoResponseSchema, 500: eventoResponseSchema },
+      response: { 200: t.Array(eventoResponseSchema) },
       detail: { summary: 'Listar mis eventos', security: [{ bearerAuth: [] }] }
     }
   )
@@ -79,17 +84,28 @@ export const eventoRoutes = new Elysia({ prefix: '/eventos', detail: { tags: ['E
    * Actualizar evento existente
    */
   .put(
-    '/:id',
+    '/:id_evento',
     async (context) => {
       const currentSession = requireAuth()(context.session);
-      const id_evento = Number(context.params.id);
-      const evento = await updateEventoService(id_evento, currentSession.subAsNumber, context.body);
-      return mapEventoToResponse(evento);
+
+      // Buscar el perfil de organizador del usuario autenticado
+      const organizador = await getOrganizadorByUserIdService(currentSession.subAsNumber);
+      if (!organizador) {
+        throw new CustomError('No tienes un perfil de organizador asociado.', 403);
+      }
+
+      // Verifica que el evento pertenezca a este organizador
+      const evento = await getEventoByIdService(Number(context.params.id_evento));
+      if (!evento || evento.id_organizador !== organizador.id_organizador) {
+        throw new CustomError('No tienes permiso para modificar este evento.', 403);
+      }
+
+      const eventoActualizado = await updateEventoService(Number(context.params.id_evento), organizador.id_organizador, context.body);
+      return mapEventoToResponse(eventoActualizado);
     },
     {
-      params: t.Object({ id: t.String() }),
       body: updateEventoSchema,
-      response: { 200: eventoResponseSchema, 400: eventoResponseSchema, 404: eventoResponseSchema, 500: eventoResponseSchema },
-      detail: { summary: 'Actualizar evento', security: [{ bearerAuth: [] }] }
+      response: { 200: eventoResponseSchema, 400: eventoResponseSchema, 500: eventoResponseSchema },
+      detail: { summary: 'Actualizar mi evento', security: [{ bearerAuth: [] }] }
     }
   );
