@@ -2,7 +2,7 @@
 import axios from 'axios';
 import { getCookie, setCookie, deleteCookie } from 'cookies-next';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
 
 export const apiClient = axios.create({
   baseURL: API_URL,
@@ -62,6 +62,14 @@ export const clearAuthTokens = () => {
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
+    console.log('Error en interceptor:', {
+      status: error.response?.status,
+      url: error.config?.url,
+      method: error.config?.method,
+      data: error.response?.data,
+      headers: error.config?.headers
+    });
+    
     const originalRequest = error.config;
 
     // Si el error es 401 y no es una solicitud de refresh
