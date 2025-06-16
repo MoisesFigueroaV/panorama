@@ -24,7 +24,7 @@ export async function createEventoService(id_organizador: number, data: CreateEv
   const [evento] = await db.insert(eventoTable).values({
     titulo: data.titulo,
     descripcion: data.descripcion ?? null,
-    fecha_inicio: fechaInicio.toISOString().split('T')[0],  // Drizzle espera string en campos DATE
+    fecha_inicio: fechaInicio.toISOString().split('T')[0],
     fecha_fin: fechaFin.toISOString().split('T')[0],
     imagen: data.imagen ?? null,
     ubicacion: data.ubicacion ?? null,
@@ -33,9 +33,8 @@ export async function createEventoService(id_organizador: number, data: CreateEv
     id_organizador,
     id_estado_evento: data.id_estado_evento ?? null,
     fecha_registro: new Date().toISOString().split('T')[0],
-    latitud: data.latitud !== undefined ? data.latitud.toString() : null,
-    longitud: data.longitud !== undefined ? data.longitud.toString() : null,
-
+    latitud: data.latitud != null ? data.latitud.toString() : null,
+    longitud: data.longitud != null ? data.longitud.toString() : null
     // 🔧 Para escalado futuro (no implementado actualmente):
     // creado_en: new Date(),
     // actualizado_en: new Date(),
@@ -65,9 +64,8 @@ export async function updateEventoService(id_evento: number, id_organizador: num
     ...(data.id_estado_evento !== undefined && { id_estado_evento: data.id_estado_evento }),
     ...(data.fecha_inicio !== undefined && { fecha_inicio: new Date(data.fecha_inicio).toISOString().split('T')[0] }),
     ...(data.fecha_fin !== undefined && { fecha_fin: new Date(data.fecha_fin).toISOString().split('T')[0] }),
-    ...(data.latitud !== undefined && { latitud: data.latitud.toString() }),
-    ...(data.longitud !== undefined && { longitud: data.longitud.toString() }),
-
+    ...(data.latitud !== undefined && { latitud: data.latitud != null ? data.latitud.toString() : null }),
+    ...(data.longitud !== undefined && { longitud: data.longitud != null ? data.longitud.toString() : null }),
     // 🔧 Para escalabilidad futura:
     // actualizado_en: new Date()
   };

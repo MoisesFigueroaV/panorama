@@ -7,12 +7,12 @@ import { t } from 'elysia';
 export const createEventoSchema = t.Object({
   titulo: t.String({ minLength: 3, maxLength: 150 }),
   descripcion: t.Optional(t.String({ maxLength: 1000 })),
-  fecha_inicio: t.String({ format: 'date-time' }),  // Ingresado como ISO8601, luego parseado a YYYY-MM-DD internamente
+  fecha_inicio: t.String({ format: 'date-time' }),
   fecha_fin: t.String({ format: 'date-time' }),
   imagen: t.Optional(t.String({ format: 'uri' })),
   ubicacion: t.Optional(t.String({ maxLength: 250 })),
-  latitud: t.Optional(t.Number()),  // ✅ ahora incluimos latitud
-  longitud: t.Optional(t.Number()), // ✅ ahora incluimos longitud
+  latitud: t.Optional(t.Number()),
+  longitud: t.Optional(t.Number()),
   capacidad: t.Integer({ minimum: 1 }),
   id_categoria: t.Integer(),
   id_estado_evento: t.Optional(t.Integer()),
@@ -33,11 +33,11 @@ export const eventoResponseSchema = t.Object({
   id_organizador: t.Integer(),
   titulo: t.String(),
   descripcion: t.Optional(t.String()),
-  fecha_inicio: t.String(),  // Siempre string YYYY-MM-DD
+  fecha_inicio: t.String(),
   fecha_fin: t.String(),
   imagen: t.Optional(t.String()),
   ubicacion: t.Optional(t.String()),
-  latitud: t.Optional(t.Number()),  // ✅ añadidos para respuesta también
+  latitud: t.Optional(t.Number()),
   longitud: t.Optional(t.Number()),
   capacidad: t.Integer(),
   id_categoria: t.Integer(),

@@ -13,14 +13,17 @@ function mapEventoToResponse(evento: any) {
     ...evento,
     descripcion: evento.descripcion ?? undefined,
     imagen: evento.imagen ?? undefined,
-    fecha_inicio: evento.fecha_inicio,  // Las fechas ya vienen como string YYYY-MM-DD
+    fecha_inicio: evento.fecha_inicio,
     fecha_fin: evento.fecha_fin,
     ubicacion: evento.ubicacion ?? undefined,
     capacidad: evento.capacidad,
     id_categoria: evento.id_categoria,
     id_estado_evento: evento.id_estado_evento ?? undefined,
     fecha_registro: evento.fecha_registro,
-
+    latitud: evento.latitud !== null ? parseFloat(evento.latitud) : undefined,
+    longitud: evento.longitud !== null ? parseFloat(evento.longitud) : undefined,
+  };
+}
     /**
      * 🔧 Para futuras migraciones de fechas completas (timestamps):
      * creado_en, actualizado_en
@@ -34,8 +37,6 @@ function mapEventoToResponse(evento: any) {
      *         ? JSON.parse(evento.categorias)
      *         : [])
      */
-  };
-}
 
 export const eventoRoutes = new Elysia({ prefix: '/eventos', detail: { tags: ['Eventos'] } })
   .use(authMiddleware)
