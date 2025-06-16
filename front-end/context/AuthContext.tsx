@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { apiClient, setAccessToken, setRefreshToken, getAccessToken, clearAuthTokens } from '@/lib/api/apiClient'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { deleteCookie, getCookie } from 'cookies-next'
 
 // Definir tipos para el payload y la respuesta del usuario
@@ -47,6 +47,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [localAccessToken, setLocalAccessToken] = useState<string | null>(null);
   const [isLoadingSession, setIsLoadingSession] = useState(true);
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     checkSession()
@@ -144,16 +145,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // Limpiar toda la sesión
       await clearSession()
       
-      // Redirigir al login
-      router.push('/login')
-      
-      // Forzar recarga de la página para limpiar cualquier estado residual
-      window.location.href = '/login'
+      // Si estamos en la página principal, no redirigir
+      if (pathname === '/') {
+        // Forzar recarga de la página para limpiar cualquier estado residual
+        window.location.reload()
+      } else {
+        // Si estamos en otra página, redirigir a la principal
+        router.push('/')
+        // Forzar recarga de la página para limpiar cualquier estado residual
+        window.location.href = '/'
+      }
     } catch (err) {
       console.error('Error durante el logout:', err)
-      // Aún así, intentar limpiar la sesión y redirigir
+      // Aún así, intentar limpiar la sesión y redirigir a la principal
       await clearSession()
-      router.push('/login')
+      router.push('/')
     }
   }
 
