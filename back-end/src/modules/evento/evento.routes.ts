@@ -22,31 +22,11 @@ function mapEventoToResponse(evento: any) {
     id_categoria: evento.id_categoria,
     id_estado_evento: evento.id_estado_evento ?? undefined,
     fecha_registro: evento.fecha_registro,
-<<<<<<< HEAD
-    latitud: evento.latitud !== null ? parseFloat(evento.latitud) : undefined,
-    longitud: evento.longitud !== null ? parseFloat(evento.longitud) : undefined,
-  };
-}
-    /**
-     * 🔧 Para futuras migraciones de fechas completas (timestamps):
-     * creado_en, actualizado_en
-     */
-
-    /**
-     * 🔧 Para futuras migraciones de múltiples categorías:
-     * categorias: Array.isArray(evento.categorias)
-     *   ? evento.categorias
-     *   : (typeof evento.categorias === 'string'
-     *         ? JSON.parse(evento.categorias)
-     *         : [])
-     */
-=======
     // Conversión explícita a number si no es null
     latitud: evento.latitud !== null && evento.latitud !== undefined ? Number(evento.latitud) : undefined,
     longitud: evento.longitud !== null && evento.longitud !== undefined ? Number(evento.longitud) : undefined,
   };
 }
->>>>>>> 3734927e868ac6517e266a5215b8b58b4ea7a0d5
 
 export const eventoRoutes = new Elysia({ prefix: '/eventos', detail: { tags: ['Eventos'] } })
   .use(authMiddleware)
