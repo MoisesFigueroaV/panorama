@@ -13,7 +13,7 @@ import {
 } from '../../db/schema';
 import { eventoTable } from '../../db/schema/evento.schema';
 import { ROLES_IDS, ESTADOS_ACREDITACION_IDS } from '../../config/constants';
-import { eq, desc, count } from 'drizzle-orm';
+import { eq, desc, count, and } from 'drizzle-orm';
 import { CustomError, handleErrorLog } from '../../utils/errors';
 import type {
     RegistroCompletoOrganizadorApiPayload,
@@ -349,5 +349,58 @@ export async function updateOrganizadorPublicProfileService(
         if (error instanceof CustomError) throw error;
         handleErrorLog(error, 'servicio updateOrganizadorPublicProfileService');
         throw new CustomError('Error al actualizar el perfil público del organizador.', 500);
+    }
+}
+
+/**
+ * Servicio para obtener organizadores verificados para la página principal
+ */
+export async function getOrganizadoresVerificadosService(limit: number = 3) {
+    try {
+        // Obtener organizadores verificados (acreditados)
+        const organizadores = await db
+            .select({
+                id_organizador: organizadorTable.id_organizador,
+                nombre_organizacion: organizadorTable.nombre_organizacion,
+                descripcion: organizadorTable.descripcion,
+                ubicacion: organizadorTable.ubicacion,
+                imagen_portada: organizadorTable.imagen_portada,
+                logo_organizacion: organizadorTable.logo_organizacion,
+                tipo_organizacion: organizadorTable.tipo_organizacion,
+                anio_fundacion: organizadorTable.anio_fundacion,
+                sitio_web: organizadorTable.sitio_web,
+            })
+            .from(organizadorTable)
+            .where(
+                eq(organizadorTable.id_estado_acreditacion_actual, 2) // Solo organizadores aprobados (estado 2)
+            )
+            .orderBy(desc(organizadorTable.id_organizador)) // Más recientes primero
+            .limit(limit);
+
+        // Para cada organizador, contar sus eventos
+        const organizadoresConEventos = await Promise.all(
+            organizadores.map(async (organizador) => {
+                const [eventosCount] = await db
+                    .select({ count: count() })
+                    .from(eventoTable)
+                    .where(
+                        and(
+                            eq(eventoTable.id_organizador, organizador.id_organizador),
+                            eq(eventoTable.id_estado_evento, 2) // Solo eventos publicados
+                        )
+                    );
+
+                return {
+                    ...organizador,
+                    total_eventos: eventosCount.count,
+                };
+            })
+        );
+
+        return organizadoresConEventos;
+    } catch (error) {
+        if (error instanceof CustomError) throw error;
+        handleErrorLog(error, 'servicio getOrganizadoresVerificadosService');
+        throw new CustomError('Error al obtener organizadores verificados.', 500);
     }
 }

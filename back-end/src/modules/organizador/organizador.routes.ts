@@ -13,6 +13,7 @@ import {
   updateOrganizadorPerfilService,
   getOrganizadorPublicProfileService,
   updateOrganizadorPublicProfileService,
+  getOrganizadoresVerificadosService,
 } from './organizador.services';
 import {
   registroCompletoOrganizadorSchema,
@@ -163,5 +164,24 @@ export const authOrganizadorRoutes = new Elysia({
       summary: 'Registrar Nuevo Organizador (Cuenta + Perfil)',
       description: 'Crea una cuenta de usuario y su perfil de organización asociado.',
     }
+  }
+);
+
+// Rutas públicas para organizadores verificados
+export const publicOrganizadoresVerificadosRoutes = new Elysia({
+  prefix: '/organizadores',
+  detail: { tags: ['Organizadores Públicos'] }
+})
+.get(
+  '/verificados',
+  async ({ query }) => {
+    const limit = query.limit ? parseInt(query.limit) : 3;
+    return await getOrganizadoresVerificadosService(limit);
+  },
+  {
+    query: t.Object({
+      limit: t.Optional(t.String()),
+    }),
+    detail: { summary: 'Obtener organizadores verificados para la página principal' }
   }
 );

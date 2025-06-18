@@ -1,6 +1,6 @@
 import Elysia, { t } from 'elysia';
 import { authMiddleware, requireAuth } from '../../middleware/auth.middleware';
-import { createEventoService, updateEventoService, getEventosByOrganizadorService , getEventoByIdService, getOrganizerDashboardStatsService } from './evento.services';
+import { createEventoService, updateEventoService, getEventosByOrganizadorService , getEventoByIdService, getOrganizerDashboardStatsService, getEventosDestacadosService, getCategoriasEventosService, getEventosByCategoriaService } from './evento.services';
 import { createEventoSchema, updateEventoSchema, eventoResponseSchema, eventosResponseSchema } from './evento.types';
 import { CustomError } from '../../utils/errors';
 import { getOrganizadorByUserIdService } from '../organizador/organizador.services';
@@ -154,3 +154,61 @@ export const eventoRoutes = new Elysia({ prefix: '/eventos', detail: { tags: ['E
       detail: { summary: 'Actualizar mi evento', security: [{ bearerAuth: [] }] }
     }
   );
+
+// Rutas públicas para eventos
+export const publicEventoRoutes = new Elysia({
+  prefix: '/eventos',
+  detail: { tags: ['Eventos Públicos'] }
+})
+.get(
+  '/destacados',
+  async ({ query }) => {
+    const limit = query.limit ? parseInt(query.limit) : 6;
+    return await getEventosDestacadosService(limit);
+  },
+  {
+    query: t.Object({
+      limit: t.Optional(t.String()),
+    }),
+    detail: { summary: 'Obtener eventos destacados para la página principal' }
+  }
+)
+.get(
+  '/organizador/:id',
+  async ({ params }) => {
+    const organizadorId = parseInt(params.id);
+    return await getEventosByOrganizadorService(organizadorId);
+  },
+  {
+    params: t.Object({
+      id: t.String(),
+    }),
+    detail: { summary: 'Obtener eventos de un organizador específico' }
+  }
+)
+.get(
+  '/categorias',
+  async () => {
+    return await getCategoriasEventosService();
+  },
+  {
+    detail: { summary: 'Obtener todas las categorías de eventos' }
+  }
+)
+.get(
+  '/categoria/:id',
+  async ({ params, query }) => {
+    const categoriaId = parseInt(params.id);
+    const limit = query.limit ? parseInt(query.limit) : 100;
+    return await getEventosByCategoriaService(categoriaId, limit);
+  },
+  {
+    params: t.Object({
+      id: t.String(),
+    }),
+    query: t.Object({
+      limit: t.Optional(t.String()),
+    }),
+    detail: { summary: 'Obtener eventos por categoría específica' }
+  }
+);

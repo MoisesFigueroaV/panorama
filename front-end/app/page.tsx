@@ -1,3 +1,5 @@
+"use client"
+
 import {
   Search,
   MapPin,
@@ -11,6 +13,9 @@ import {
   Globe,
   Star,
   Bell,
+  Palette,
+  Code,
+  TreePine,
 } from "lucide-react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
@@ -33,14 +38,14 @@ import CategoryCard from "@/components/category-card"
 import TestimonialCard from "@/components/testimonial-card"
 import FeaturedOrganizers from "@/components/featured-organizers"
 import { DynamicHeader } from "@/components/dynamic-header"
+import { useEventosDestacados, useOrganizadoresVerificados, useCategorias, useEventosByCategoria } from "@/lib/hooks/usePublicData"
+import CategoryCardWithCount from "@/components/category-card-with-count"
 
 export default function Home() {
-  // Categorías para mostrar
-  const categories = [
-    { id: "music", name: "Música", count: 42, icon: <Music className="h-6 w-6" /> },
-    { id: "sports", name: "Deportes", count: 28, icon: <Trophy className="h-6 w-6" /> },
-    // Más categorías podrían agregarse aquí
-  ]
+  // Obtener datos reales
+  const { eventos, loading: loadingEventos, error: errorEventos } = useEventosDestacados(6);
+  const { organizadores, loading: loadingOrganizadores, error: errorOrganizadores } = useOrganizadoresVerificados(3);
+  const { categorias, loading: loadingCategorias, error: errorCategorias } = useCategorias();
 
   // Testimonios para mostrar
   const testimonials = [
@@ -273,11 +278,23 @@ export default function Home() {
           {/* Eventos destacados en formato de tarjetas con indicador */}
           <div className="mt-12">
             <h3 className="text-xl font-bold mb-6 text-primary">Eventos que no te puedes perder</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {events.slice(0, 3).map((event) => (
-                <EventCard key={event.id} event={event} />
-              ))}
-            </div>
+            {loadingEventos ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="h-64 bg-gray-200 rounded-lg animate-pulse" />
+                ))}
+              </div>
+            ) : errorEventos ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">Error al cargar eventos: {errorEventos}</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {eventos.slice(0, 3).map((event) => (
+                  <EventCard key={event.id_evento} event={event} />
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="flex justify-center mt-8">
@@ -290,29 +307,63 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Categories Section */}
+        {/* Explore by Categories */}
         <section className="container py-12">
-          <div className="mb-8">
+          <div className="text-center mb-8">
             <h2 className="text-3xl font-bold mb-2 text-primary">Explora por categorías</h2>
             <p className="text-muted-foreground">Encuentra eventos según tus intereses</p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {categories.map((category) => (
-              <CategoryCard
-                key={category.id}
-                id={category.id}
-                name={category.name}
-                count={category.count}
-                icon={category.icon}
-                color=""
-              />
-            ))}
-            {/* Añadir más categorías para completar la fila */}
-            <CategoryCard id="food" name="Gastronomía" count={15} icon={<Calendar className="h-6 w-6" />} color="" />
-            <CategoryCard id="art" name="Arte y cultura" count={37} icon={<Calendar className="h-6 w-6" />} color="" />
-            <CategoryCard id="tech" name="Tecnología" count={23} icon={<Calendar className="h-6 w-6" />} color="" />
-            <CategoryCard id="outdoor" name="Aire libre" count={16} icon={<Calendar className="h-6 w-6" />} color="" />
-          </div>
+          
+          {loadingCategorias ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 max-w-6xl mx-auto">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="h-32 bg-gray-200 rounded-lg animate-pulse" />
+              ))}
+            </div>
+          ) : errorCategorias ? (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">Error al cargar categorías: {errorCategorias}</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 max-w-6xl mx-auto">
+              {categorias.map((categoria) => {
+                // Mapear categorías reales a iconos y colores
+                const getCategoryConfig = (nombre: string) => {
+                  const lowerName = nombre.toLowerCase();
+                  if (lowerName.includes('música') || lowerName.includes('musica')) {
+                    return { icon: <Music className="h-6 w-6" />, id: 'music' };
+                  } else if (lowerName.includes('deporte')) {
+                    return { icon: <Trophy className="h-6 w-6" />, id: 'sports' };
+                  } else if (lowerName.includes('gastronomía') || lowerName.includes('gastronomia') || lowerName.includes('comida')) {
+                    return { icon: <Calendar className="h-6 w-6" />, id: 'food' };
+                  } else if (lowerName.includes('arte') || lowerName.includes('cultura')) {
+                    return { icon: <Palette className="h-6 w-6" />, id: 'art' };
+                  } else if (lowerName.includes('tecnología') || lowerName.includes('tecnologia')) {
+                    return { icon: <Code className="h-6 w-6" />, id: 'tech' };
+                  } else if (lowerName.includes('aire libre') || lowerName.includes('outdoor')) {
+                    return { icon: <TreePine className="h-6 w-6" />, id: 'outdoor' };
+                  } else if (lowerName.includes('educación') || lowerName.includes('educacion')) {
+                    return { icon: <Calendar className="h-6 w-6" />, id: 'education' };
+                  } else {
+                    return { icon: <Calendar className="h-6 w-6" />, id: 'other' };
+                  }
+                };
+
+                const config = getCategoryConfig(categoria.nombre_categoria);
+                
+                return (
+                  <CategoryCardWithCount
+                    key={categoria.id_categoria}
+                    id={config.id}
+                    name={categoria.nombre_categoria}
+                    categoriaId={categoria.id_categoria}
+                    icon={config.icon}
+                    color=""
+                  />
+                );
+              })}
+            </div>
+          )}
         </section>
 
         {/* CTA Section */}
@@ -375,11 +426,23 @@ export default function Home() {
             </div>
 
             <TabsContent value="list" className="space-y-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {events.map((event) => (
-                  <EventCard key={event.id} event={event} />
-                ))}
-              </div>
+              {loadingEventos ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <div key={i} className="h-64 bg-gray-200 rounded-lg animate-pulse" />
+                  ))}
+                </div>
+              ) : errorEventos ? (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">Error al cargar eventos: {errorEventos}</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {eventos.map((event) => (
+                    <EventCard key={event.id_evento} event={event} />
+                  ))}
+                </div>
+              )}
               <div className="flex justify-center">
                 <Link href="/events">
                   <Button
@@ -394,13 +457,12 @@ export default function Home() {
               </div>
             </TabsContent>
 
-          /*
             <TabsContent value="map">
               <div className="h-[600px] rounded-lg overflow-hidden border border-black/5">
                 <EventMap events={events} />
               </div>
             </TabsContent>
-          /*
+
             <TabsContent value="calendar">
               <CalendarView events={events} />
             </TabsContent>
@@ -413,7 +475,15 @@ export default function Home() {
             <h2 className="text-3xl font-bold mb-2 text-primary">Organizadores destacados</h2>
             <p className="text-muted-foreground">Conoce a quienes crean los mejores eventos</p>
           </div>
-          <FeaturedOrganizers />
+          <FeaturedOrganizers 
+            organizadores={organizadores} 
+            loading={loadingOrganizadores} 
+          />
+          {errorOrganizadores && (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">Error al cargar organizadores: {errorOrganizadores}</p>
+            </div>
+          )}
         </section>
 
         {/* Testimonials */}

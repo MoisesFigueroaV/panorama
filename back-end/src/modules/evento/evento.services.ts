@@ -460,3 +460,120 @@ export async function getOrganizerDashboardStatsService(id_organizador: number) 
     throw new CustomError('Error al obtener estadísticas del dashboard.', 500);
   }
 }
+
+/**
+ * Servicio para obtener eventos destacados para la página principal
+ */
+export async function getEventosDestacadosService(limit: number = 6) {
+  try {
+    const eventos = await db
+      .select({
+        id_evento: eventoTable.id_evento,
+        titulo: eventoTable.titulo,
+        descripcion: eventoTable.descripcion,
+        fecha_inicio: eventoTable.fecha_inicio,
+        fecha_fin: eventoTable.fecha_fin,
+        ubicacion: eventoTable.ubicacion,
+        imagen: eventoTable.imagen,
+        capacidad: eventoTable.capacidad,
+        id_categoria: eventoTable.id_categoria,
+        id_organizador: eventoTable.id_organizador,
+        latitud: eventoTable.latitud,
+        longitud: eventoTable.longitud,
+        // Información del organizador
+        nombre_organizacion: organizadorTable.nombre_organizacion,
+        logo_organizacion: organizadorTable.logo_organizacion,
+        // Información de la categoría
+        nombre_categoria: categoriaEventoTable.nombre_categoria,
+      })
+      .from(eventoTable)
+      .leftJoin(organizadorTable, eq(eventoTable.id_organizador, organizadorTable.id_organizador))
+      .leftJoin(categoriaEventoTable, eq(eventoTable.id_categoria, categoriaEventoTable.id_categoria))
+      .where(
+        and(
+          eq(eventoTable.id_estado_evento, 2), // Solo eventos publicados
+          gte(eventoTable.fecha_inicio, new Date().toISOString().split('T')[0]) // Solo eventos futuros
+        )
+      )
+      .orderBy(desc(eventoTable.fecha_registro)) // Más recientes primero
+      .limit(limit);
+
+    return eventos.map(evento => ({
+      ...evento,
+      latitud: evento.latitud !== null ? Number(evento.latitud) : null,
+      longitud: evento.longitud !== null ? Number(evento.longitud) : null
+    }));
+  } catch (error) {
+    console.error('Error al obtener eventos destacados:', error);
+    throw new CustomError('Error al obtener eventos destacados.', 500);
+  }
+}
+
+/**
+ * Servicio para obtener categorías de eventos
+ */
+export async function getCategoriasEventosService() {
+  try {
+    const categorias = await db
+      .select({
+        id_categoria: categoriaEventoTable.id_categoria,
+        nombre_categoria: categoriaEventoTable.nombre_categoria,
+      })
+      .from(categoriaEventoTable)
+      .orderBy(asc(categoriaEventoTable.nombre_categoria));
+
+    return categorias;
+  } catch (error) {
+    console.error('Error al obtener categorías de eventos:', error);
+    throw new CustomError('Error al obtener categorías de eventos.', 500);
+  }
+}
+
+/**
+ * Servicio para obtener eventos por categoría específica
+ */
+export async function getEventosByCategoriaService(categoriaId: number, limit: number = 100) {
+  try {
+    const eventos = await db
+      .select({
+        id_evento: eventoTable.id_evento,
+        titulo: eventoTable.titulo,
+        descripcion: eventoTable.descripcion,
+        fecha_inicio: eventoTable.fecha_inicio,
+        fecha_fin: eventoTable.fecha_fin,
+        ubicacion: eventoTable.ubicacion,
+        imagen: eventoTable.imagen,
+        capacidad: eventoTable.capacidad,
+        id_categoria: eventoTable.id_categoria,
+        id_organizador: eventoTable.id_organizador,
+        latitud: eventoTable.latitud,
+        longitud: eventoTable.longitud,
+        // Información del organizador
+        nombre_organizacion: organizadorTable.nombre_organizacion,
+        logo_organizacion: organizadorTable.logo_organizacion,
+        // Información de la categoría
+        nombre_categoria: categoriaEventoTable.nombre_categoria,
+      })
+      .from(eventoTable)
+      .leftJoin(organizadorTable, eq(eventoTable.id_organizador, organizadorTable.id_organizador))
+      .leftJoin(categoriaEventoTable, eq(eventoTable.id_categoria, categoriaEventoTable.id_categoria))
+      .where(
+        and(
+          eq(eventoTable.id_categoria, categoriaId),
+          eq(eventoTable.id_estado_evento, 2), // Solo eventos publicados
+          gte(eventoTable.fecha_inicio, new Date().toISOString().split('T')[0]) // Solo eventos futuros
+        )
+      )
+      .orderBy(desc(eventoTable.fecha_registro)) // Más recientes primero
+      .limit(limit);
+
+    return eventos.map(evento => ({
+      ...evento,
+      latitud: evento.latitud !== null ? Number(evento.latitud) : null,
+      longitud: evento.longitud !== null ? Number(evento.longitud) : null
+    }));
+  } catch (error) {
+    console.error('Error al obtener eventos por categoría:', error);
+    throw new CustomError('Error al obtener eventos por categoría.', 500);
+  }
+}

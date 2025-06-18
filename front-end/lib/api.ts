@@ -188,6 +188,82 @@ export const api = {
         return response.json();
       }
     },
+    public: {
+      // Obtener eventos destacados para la página principal
+      getEventosDestacados: async (limit?: number) => {
+        const params = limit ? `?limit=${limit}` : '';
+        const response = await fetch(`${API_BASE}/api/v1/eventos/destacados${params}`);
+        
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Error al obtener eventos destacados');
+        }
+        
+        return response.json();
+      },
+
+      // Obtener organizadores verificados para la página principal
+      getOrganizadoresVerificados: async (limit?: number) => {
+        const params = limit ? `?limit=${limit}` : '';
+        const response = await fetch(`${API_BASE}/api/v1/organizadores/verificados${params}`);
+        
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Error al obtener organizadores verificados');
+        }
+        
+        return response.json();
+      },
+
+      // Obtener perfil público del organizador
+      getOrganizadorPublicProfile: async (organizadorId: number) => {
+        const response = await fetch(`${API_BASE}/api/v1/organizadores/${organizadorId}`);
+        
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Error al obtener perfil del organizador');
+        }
+        
+        return response.json();
+      },
+
+      // Obtener eventos por organizador
+      getEventosByOrganizador: async (organizadorId: number) => {
+        const response = await fetch(`${API_BASE}/api/v1/eventos/organizador/${organizadorId}`);
+        
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Error al obtener eventos del organizador');
+        }
+        
+        return response.json();
+      },
+
+      // Obtener categorías de eventos
+      getCategorias: async () => {
+        const response = await fetch(`${API_BASE}/api/v1/eventos/categorias`);
+        
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Error al obtener categorías');
+        }
+        
+        return response.json();
+      },
+
+      // Obtener eventos por categoría
+      getEventosByCategoria: async (categoriaId: number, limit?: number) => {
+        const params = limit ? `?limit=${limit}` : '';
+        const response = await fetch(`${API_BASE}/api/v1/eventos/categoria/${categoriaId}${params}`);
+        
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Error al obtener eventos por categoría');
+        }
+        
+        return response.json();
+      }
+    },
     organizadores: {
       // Obtener perfil público del organizador
       getPublicProfile: async (token: string) => {
