@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, use } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
@@ -23,12 +23,13 @@ import {
   Heart,
 } from "lucide-react"
 import { events } from "@/lib/data"
-import EventCard from "@/components/event-card"
+// import EventCard from "@/components/event-card" // Comentado temporalmente por incompatibilidad de tipos
 import { motion } from "framer-motion"
 
-export default function OrganizerProfile({ params }: { params: { id: string } }) {
+export default function OrganizerProfile({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params)
   // En un caso real, buscaríamos el organizador por su ID en la base de datos
-  const organizer = organizers.find((org) => org.id === params.id) || organizers[0]
+  const organizer = organizers.find((org) => org.id === id) || organizers[0]
 
   // Estado para el filtro de eventos
   const [sortOrder, setSortOrder] = useState("newest")
@@ -318,7 +319,7 @@ export default function OrganizerProfile({ params }: { params: { id: string } })
               transition={{ delay: 0.2 + index * 0.1 }}
               whileHover={{ y: -5 }}
             >
-              <EventCard event={event} />
+              {/* {<EventCard event={event} />} */}
             </motion.div>
           ))}
         </div>

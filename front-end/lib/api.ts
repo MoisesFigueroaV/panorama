@@ -262,6 +262,18 @@ export const api = {
         }
         
         return response.json();
+      },
+
+      // Obtener evento específico por ID
+      getEventoById: async (eventoId: number) => {
+        const response = await fetch(`${API_BASE}/api/v1/eventos/${eventoId}`);
+        
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Error al obtener evento');
+        }
+        
+        return response.json();
       }
     },
     organizadores: {

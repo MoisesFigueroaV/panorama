@@ -5,6 +5,7 @@ import {
   type Usuario as DrizzleUsuario,
   type NewUsuario as DrizzleNewUsuario,
 } from '../../db/schema';
+import { organizadorTable } from '../../db/schema/organizador.schema';
 import { eq } from 'drizzle-orm';
 import { CustomError, handleErrorLog } from '../../utils/errors';
 import type {
@@ -133,6 +134,35 @@ export async function loginUsuarioService(
     }
 
     console.log('🔑 Contraseña válida, rol del usuario:', userFromDb.rol);
+
+    // Verificar si es un organizador y si está aprobado
+    if (userFromDb.id_rol === 2) { // Rol de organizador
+      console.log('🔍 Verificando estado de aprobación del organizador...');
+      
+      const organizador = await db.query.organizadorTable.findFirst({
+        where: eq(organizadorTable.id_usuario, userFromDb.id_usuario),
+        with: {
+          estadoAcreditacionActual: true
+        }
+      });
+
+      if (!organizador) {
+        throw new CustomError('Perfil de organizador no encontrado. Contacta al administrador.', 403);
+      }
+
+      const estadoActual = organizador.estadoAcreditacionActual;
+      console.log('📊 Estado actual del organizador:', estadoActual);
+
+      if (!estadoActual || estadoActual.id_estado_acreditacion !== 2) { // 2 = Aprobado
+        const estadoNombre = estadoActual?.nombre_estado || 'Pendiente';
+        throw new CustomError(
+          `Tu cuenta de organizador está en estado "${estadoNombre}". Debes esperar la aprobación del administrador antes de poder iniciar sesión.`, 
+          403
+        );
+      }
+
+      console.log('✅ Organizador aprobado, permitiendo login');
+    }
 
     const jwtAccessPayload: SignerAccessPayload = {
       sub: String(userFromDb.id_usuario),
@@ -324,7 +354,7 @@ export async function updateUsuarioPerfilService(
 
     return response;
   } catch (error) {
-    handleErrorLog(error);
+    handleErrorLog(error, 'updateUsuarioPerfilService');
     throw error;
   }
 }
