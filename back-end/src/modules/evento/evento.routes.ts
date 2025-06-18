@@ -37,15 +37,26 @@ export const eventoRoutes = new Elysia({ prefix: '/eventos', detail: { tags: ['E
   .post(
     '/',
     async (context) => {
+      console.log('🚀 POST /eventos - Petición recibida');
+      console.log('🚀 Headers:', context.request.headers);
+      console.log('🚀 Body:', context.body);
+      
       const currentSession = requireAuth()(context.session);
+      console.log('🚀 Sesión autenticada:', currentSession);
 
       // Buscar el perfil de organizador del usuario autenticado
       const organizador = await getOrganizadorByUserIdService(currentSession.subAsNumber);
+      console.log('🚀 Organizador encontrado:', organizador);
+      
       if (!organizador) {
+        console.error('❌ No se encontró perfil de organizador para usuario:', currentSession.subAsNumber);
         throw new CustomError('No tienes un perfil de organizador asociado.', 403);
       }
 
+      console.log('🚀 Creando evento para organizador:', organizador.id_organizador);
       const evento = await createEventoService(organizador.id_organizador, context.body);
+      console.log('🚀 Evento creado exitosamente:', evento);
+      
       context.set.status = 201;
       return mapEventoToResponse(evento);
     },

@@ -75,7 +75,7 @@ export function PublicHeader({ userRole }: PublicHeaderProps) {
             {userRole === 2 && (
               <>
                 <DropdownMenuItem asChild>
-                  <Link href="/organizer/dashboard">
+                  <Link href="/organizers/dashboard">
                     <LayoutDashboard className="mr-2 h-4 w-4" />
                     Dashboard Organizador
                   </Link>
@@ -216,7 +216,7 @@ export function PublicHeader({ userRole }: PublicHeaderProps) {
                       <>
                         {userRole === 3 && (
                           <Link
-                            href="/organizer/dashboard"
+                            href="/organizers/dashboard"
                             className="text-lg font-medium transition-colors hover:text-primary"
                             onClick={() => setIsOpen(false)}
                           >

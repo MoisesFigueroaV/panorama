@@ -7,8 +7,8 @@ import { t } from 'elysia';
 export const createEventoSchema = t.Object({
   titulo: t.String({ minLength: 3, maxLength: 150 }),
   descripcion: t.Optional(t.String({ maxLength: 1000 })),
-  fecha_inicio: t.String({ format: 'date-time' }),
-  fecha_fin: t.String({ format: 'date-time' }),
+  fecha_inicio: t.String(),
+  fecha_fin: t.String(),
   imagen: t.Optional(t.String({ format: 'uri' })),
   ubicacion: t.Optional(t.String({ maxLength: 250 })),
   latitud: t.Optional(t.Number()),

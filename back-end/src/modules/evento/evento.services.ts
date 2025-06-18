@@ -1,28 +1,41 @@
 import { db } from '../../db/drizzle';
 import { eventoTable } from '../../db/schema/evento.schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, like, gte, lte, desc, asc, sql } from 'drizzle-orm';
 import { CustomError } from '../../utils/errors';
 import type { CreateEventoPayload, UpdateEventoPayload } from './evento.types';
+import { organizadorTable } from '../../db/schema/organizador.schema';
+import { categoriaEventoTable } from '../../db/schema/categoriaEvento.schema';
+import { estadoEventoTable } from '../../db/schema/estadoEvento.schema';
 
 
 /**
  * Servicio para crear un nuevo evento.
  */
 export async function createEventoService(id_organizador: number, data: CreateEventoPayload) {
+  console.log('🔍 createEventoService llamado con:', { id_organizador, data });
+  
   const fechaInicio = new Date(data.fecha_inicio);
   const fechaFin = new Date(data.fecha_fin);
 
+  console.log('🔍 Fechas procesadas:', { 
+    fechaInicio: fechaInicio.toISOString(), 
+    fechaFin: fechaFin.toISOString() 
+  });
+
   if (isNaN(fechaInicio.getTime()) || isNaN(fechaFin.getTime())) {
+    console.error('❌ Fechas inválidas:', { fechaInicio, fechaFin });
     throw new CustomError('Las fechas no tienen un formato válido.', 400);
   }
   if (fechaInicio > fechaFin) {
+    console.error('❌ Fecha de inicio posterior a fecha de fin');
     throw new CustomError('La fecha de inicio no puede ser posterior a la fecha de fin.', 400);
   }
   if (data.capacidad < 1) {
+    console.error('❌ Capacidad inválida:', data.capacidad);
     throw new CustomError('La capacidad debe ser mayor o igual a 1.', 400);
   }
 
-  const [evento] = await db.insert(eventoTable).values({
+  const eventoData = {
     titulo: data.titulo,
     descripcion: data.descripcion ?? null,
     fecha_inicio: fechaInicio.toISOString().split('T')[0],
@@ -36,15 +49,20 @@ export async function createEventoService(id_organizador: number, data: CreateEv
     fecha_registro: new Date().toISOString().split('T')[0],
     latitud: data.latitud !== undefined ? Number(data.latitud) : null,
     longitud: data.longitud !== undefined ? Number(data.longitud) : null,
+  };
 
-    // 🔧 Para escalado futuro (no implementado actualmente):
-    // creado_en: new Date(),
-    // actualizado_en: new Date(),
-    // categorias: JSON.stringify(data.categorias ?? [])
-  }).returning();
+  console.log('📤 Datos a insertar en BD:', eventoData);
 
-  if (!evento) throw new CustomError('No se pudo crear el evento.', 500);
-  return evento;
+  try {
+    const [evento] = await db.insert(eventoTable).values(eventoData).returning();
+    console.log('✅ Evento creado exitosamente:', evento);
+
+    if (!evento) throw new CustomError('No se pudo crear el evento.', 500);
+    return evento;
+  } catch (error) {
+    console.error('❌ Error al insertar en BD:', error);
+    throw error;
+  }
 }
 
 /**
@@ -134,5 +152,254 @@ export async function getEventoByIdWithOrganizadorService(id_evento: number, id_
     ...evento,
     latitud: evento.latitud !== null ? Number(evento.latitud) : null,
     longitud: evento.longitud !== null ? Number(evento.longitud) : null
+  };
+}
+
+/**
+ * Servicio para obtener todos los eventos con información completa para el admin
+ */
+export async function getAllEventosForAdminService() {
+  const eventos = await db.select({
+    id_evento: eventoTable.id_evento,
+    titulo: eventoTable.titulo,
+    descripcion: eventoTable.descripcion,
+    fecha_inicio: eventoTable.fecha_inicio,
+    fecha_fin: eventoTable.fecha_fin,
+    fecha_registro: eventoTable.fecha_registro,
+    ubicacion: eventoTable.ubicacion,
+    imagen: eventoTable.imagen,
+    capacidad: eventoTable.capacidad,
+    id_estado_evento: eventoTable.id_estado_evento,
+    id_categoria: eventoTable.id_categoria,
+    id_organizador: eventoTable.id_organizador,
+    latitud: eventoTable.latitud,
+    longitud: eventoTable.longitud,
+    // Información del organizador
+    nombre_organizacion: organizadorTable.nombre_organizacion,
+    // Información de la categoría
+    nombre_categoria: categoriaEventoTable.nombre_categoria,
+    // Información del estado
+    nombre_estado: estadoEventoTable.nombre_estado,
+  })
+  .from(eventoTable)
+  .leftJoin(organizadorTable, eq(eventoTable.id_organizador, organizadorTable.id_organizador))
+  .leftJoin(categoriaEventoTable, eq(eventoTable.id_categoria, categoriaEventoTable.id_categoria))
+  .leftJoin(estadoEventoTable, eq(eventoTable.id_estado_evento, estadoEventoTable.id_estado_evento));
+
+  return eventos.map(evento => ({
+    ...evento,
+    latitud: evento.latitud !== null ? Number(evento.latitud) : null,
+    longitud: evento.longitud !== null ? Number(evento.longitud) : null
+  }));
+}
+
+/**
+ * Servicio para que el admin cambie el estado de un evento
+ */
+export async function updateEventoEstadoByAdminService(id_evento: number, id_estado_evento: number) {
+  // Verificar que el evento existe
+  const [eventoExistente] = await db.select().from(eventoTable)
+    .where(eq(eventoTable.id_evento, id_evento));
+
+  if (!eventoExistente) {
+    throw new CustomError('Evento no encontrado.', 404);
+  }
+
+  // Verificar que el estado es válido
+  const [estadoValido] = await db.select().from(estadoEventoTable)
+    .where(eq(estadoEventoTable.id_estado_evento, id_estado_evento));
+
+  if (!estadoValido) {
+    throw new CustomError('Estado de evento no válido.', 400);
+  }
+
+  // Actualizar el estado del evento
+  const [eventoActualizado] = await db.update(eventoTable)
+    .set({ id_estado_evento })
+    .where(eq(eventoTable.id_evento, id_evento))
+    .returning();
+
+  if (!eventoActualizado) {
+    throw new CustomError('No se pudo actualizar el estado del evento.', 500);
+  }
+
+  return eventoActualizado;
+}
+
+/**
+ * Servicio para obtener eventos con paginación y filtros para el admin
+ */
+export async function getEventosWithFiltersService(params: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  estado?: number;
+  categoria?: number;
+  organizador?: number;
+  fechaDesde?: string;
+  fechaHasta?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}) {
+  const {
+    page = 1,
+    limit = 10,
+    search,
+    estado,
+    categoria,
+    organizador,
+    fechaDesde,
+    fechaHasta,
+    sortBy = 'fecha_registro',
+    sortOrder = 'desc'
+  } = params;
+
+  // Construir condiciones de filtro
+  const conditions = [];
+
+  if (search) {
+    conditions.push(
+      like(eventoTable.titulo, `%${search}%`)
+    );
+  }
+
+  if (estado) {
+    conditions.push(eq(eventoTable.id_estado_evento, estado));
+  }
+
+  if (categoria) {
+    conditions.push(eq(eventoTable.id_categoria, categoria));
+  }
+
+  if (organizador) {
+    conditions.push(eq(eventoTable.id_organizador, organizador));
+  }
+
+  if (fechaDesde) {
+    conditions.push(gte(eventoTable.fecha_inicio, fechaDesde));
+  }
+
+  if (fechaHasta) {
+    conditions.push(lte(eventoTable.fecha_fin, fechaHasta));
+  }
+
+  const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+  // Construir ordenamiento
+  let orderByClause;
+  switch (sortBy) {
+    case 'titulo':
+      orderByClause = sortOrder === 'asc' ? asc(eventoTable.titulo) : desc(eventoTable.titulo);
+      break;
+    case 'fecha_inicio':
+      orderByClause = sortOrder === 'asc' ? asc(eventoTable.fecha_inicio) : desc(eventoTable.fecha_inicio);
+      break;
+    case 'capacidad':
+      orderByClause = sortOrder === 'asc' ? asc(eventoTable.capacidad) : desc(eventoTable.capacidad);
+      break;
+    case 'organizador':
+      orderByClause = sortOrder === 'asc' ? asc(organizadorTable.nombre_organizacion) : desc(organizadorTable.nombre_organizacion);
+      break;
+    default:
+      orderByClause = sortOrder === 'asc' ? asc(eventoTable.fecha_registro) : desc(eventoTable.fecha_registro);
+  }
+
+  // Obtener total de registros
+  const totalResult = await db.select({ count: sql<number>`count(*)` })
+    .from(eventoTable)
+    .leftJoin(organizadorTable, eq(eventoTable.id_organizador, organizadorTable.id_organizador))
+    .leftJoin(categoriaEventoTable, eq(eventoTable.id_categoria, categoriaEventoTable.id_categoria))
+    .leftJoin(estadoEventoTable, eq(eventoTable.id_estado_evento, estadoEventoTable.id_estado_evento))
+    .where(whereClause);
+
+  const total = totalResult[0]?.count || 0;
+
+  // Calcular offset
+  const offset = (page - 1) * limit;
+
+  // Obtener eventos con paginación
+  const eventos = await db.select({
+    id_evento: eventoTable.id_evento,
+    titulo: eventoTable.titulo,
+    descripcion: eventoTable.descripcion,
+    fecha_inicio: eventoTable.fecha_inicio,
+    fecha_fin: eventoTable.fecha_fin,
+    fecha_registro: eventoTable.fecha_registro,
+    ubicacion: eventoTable.ubicacion,
+    imagen: eventoTable.imagen,
+    capacidad: eventoTable.capacidad,
+    id_estado_evento: eventoTable.id_estado_evento,
+    id_categoria: eventoTable.id_categoria,
+    id_organizador: eventoTable.id_organizador,
+    latitud: eventoTable.latitud,
+    longitud: eventoTable.longitud,
+    // Información del organizador
+    nombre_organizacion: organizadorTable.nombre_organizacion,
+    // Información de la categoría
+    nombre_categoria: categoriaEventoTable.nombre_categoria,
+    // Información del estado
+    nombre_estado: estadoEventoTable.nombre_estado,
+  })
+  .from(eventoTable)
+  .leftJoin(organizadorTable, eq(eventoTable.id_organizador, organizadorTable.id_organizador))
+  .leftJoin(categoriaEventoTable, eq(eventoTable.id_categoria, categoriaEventoTable.id_categoria))
+  .leftJoin(estadoEventoTable, eq(eventoTable.id_estado_evento, estadoEventoTable.id_estado_evento))
+  .where(whereClause)
+  .orderBy(orderByClause)
+  .limit(limit)
+  .offset(offset);
+
+  const eventosProcessed = eventos.map(evento => ({
+    ...evento,
+    latitud: evento.latitud !== null ? Number(evento.latitud) : null,
+    longitud: evento.longitud !== null ? Number(evento.longitud) : null
+  }));
+
+  return {
+    eventos: eventosProcessed,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+      hasNext: page < Math.ceil(total / limit),
+      hasPrev: page > 1
+    }
+  };
+}
+
+/**
+ * Servicio para obtener opciones de filtros para eventos
+ */
+export async function getEventosFilterOptionsService() {
+  // Obtener categorías
+  const categorias = await db.select({
+    id_categoria: categoriaEventoTable.id_categoria,
+    nombre_categoria: categoriaEventoTable.nombre_categoria,
+  })
+  .from(categoriaEventoTable)
+  .orderBy(asc(categoriaEventoTable.nombre_categoria));
+
+  // Obtener estados
+  const estados = await db.select({
+    id_estado_evento: estadoEventoTable.id_estado_evento,
+    nombre_estado: estadoEventoTable.nombre_estado,
+  })
+  .from(estadoEventoTable)
+  .orderBy(asc(estadoEventoTable.nombre_estado));
+
+  // Obtener organizadores únicos que tienen eventos
+  const organizadores = await db.select({
+    id_organizador: organizadorTable.id_organizador,
+    nombre_organizacion: organizadorTable.nombre_organizacion,
+  })
+  .from(organizadorTable)
+  .innerJoin(eventoTable, eq(organizadorTable.id_organizador, eventoTable.id_organizador))
+  .orderBy(asc(organizadorTable.nombre_organizacion));
+
+  return {
+    categorias,
+    estados,
+    organizadores
   };
 }
