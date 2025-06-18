@@ -11,8 +11,9 @@ import {
   redSocialOrganizadorTable,
   type NewRedSocialOrganizador,
 } from '../../db/schema';
+import { eventoTable } from '../../db/schema/evento.schema';
 import { ROLES_IDS, ESTADOS_ACREDITACION_IDS } from '../../config/constants';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, count } from 'drizzle-orm';
 import { CustomError, handleErrorLog } from '../../utils/errors';
 import type {
     RegistroCompletoOrganizadorApiPayload,
@@ -226,5 +227,127 @@ export async function getOrganizadorByUserIdService(userId: number): Promise<Org
 export async function updateOrganizadorPerfilService(organizadorId: number, data: UpdateOrganizadorPerfilApiPayload, session: NonNullable<AppSession>): Promise<OrganizadorDetalladoResponse> {
     // ... (Tu lógica de updateOrganizadorPerfilService sin cambios)
     // ...
-    return getOrganizadorByIdService(organizadorId);
+    return {} as OrganizadorDetalladoResponse; // Placeholder
+}
+
+/**
+ * Servicio para obtener el perfil público completo del organizador
+ */
+export async function getOrganizadorPublicProfileService(organizadorId: number) {
+    try {
+        // Obtener datos básicos del organizador
+        const [organizadorData] = await db
+            .select({
+                organizador: organizadorTable,
+                usuario: usuarioTable,
+            })
+            .from(organizadorTable)
+            .leftJoin(usuarioTable, eq(organizadorTable.id_usuario, usuarioTable.id_usuario))
+            .where(eq(organizadorTable.id_organizador, organizadorId));
+
+        if (!organizadorData) {
+            throw new CustomError(`Organizador con ID ${organizadorId} no encontrado.`, 404);
+        }
+
+        // Obtener redes sociales del organizador
+        const redesSociales = await db
+            .select()
+            .from(redSocialOrganizadorTable)
+            .where(eq(redSocialOrganizadorTable.id_organizador, organizadorId));
+
+        // Obtener eventos del organizador (solo los publicados)
+        const [eventosCount] = await db
+            .select({ count: count() })
+            .from(eventoTable)
+            .where(eq(eventoTable.id_organizador, organizadorId));
+
+        return {
+            ...organizadorData.organizador,
+            usuario: organizadorData.usuario ? {
+                id_usuario: organizadorData.usuario.id_usuario,
+                nombre_usuario: organizadorData.usuario.nombre_usuario,
+                correo: organizadorData.usuario.correo,
+            } : null,
+            redes_sociales: redesSociales,
+            total_eventos: eventosCount.count,
+        };
+    } catch (error) {
+        if (error instanceof CustomError) throw error;
+        handleErrorLog(error, 'servicio getOrganizadorPublicProfileService');
+        throw new CustomError('Error al obtener el perfil público del organizador.', 500);
+    }
+}
+
+/**
+ * Servicio para actualizar el perfil público del organizador
+ */
+export async function updateOrganizadorPublicProfileService(
+    organizadorId: number, 
+    data: {
+        nombre_organizacion?: string;
+        descripcion?: string;
+        ubicacion?: string;
+        anio_fundacion?: number;
+        sitio_web?: string;
+        imagen_portada?: string;
+        logo_organizacion?: string;
+        tipo_organizacion?: string;
+        telefono_organizacion?: string;
+        redes_sociales?: Array<{
+            plataforma: string;
+            url: string;
+        }>;
+    }
+) {
+    try {
+        // Actualizar datos básicos del organizador
+        const [organizadorActualizado] = await db
+            .update(organizadorTable)
+            .set({
+                nombre_organizacion: data.nombre_organizacion,
+                descripcion: data.descripcion,
+                ubicacion: data.ubicacion,
+                anio_fundacion: data.anio_fundacion,
+                sitio_web: data.sitio_web,
+                imagen_portada: data.imagen_portada,
+                logo_organizacion: data.logo_organizacion,
+                tipo_organizacion: data.tipo_organizacion,
+                telefono_organizacion: data.telefono_organizacion,
+            })
+            .where(eq(organizadorTable.id_organizador, organizadorId))
+            .returning();
+
+        if (!organizadorActualizado) {
+            throw new CustomError('No se pudo actualizar el perfil del organizador.', 500);
+        }
+
+        // Actualizar redes sociales si se proporcionan
+        if (data.redes_sociales) {
+            // Eliminar redes sociales existentes
+            await db
+                .delete(redSocialOrganizadorTable)
+                .where(eq(redSocialOrganizadorTable.id_organizador, organizadorId));
+
+            // Insertar nuevas redes sociales
+            if (data.redes_sociales.length > 0) {
+                const redesParaInsertar = data.redes_sociales
+                    .filter(red => red.plataforma && red.url)
+                    .map(red => ({
+                        id_organizador: organizadorId,
+                        plataforma: red.plataforma,
+                        url: red.url,
+                    }));
+
+                if (redesParaInsertar.length > 0) {
+                    await db.insert(redSocialOrganizadorTable).values(redesParaInsertar);
+                }
+            }
+        }
+
+        return organizadorActualizado;
+    } catch (error) {
+        if (error instanceof CustomError) throw error;
+        handleErrorLog(error, 'servicio updateOrganizadorPublicProfileService');
+        throw new CustomError('Error al actualizar el perfil público del organizador.', 500);
+    }
 }

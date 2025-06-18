@@ -187,5 +187,41 @@ export const api = {
         
         return response.json();
       }
+    },
+    organizadores: {
+      // Obtener perfil público del organizador
+      getPublicProfile: async (token: string) => {
+        const response = await fetch(`${API_BASE}/api/v1/organizadores/yo/public-profile`, {
+          headers: { 
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Error al obtener perfil público');
+        }
+        
+        return response.json();
+      },
+
+      // Actualizar perfil público del organizador
+      updatePublicProfile: async (token: string, data: any) => {
+        const response = await fetch(`${API_BASE}/api/v1/organizadores/yo/public-profile`, {
+          method: 'PUT',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(data)
+        });
+        
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Error al actualizar perfil público');
+        }
+        
+        return response.json();
+      }
     }
   };

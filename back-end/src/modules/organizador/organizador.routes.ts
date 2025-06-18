@@ -11,6 +11,8 @@ import {
   getOrganizadorByIdService,
   getOrganizadorByUserIdService,
   updateOrganizadorPerfilService,
+  getOrganizadorPublicProfileService,
+  updateOrganizadorPublicProfileService,
 } from './organizador.services';
 import {
   registroCompletoOrganizadorSchema,
@@ -73,6 +75,55 @@ export const organizadorUsuarioRoutes = new Elysia({
     detail: {
       summary: 'Actualizar mi Perfil de Organizador',
       security: [{ bearerAuth: [] }]
+    }
+  }
+)
+.get(
+  '/yo/public-profile',
+  async ({ session }) => {
+    const currentSession = requireAuth()(session);
+    const perfilOrganizadorActual = await getOrganizadorByUserIdService(currentSession.subAsNumber);
+    if (!perfilOrganizadorActual) {
+      throw new CustomError('No tienes un perfil de organizador asociado.', 404);
+    }
+    return await getOrganizadorPublicProfileService(perfilOrganizadorActual.id_organizador);
+  },
+  {
+    detail: { 
+      summary: 'Obtener mi Perfil Público de Organizador', 
+      security: [{ bearerAuth: [] }] 
+    }
+  }
+)
+.put(
+  '/yo/public-profile',
+  async ({ session, body }) => {
+    const currentSession = requireAuth()(session);
+    const perfilOrganizadorActual = await getOrganizadorByUserIdService(currentSession.subAsNumber);
+    if (!perfilOrganizadorActual) {
+      throw new CustomError('No tienes un perfil de organizador asociado.', 404);
+    }
+    return await updateOrganizadorPublicProfileService(perfilOrganizadorActual.id_organizador, body);
+  },
+  {
+    body: t.Object({
+      nombre_organizacion: t.Optional(t.String()),
+      descripcion: t.Optional(t.String()),
+      ubicacion: t.Optional(t.String()),
+      anio_fundacion: t.Optional(t.Number()),
+      sitio_web: t.Optional(t.String()),
+      imagen_portada: t.Optional(t.String()),
+      logo_organizacion: t.Optional(t.String()),
+      tipo_organizacion: t.Optional(t.String()),
+      telefono_organizacion: t.Optional(t.String()),
+      redes_sociales: t.Optional(t.Array(t.Object({
+        plataforma: t.String(),
+        url: t.String(),
+      }))),
+    }),
+    detail: { 
+      summary: 'Actualizar mi Perfil Público de Organizador', 
+      security: [{ bearerAuth: [] }] 
     }
   }
 );
