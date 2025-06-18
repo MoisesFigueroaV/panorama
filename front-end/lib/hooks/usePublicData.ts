@@ -141,4 +141,33 @@ export function useEventosByCategoria(categoriaId: number, limit: number = 6) {
   }, [categoriaId, limit]);
 
   return { eventos, loading, error };
+}
+
+// Hook para obtener un evento específico por ID
+export function useEventoById(eventoId: number) {
+  const [evento, setEvento] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchEvento = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await api.public.getEventoById(eventoId);
+        setEvento(response);
+      } catch (err: any) {
+        console.error('Error al obtener evento:', err);
+        setError(err.message || 'Error al cargar evento');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (eventoId) {
+      fetchEvento();
+    }
+  }, [eventoId]);
+
+  return { evento, loading, error };
 } 

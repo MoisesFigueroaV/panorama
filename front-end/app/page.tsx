@@ -30,7 +30,7 @@ import { events } from "@/lib/mock-data"
 import SiteHeader from "@/components/site-header"
 import SiteFooter from "@/components/site-footer"
 import EventCard from "@/components/event-card"
-import EventMap from "@/components/event-map"
+// import EventMap from "@/components/event-map" // Deshabilitado temporalmente
 import NewsletterForm from "@/components/newsletter-form"
 import CalendarView from "@/components/calendar-view"
 import PromotedEventsCarousel from "@/components/promoted-events-carousel"
@@ -82,9 +82,11 @@ export default function Home() {
                 solo lugar.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 animate-slide-up" style={{ animationDelay: "0.2s" }}>
-                <Button size="lg" className="bg-white text-primary hover:bg-white/90">
-                  Explorar eventos
-                </Button>
+                <Link href="/events">
+                  <Button size="lg" className="bg-white text-primary hover:bg-white/90">
+                    Explorar eventos
+                  </Button>
+                </Link>
                 <Button
                   size="lg"
                   variant="outline"
@@ -458,8 +460,11 @@ export default function Home() {
             </TabsContent>
 
             <TabsContent value="map">
-              <div className="h-[600px] rounded-lg overflow-hidden border border-black/5">
-                <EventMap events={events} />
+              <div className="h-[600px] rounded-lg overflow-hidden border border-black/5 bg-muted flex items-center justify-center">
+                <div className="text-center">
+                  <p className="text-muted-foreground mb-2">Mapa temporalmente deshabilitado</p>
+                  <p className="text-sm text-muted-foreground">Próximamente disponible</p>
+                </div>
               </div>
             </TabsContent>
 

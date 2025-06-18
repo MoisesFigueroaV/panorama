@@ -115,22 +115,53 @@ export async function getEventosByOrganizadorService(id_organizador: number) {
 }
 
 /**
- * Servicio para obtener un evento por su ID
+ * Servicio para obtener un evento específico por ID
  */
-export async function getEventoByIdService(id_evento: number) {
-  const [evento] = await db.select().from(eventoTable)
-    .where(eq(eventoTable.id_evento, id_evento));
+export async function getEventoByIdService(eventoId: number) {
+  try {
+    const evento = await db
+      .select({
+        id_evento: eventoTable.id_evento,
+        titulo: eventoTable.titulo,
+        descripcion: eventoTable.descripcion,
+        fecha_inicio: eventoTable.fecha_inicio,
+        fecha_fin: eventoTable.fecha_fin,
+        ubicacion: eventoTable.ubicacion,
+        imagen: eventoTable.imagen,
+        capacidad: eventoTable.capacidad,
+        id_categoria: eventoTable.id_categoria,
+        id_organizador: eventoTable.id_organizador,
+        latitud: eventoTable.latitud,
+        longitud: eventoTable.longitud,
+        // Información del organizador
+        nombre_organizacion: organizadorTable.nombre_organizacion,
+        logo_organizacion: organizadorTable.logo_organizacion,
+        descripcion_organizacion: organizadorTable.descripcion,
+        sitio_web_organizacion: organizadorTable.sitio_web,
+        // Información de la categoría
+        nombre_categoria: categoriaEventoTable.nombre_categoria,
+      })
+      .from(eventoTable)
+      .leftJoin(organizadorTable, eq(eventoTable.id_organizador, organizadorTable.id_organizador))
+      .leftJoin(categoriaEventoTable, eq(eventoTable.id_categoria, categoriaEventoTable.id_categoria))
+      .where(eq(eventoTable.id_evento, eventoId))
+      .limit(1);
 
-  if (!evento) {
-    throw new CustomError('Evento no encontrado', 404);
+    if (!evento || evento.length === 0) {
+      throw new CustomError(`Evento con ID ${eventoId} no encontrado.`, 404);
+    }
+
+    const eventoData = evento[0];
+    
+    return {
+      ...eventoData,
+      latitud: eventoData.latitud !== null ? Number(eventoData.latitud) : null,
+      longitud: eventoData.longitud !== null ? Number(eventoData.longitud) : null,
+    };
+  } catch (error) {
+    console.error('Error al obtener evento por ID:', error);
+    throw new CustomError('Error al obtener evento.', 500);
   }
-
-  return {
-    ...evento,
-    // Conversión explícita de tipos para coordenadas
-    latitud: evento.latitud !== null ? Number(evento.latitud) : null,
-    longitud: evento.longitud !== null ? Number(evento.longitud) : null
-  };
 }
 
 /**

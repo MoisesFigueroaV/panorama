@@ -14,9 +14,22 @@ import { Bell, Menu, User, LayoutDashboard, Globe, Settings, LogOut } from "luci
 import Link from "next/link"
 import { OrganizerSidebar } from "./organizer-sidebar"
 import { useRouter } from "next/navigation"
+import { useAuth } from "@/context/AuthContext"
 
 export function OrganizerHeader() {
   const router = useRouter()
+  const { logout } = useAuth()
+
+  const handleSignOut = async () => {
+    try {
+      await logout()
+      router.push("/")
+    } catch (error) {
+      console.error("Error al cerrar sesión:", error)
+      // Aún redirigir a la página principal en caso de error
+      router.push("/")
+    }
+  }
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-4 sm:px-6">
@@ -69,7 +82,7 @@ export function OrganizerHeader() {
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => router.push("/")}>
+            <DropdownMenuItem onClick={handleSignOut}>
               <LogOut className="mr-2 h-4 w-4" />
               Cerrar sesión
             </DropdownMenuItem>

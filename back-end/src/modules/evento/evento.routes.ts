@@ -211,4 +211,17 @@ export const publicEventoRoutes = new Elysia({
     }),
     detail: { summary: 'Obtener eventos por categoría específica' }
   }
+)
+.get(
+  '/:id',
+  async ({ params }) => {
+    const eventoId = parseInt(params.id);
+    return await getEventoByIdService(eventoId);
+  },
+  {
+    params: t.Object({
+      id: t.String(),
+    }),
+    detail: { summary: 'Obtener un evento específico por ID' }
+  }
 );

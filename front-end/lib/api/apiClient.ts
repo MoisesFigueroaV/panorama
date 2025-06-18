@@ -80,11 +80,10 @@ apiClient.interceptors.response.use(
 );
 
 export const handleLogoutClient = () => {
-  setAccessToken(null);
-  setRefreshToken(null);
+  clearAuthTokens();
   if (typeof window !== 'undefined') {
     localStorage.removeItem('userDataPanorama');
-    window.location.href = '/login';
+    // No usar window.location.href, dejar que el contexto maneje la redirección
   }
 };
 

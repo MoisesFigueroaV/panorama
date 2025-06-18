@@ -1,26 +1,27 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet"
-import "leaflet/dist/leaflet.css"
-import { Button } from "@/components/ui/button"
-import { Calendar, MapPin } from "lucide-react"
-import Link from "next/link"
-import { Badge } from "@/components/ui/badge"
+// Componente EventMap temporalmente deshabilitado para evitar errores de SSR con Leaflet
+// import { useState, useEffect } from "react"
+// import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet"
+// import "leaflet/dist/leaflet.css"
+// import { Button } from "@/components/ui/button"
+// import { Calendar, MapPin } from "lucide-react"
+// import Link from "next/link"
+// import { Badge } from "@/components/ui/badge"
 
-// Fix for Leaflet marker icons in Next.js
-import L from "leaflet"
-import { useMobile } from "@/hooks/use-mobile"
+// // Fix for Leaflet marker icons in Next.js
+// import L from "leaflet"
+// import { useMobile } from "@/hooks/use-mobile"
 
-// Fix Leaflet default icon issue
-const icon = L.icon({
-  iconUrl: "/marker-icon.png",
-  shadowUrl: "/marker-shadow.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-})
+// // Fix Leaflet default icon issue
+// const icon = L.icon({
+//   iconUrl: "/marker-icon.png",
+//   shadowUrl: "/marker-shadow.png",
+//   iconSize: [25, 41],
+//   iconAnchor: [12, 41],
+//   popupAnchor: [1, -34],
+//   shadowSize: [41, 41],
+// })
 
 interface Event {
   id: string
@@ -39,6 +40,17 @@ interface EventMapProps {
 }
 
 export default function EventMap({ events }: EventMapProps) {
+  return (
+    <div className="h-full bg-muted flex items-center justify-center">
+      <div className="text-center">
+        <p className="text-muted-foreground mb-2">Mapa temporalmente deshabilitado</p>
+        <p className="text-sm text-muted-foreground">Próximamente disponible</p>
+      </div>
+    </div>
+  )
+
+  // Código original comentado:
+  /*
   const [mounted, setMounted] = useState(false)
   const isMobile = useMobile()
 
@@ -93,4 +105,5 @@ export default function EventMap({ events }: EventMapProps) {
       ))}
     </MapContainer>
   )
+  */
 }

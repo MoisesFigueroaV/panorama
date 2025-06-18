@@ -125,19 +125,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const clearSession = async () => {
     try {
+      console.log('Limpiando tokens en el cliente API...');
       // Limpiar tokens en el cliente API
       clearAuthTokens()
       
+      console.log('Limpiando cookies...');
       // Limpiar cookies
       deleteCookie('accessToken')
       deleteCookie('refreshToken')
       
+      console.log('Limpiando estado local...');
       // Limpiar estado
       setUser(null)
       setLocalAccessToken(null)
       
+      console.log('Limpiando headers de la API...');
       // Limpiar headers de la API
       delete apiClient.defaults.headers.common['Authorization']
+      
+      console.log('Sesión limpiada completamente');
     } catch (err) {
       console.error('Error al limpiar sesión:', err)
     }
@@ -179,20 +185,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const logout = async () => {
     try {
-      // Intentar hacer logout en el backend si hay token
-      const token = getAccessToken()
-      if (token) {
-        try {
-          await apiClient.post('/auth/logout')
-        } catch (err) {
-          console.error('Error al hacer logout en el backend:', err)
-        }
-      }
-
-      // Limpiar toda la sesión
+      console.log('Iniciando logout...');
+      
+      // Limpiar toda la sesión localmente
+      console.log('Limpiando sesión local...');
       await clearSession()
+      console.log('Sesión limpiada exitosamente');
       
       // Redirigir a la página principal
+      console.log('Redirigiendo a página principal...');
       router.push('/')
     } catch (err) {
       console.error('Error durante el logout:', err)
