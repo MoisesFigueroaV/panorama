@@ -8,9 +8,10 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1
 
 export const apiClient = axios.create({
   baseURL: API_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  // Removemos el Content-Type por defecto para que axios lo maneje automáticamente
+  // headers: {
+  //   'Content-Type': 'application/json',
+  // },
 });
 
 // Función para obtener el token de acceso

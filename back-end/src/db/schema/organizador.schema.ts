@@ -18,6 +18,11 @@ export const organizadorTable = pgTable('organizador', {
     imagen_portada: varchar('imagen_portada', { length: 250 }),
     logo_organizacion: varchar('logo_organizacion', { length: 250 }),
     
+    // Nuevos campos agregados
+    tipo_organizacion: varchar('tipo_organizacion', { length: 50 }),
+    rut_organizacion: varchar('rut_organizacion', { length: 20 }),
+    telefono_organizacion: varchar('telefono_organizacion', { length: 20 }),
+    
     // La nueva y eficiente columna de estado
     id_estado_acreditacion_actual: integer('id_estado_acreditacion_actual')
         .references(() => estadoAcreditacionTable.id_estado_acreditacion)
