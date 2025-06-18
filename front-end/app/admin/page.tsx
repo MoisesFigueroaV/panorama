@@ -2,15 +2,41 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Calendar, PlusCircle, Settings, User, Users, Loader2, AlertCircle } from "lucide-react"
+import { Calendar, PlusCircle, Settings, User, Users, Loader2, AlertCircle, RefreshCw } from "lucide-react"
 import Link from "next/link"
 import { AdminChart } from "@/components/admin/admin-chart"
 import { AdminUserTable } from "@/components/admin/admin-user-table"
 import { useAdminDashboard } from "@/lib/hooks/useAdminDashboard"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { toast } from "sonner"
+import { apiClient } from "@/lib/api/apiClient"
 
 export default function AdminDashboardPage() {
-  const { kpis, users, organizers, isLoading, error } = useAdminDashboard();
+  const { kpis, users, organizers, isLoading, error, refetch } = useAdminDashboard();
+
+  const handleInitializeEvents = async () => {
+    try {
+      await apiClient.post('/admin/dashboard/initialize-events');
+      toast.success('Estados de eventos inicializados correctamente');
+      // Refrescar los datos del dashboard
+      refetch();
+    } catch (error: any) {
+      console.error('Error al inicializar eventos:', error);
+      toast.error('Error al inicializar estados de eventos');
+    }
+  };
+
+  const handlePublishTestEvents = async () => {
+    try {
+      await apiClient.post('/admin/dashboard/publish-test-events');
+      toast.success('Eventos de prueba publicados correctamente');
+      // Refrescar los datos del dashboard
+      refetch();
+    } catch (error: any) {
+      console.error('Error al publicar eventos de prueba:', error);
+      toast.error('Error al publicar eventos de prueba');
+    }
+  };
 
   if (isLoading) {
     return (
@@ -44,14 +70,22 @@ export default function AdminDashboardPage() {
           <p className="text-sm sm:text-base text-muted-foreground">Gestiona usuarios y eventos de la plataforma.</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
-          {/* Comentado temporalmente hasta que se implemente la funcionalidad
-          <Link href="/admin/settings" className="w-full sm:w-auto">
-            <Button variant="outline" className="w-full sm:w-auto gap-2">
-              <Settings className="h-4 w-4" />
-              Configuración
-            </Button>
-          </Link>
-          */}
+          <Button 
+            variant="outline" 
+            onClick={handleInitializeEvents}
+            className="gap-2"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Inicializar eventos
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={handlePublishTestEvents}
+            className="gap-2"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Publicar eventos de prueba
+          </Button>
           <Link href="/admin/events/create" className="w-full sm:w-auto">
             <Button className="w-full sm:w-auto gap-2">
               <PlusCircle className="h-4 w-4" />
@@ -85,11 +119,11 @@ export default function AdminDashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Solicitudes pendientes</CardTitle>
-            <Calendar className="h-4 w-4 text-destructive" />
+            <AlertCircle className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{kpis?.solicitudesPendientes ?? 0}</div>
-            <p className="text-xs text-muted-foreground">Por revisar</p>
+            <p className="text-xs text-muted-foreground">Eventos en borrador</p>
           </CardContent>
         </Card>
         <Card>
@@ -99,7 +133,7 @@ export default function AdminDashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{kpis?.eventosActivos ?? 0}</div>
-            <p className="text-xs text-muted-foreground">Eventos en curso</p>
+            <p className="text-xs text-muted-foreground">Eventos publicados</p>
           </CardContent>
         </Card>
       </div>

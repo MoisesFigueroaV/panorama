@@ -146,7 +146,7 @@ export default function CreateEventPage() {
         id_categoria: parseInt(data.id_categoria), // Convertir a integer como espera el back-end
         latitud: data.latitud || undefined,
         longitud: data.longitud || undefined,
-        id_estado_evento: 2 // Publicado por defecto
+        id_estado_evento: 1 // Borrador por defecto - requiere aprobación del admin
       }
 
       // Solo agregar imagen si es una URL válida
@@ -159,7 +159,7 @@ export default function CreateEventPage() {
 
       await api.eventos.create(eventoData, accessToken)
       console.log('✅ Evento creado exitosamente')
-      toast.success("Evento creado exitosamente")
+      toast.success("Evento creado exitosamente como borrador. Espera la aprobación del administrador.")
       router.push("/organizers/dashboard/events")
     } catch (error: any) {
       console.error('❌ Error al crear evento:', error)
@@ -187,7 +187,7 @@ export default function CreateEventPage() {
           </Link>
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Crear nuevo evento</h1>
-            <p className="text-muted-foreground">Completa la información para publicar tu evento</p>
+            <p className="text-muted-foreground">Completa la información para crear tu evento (se creará como borrador)</p>
           </div>
         </div>
         <div className="flex items-center gap-2">

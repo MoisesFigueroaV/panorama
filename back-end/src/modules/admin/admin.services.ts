@@ -2,6 +2,7 @@
 
 import { db } from '../../db/drizzle';
 import { usuarioTable, organizadorTable, historialEstadoAcreditacionTable, rolUsuarioTable } from '../../db/schema';
+import { eventoTable } from '../../db/schema/evento.schema';
 import { count, desc, eq, sql } from 'drizzle-orm';
 import { CustomError, handleErrorLog } from '../../utils/errors';
 import { ROLES_IDS, ESTADOS_ACREDITACION_IDS } from '../../config/constants';
@@ -15,7 +16,7 @@ import type { NewHistorialEstadoAcreditacion } from '../../db/schema';
 export type KpiServiceResponse = {
   totalUsuarios: number;
   totalOrganizadores: number;
-  eventosActivos: number; // Placeholder por ahora
+  eventosActivos: number;
   solicitudesPendientes: number;
 };
 
@@ -28,26 +29,34 @@ export type KpiServiceResponse = {
  */
 export async function getDashboardKpisService(): Promise<KpiServiceResponse> {
   try {
+    // Contar usuarios totales (excluyendo administradores)
     const [userCount] = await db
       .select({ value: count() })
       .from(usuarioTable)
       .where(sql`${usuarioTable.id_rol} != ${ROLES_IDS.ADMINISTRADOR}`);
 
+    // Contar organizadores totales
     const [organizerCount] = await db
       .select({ value: count() })
       .from(organizadorTable);
     
-    // Esta consulta ahora es simple y rápida gracias a la columna optimizada.
-    const [pendingCount] = await db
+    // Contar eventos pendientes (en borrador - estado = 1)
+    const [pendingEventsCount] = await db
       .select({ value: count() })
-      .from(organizadorTable)
-      .where(eq(organizadorTable.id_estado_acreditacion_actual, ESTADOS_ACREDITACION_IDS.PENDIENTE));
+      .from(eventoTable)
+      .where(eq(eventoTable.id_estado_evento, 1)); // 1 = Borrador
+    
+    // Contar eventos activos (estado = 2 = Publicado)
+    const [activeEventsCount] = await db
+      .select({ value: count() })
+      .from(eventoTable)
+      .where(eq(eventoTable.id_estado_evento, 2)); // 2 = Publicado
     
     return {
       totalUsuarios: userCount.value,
       totalOrganizadores: organizerCount.value,
-      solicitudesPendientes: pendingCount.value,
-      eventosActivos: 0, // Placeholder hasta que se implemente la lógica de eventos
+      solicitudesPendientes: pendingEventsCount.value,
+      eventosActivos: activeEventsCount.value,
     };
   } catch (error) {
     handleErrorLog(error, 'servicio getDashboardKpisService');
@@ -188,5 +197,43 @@ export async function getAllUsersService(page: number = 1, pageSize: number = 10
   } catch (error) {
     handleErrorLog(error, 'servicio getAllUsersService');
     throw new CustomError('Error al obtener la lista de usuarios.', 500);
+  }
+}
+
+/**
+ * Inicializa los estados de eventos si no los tienen asignados
+ */
+export async function initializeEventStatesService() {
+  try {
+    // Actualizar eventos que no tienen estado asignado a "Borrador" (estado 1)
+    const result = await db
+      .update(eventoTable)
+      .set({ id_estado_evento: 1 }) // 1 = Borrador
+      .where(sql`${eventoTable.id_estado_evento} IS NULL`);
+    
+    console.log('Estados de eventos inicializados');
+    return { message: 'Estados de eventos inicializados correctamente' };
+  } catch (error) {
+    handleErrorLog(error, 'servicio initializeEventStatesService');
+    throw new CustomError('Error al inicializar estados de eventos.', 500);
+  }
+}
+
+/**
+ * Publica algunos eventos de prueba para testing
+ */
+export async function publishTestEventsService() {
+  try {
+    // Actualizar algunos eventos a estado "Publicado" (estado 2)
+    const result = await db
+      .update(eventoTable)
+      .set({ id_estado_evento: 2 }) // 2 = Publicado
+      .where(sql`${eventoTable.id_evento} IN (1, 2, 3)`); // Publicar eventos 1, 2, 3
+    
+    console.log('Eventos de prueba publicados');
+    return { message: 'Eventos de prueba publicados correctamente' };
+  } catch (error) {
+    handleErrorLog(error, 'servicio publishTestEventsService');
+    throw new CustomError('Error al publicar eventos de prueba.', 500);
   }
 }

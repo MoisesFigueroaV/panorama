@@ -77,6 +77,99 @@ export const api = {
         }
         
         return response.json();
+      },
+
+      // Obtener todos los eventos para admin
+      getAllForAdmin: async (token: string) => {
+        const response = await fetch(`${API_BASE}/api/v1/admin/events/all`, {
+          headers: { 
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Error al obtener eventos');
+        }
+        
+        return response.json();
+      },
+
+      // Obtener eventos con filtros y paginación para admin
+      getWithFilters: async (params: {
+        page?: number;
+        limit?: number;
+        search?: string;
+        estado?: number;
+        categoria?: number;
+        organizador?: number;
+        fechaDesde?: string;
+        fechaHasta?: string;
+        sortBy?: string;
+        sortOrder?: 'asc' | 'desc';
+      }, token: string) => {
+        const searchParams = new URLSearchParams();
+        
+        if (params.page) searchParams.append('page', params.page.toString());
+        if (params.limit) searchParams.append('limit', params.limit.toString());
+        if (params.search) searchParams.append('search', params.search);
+        if (params.estado) searchParams.append('estado', params.estado.toString());
+        if (params.categoria) searchParams.append('categoria', params.categoria.toString());
+        if (params.organizador) searchParams.append('organizador', params.organizador.toString());
+        if (params.fechaDesde) searchParams.append('fechaDesde', params.fechaDesde);
+        if (params.fechaHasta) searchParams.append('fechaHasta', params.fechaHasta);
+        if (params.sortBy) searchParams.append('sortBy', params.sortBy);
+        if (params.sortOrder) searchParams.append('sortOrder', params.sortOrder);
+
+        const url = `${API_BASE}/api/v1/admin/events?${searchParams.toString()}`;
+        
+        const response = await fetch(url, {
+          headers: { 
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Error al obtener eventos');
+        }
+        
+        return response.json();
+      },
+
+      // Obtener opciones de filtros
+      getFilterOptions: async (token: string) => {
+        const response = await fetch(`${API_BASE}/api/v1/admin/events/filter-options`, {
+          headers: { 
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Error al obtener opciones de filtros');
+        }
+        
+        return response.json();
+      },
+
+      // Cambiar estado de evento (admin)
+      updateStatus: async (idEvento: number, idEstadoEvento: number, token: string) => {
+        const response = await fetch(`${API_BASE}/api/v1/admin/events/${idEvento}/status`, {
+          method: 'PATCH',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ id_estado_evento: idEstadoEvento })
+        });
+        
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Error al cambiar el estado del evento');
+        }
+        
+        return response.json();
       }
     }
   };
