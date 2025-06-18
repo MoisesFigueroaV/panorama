@@ -72,12 +72,22 @@ export default function EventsPage() {
     sortOrder: "desc"
   })
   const [activeTab, setActiveTab] = useState("all")
-  const { accessToken } = useAuth()
+  const { accessToken, user } = useAuth()
 
   const fetchEvents = async (page = 1, newFilters = filters) => {
     try {
+      console.log('🔐 Token disponible:', !!accessToken)
+      console.log('🔐 Token:', accessToken ? accessToken.substring(0, 20) + '...' : 'No hay token')
+      console.log('👤 Usuario:', user)
+      console.log('👤 Rol:', user?.rol)
+      
       if (!accessToken) {
         toast.error("No tienes acceso")
+        return
+      }
+      
+      if (!user || user.rol?.id_rol !== 1) {
+        toast.error("No tienes permisos de administrador")
         return
       }
       
@@ -124,7 +134,22 @@ export default function EventsPage() {
       })
     } catch (error: any) {
       console.error("Error al obtener eventos:", error)
-      toast.error(error.message || "Error al obtener eventos")
+      
+      // Extraer el mensaje de error correctamente
+      let errorMessage = "Error al obtener eventos";
+      
+      if (error.response?.data?.error) {
+        // Si el error viene en formato { error: "mensaje" }
+        errorMessage = error.response.data.error;
+      } else if (error.response?.data) {
+        // Si el error es directamente un string
+        errorMessage = typeof error.response.data === 'string' ? error.response.data : errorMessage;
+      } else if (error.message) {
+        // Si hay un mensaje en el error
+        errorMessage = error.message;
+      }
+      
+      toast.error(errorMessage)
     } finally {
       setLoading(false)
     }

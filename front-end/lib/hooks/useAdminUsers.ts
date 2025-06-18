@@ -53,10 +53,25 @@ export const useAdminUsers = () => {
       setTotalPages(Math.ceil(response.data.total / response.data.pageSize));
     } catch (err: any) {
       console.error("Error fetching users:", err);
+      
+      // Extraer el mensaje de error correctamente
+      let errorMessage = "No se pudieron cargar los usuarios.";
+      
+      if (err.response?.data?.error) {
+        // Si el error viene en formato { error: "mensaje" }
+        errorMessage = err.response.data.error;
+      } else if (err.response?.data) {
+        // Si el error es directamente un string
+        errorMessage = typeof err.response.data === 'string' ? err.response.data : errorMessage;
+      } else if (err.message) {
+        // Si hay un mensaje en el error
+        errorMessage = err.message;
+      }
+      
       if (err.response?.status === 401) {
         router.push('/login');
       } else {
-        setError("No se pudieron cargar los usuarios.");
+        setError(errorMessage);
       }
     } finally {
       setLoading(false);

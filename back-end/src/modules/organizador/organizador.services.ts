@@ -8,8 +8,6 @@ import {
   type NewUsuario as NewDrizzleUsuario,
   historialEstadoAcreditacionTable,
   type NewHistorialEstadoAcreditacion,
-  redSocialOrganizadorTable,
-  type NewRedSocialOrganizador,
 } from '../../db/schema';
 import { eventoTable } from '../../db/schema/evento.schema';
 import { ROLES_IDS, ESTADOS_ACREDITACION_IDS } from '../../config/constants';
@@ -107,29 +105,6 @@ export async function registrarUsuarioYCrearPerfilOrganizadorService(data: Regis
 
         if (!newOrganizador) {
             throw new CustomError('Error al crear el perfil de organizador.', 500);
-        }
-
-        // Procesar redes sociales si existen
-        if (data.redes_sociales) {
-            try {
-                const redesSociales = JSON.parse(data.redes_sociales);
-                if (Array.isArray(redesSociales) && redesSociales.length > 0) {
-                    const redesParaInsertar: NewRedSocialOrganizador[] = redesSociales
-                        .filter((red: any) => red.plataforma && red.url)
-                        .map((red: any) => ({
-                            id_organizador: newOrganizador.id_organizador,
-                            plataforma: red.plataforma,
-                            url: red.url,
-                        }));
-
-                    if (redesParaInsertar.length > 0) {
-                        await db.insert(redSocialOrganizadorTable).values(redesParaInsertar);
-                    }
-                }
-            } catch (error) {
-                console.warn('Error al procesar redes sociales:', error);
-                // No fallar el registro por errores en redes sociales
-            }
         }
 
         // Crear historial de estado inicial (opcional, ya que el estado se maneja en la tabla principal)
@@ -249,12 +224,6 @@ export async function getOrganizadorPublicProfileService(organizadorId: number) 
             throw new CustomError(`Organizador con ID ${organizadorId} no encontrado.`, 404);
         }
 
-        // Obtener redes sociales del organizador
-        const redesSociales = await db
-            .select()
-            .from(redSocialOrganizadorTable)
-            .where(eq(redSocialOrganizadorTable.id_organizador, organizadorId));
-
         // Obtener eventos del organizador (solo los publicados)
         const [eventosCount] = await db
             .select({ count: count() })
@@ -268,7 +237,7 @@ export async function getOrganizadorPublicProfileService(organizadorId: number) 
                 nombre_usuario: organizadorData.usuario.nombre_usuario,
                 correo: organizadorData.usuario.correo,
             } : null,
-            redes_sociales: redesSociales,
+            redes_sociales: [], // Array vacío por ahora
             total_eventos: eventosCount.count,
         };
     } catch (error) {
@@ -321,28 +290,8 @@ export async function updateOrganizadorPublicProfileService(
             throw new CustomError('No se pudo actualizar el perfil del organizador.', 500);
         }
 
-        // Actualizar redes sociales si se proporcionan
-        if (data.redes_sociales) {
-            // Eliminar redes sociales existentes
-            await db
-                .delete(redSocialOrganizadorTable)
-                .where(eq(redSocialOrganizadorTable.id_organizador, organizadorId));
-
-            // Insertar nuevas redes sociales
-            if (data.redes_sociales.length > 0) {
-                const redesParaInsertar = data.redes_sociales
-                    .filter(red => red.plataforma && red.url)
-                    .map(red => ({
-                        id_organizador: organizadorId,
-                        plataforma: red.plataforma,
-                        url: red.url,
-                    }));
-
-                if (redesParaInsertar.length > 0) {
-                    await db.insert(redSocialOrganizadorTable).values(redesParaInsertar);
-                }
-            }
-        }
+        // Por ahora no manejamos redes sociales
+        // TODO: Implementar manejo de redes sociales cuando se necesite
 
         return organizadorActualizado;
     } catch (error) {

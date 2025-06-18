@@ -137,7 +137,7 @@ export const publicOrganizadorRoutes = new Elysia({
 .get(
   '/:id',
   async ({ params }) => {
-    return await getOrganizadorByIdService(params.id);
+    return await getOrganizadorPublicProfileService(Number(params.id));
   },
   {
     params: organizadorParamsSchema,

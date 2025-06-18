@@ -61,11 +61,26 @@ export const useAdminDashboard = () => {
 
     } catch (err: any) {
       console.error("Error fetching dashboard data:", err);
+      
+      // Extraer el mensaje de error correctamente
+      let errorMessage = "No se pudieron cargar los datos del dashboard.";
+      
+      if (err.response?.data?.error) {
+        // Si el error viene en formato { error: "mensaje" }
+        errorMessage = err.response.data.error;
+      } else if (err.response?.data) {
+        // Si el error es directamente un string
+        errorMessage = typeof err.response.data === 'string' ? err.response.data : errorMessage;
+      } else if (err.message) {
+        // Si hay un mensaje en el error
+        errorMessage = err.message;
+      }
+      
       if (err.response?.status === 401) {
         // No redirigir aquí, dejar que el interceptor maneje la renovación del token
         setError("Error de autenticación. Intentando renovar sesión...");
       } else {
-        setError("No se pudieron cargar los datos del dashboard.");
+        setError(errorMessage);
       }
     } finally {
       setIsLoading(false);
