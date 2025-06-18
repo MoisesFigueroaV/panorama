@@ -14,10 +14,11 @@ import { usuarioRoutes, userProfileRoutes } from './modules/usuario/usuario.rout
 import {
   authOrganizadorRoutes,
   organizadorUsuarioRoutes,
-  publicOrganizadorRoutes
+  publicOrganizadorRoutes,
+  publicOrganizadoresVerificadosRoutes
 } from './modules/organizador/organizador.routes';
 import { adminRoutes } from './modules/admin/admin.routes';
-import { eventoRoutes } from './modules/evento/evento.routes';
+import { eventoRoutes, publicEventoRoutes } from './modules/evento/evento.routes';
 
 // Cargar variables de entorno
 dotenv.config();
@@ -110,9 +111,11 @@ const app = new Elysia()
       .use(authOrganizadorRoutes)
       .use(organizadorUsuarioRoutes)
       .use(publicOrganizadorRoutes)
+      .use(publicOrganizadoresVerificadosRoutes)
       
       // Módulo de Eventos
       .use(eventoRoutes)
+      .use(publicEventoRoutes)
       
       // Módulo de Administración Centralizado
       .use(adminRoutes)

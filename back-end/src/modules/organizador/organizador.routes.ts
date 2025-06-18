@@ -11,6 +11,9 @@ import {
   getOrganizadorByIdService,
   getOrganizadorByUserIdService,
   updateOrganizadorPerfilService,
+  getOrganizadorPublicProfileService,
+  updateOrganizadorPublicProfileService,
+  getOrganizadoresVerificadosService,
 } from './organizador.services';
 import {
   registroCompletoOrganizadorSchema,
@@ -75,6 +78,55 @@ export const organizadorUsuarioRoutes = new Elysia({
       security: [{ bearerAuth: [] }]
     }
   }
+)
+.get(
+  '/yo/public-profile',
+  async ({ session }) => {
+    const currentSession = requireAuth()(session);
+    const perfilOrganizadorActual = await getOrganizadorByUserIdService(currentSession.subAsNumber);
+    if (!perfilOrganizadorActual) {
+      throw new CustomError('No tienes un perfil de organizador asociado.', 404);
+    }
+    return await getOrganizadorPublicProfileService(perfilOrganizadorActual.id_organizador);
+  },
+  {
+    detail: { 
+      summary: 'Obtener mi Perfil Público de Organizador', 
+      security: [{ bearerAuth: [] }] 
+    }
+  }
+)
+.put(
+  '/yo/public-profile',
+  async ({ session, body }) => {
+    const currentSession = requireAuth()(session);
+    const perfilOrganizadorActual = await getOrganizadorByUserIdService(currentSession.subAsNumber);
+    if (!perfilOrganizadorActual) {
+      throw new CustomError('No tienes un perfil de organizador asociado.', 404);
+    }
+    return await updateOrganizadorPublicProfileService(perfilOrganizadorActual.id_organizador, body);
+  },
+  {
+    body: t.Object({
+      nombre_organizacion: t.Optional(t.String()),
+      descripcion: t.Optional(t.String()),
+      ubicacion: t.Optional(t.String()),
+      anio_fundacion: t.Optional(t.Number()),
+      sitio_web: t.Optional(t.String()),
+      imagen_portada: t.Optional(t.String()),
+      logo_organizacion: t.Optional(t.String()),
+      tipo_organizacion: t.Optional(t.String()),
+      telefono_organizacion: t.Optional(t.String()),
+      redes_sociales: t.Optional(t.Array(t.Object({
+        plataforma: t.String(),
+        url: t.String(),
+      }))),
+    }),
+    detail: { 
+      summary: 'Actualizar mi Perfil Público de Organizador', 
+      security: [{ bearerAuth: [] }] 
+    }
+  }
 );
 
 // Rutas públicas para ver organizadores
@@ -112,5 +164,24 @@ export const authOrganizadorRoutes = new Elysia({
       summary: 'Registrar Nuevo Organizador (Cuenta + Perfil)',
       description: 'Crea una cuenta de usuario y su perfil de organización asociado.',
     }
+  }
+);
+
+// Rutas públicas para organizadores verificados
+export const publicOrganizadoresVerificadosRoutes = new Elysia({
+  prefix: '/organizadores',
+  detail: { tags: ['Organizadores Públicos'] }
+})
+.get(
+  '/verificados',
+  async ({ query }) => {
+    const limit = query.limit ? parseInt(query.limit) : 3;
+    return await getOrganizadoresVerificadosService(limit);
+  },
+  {
+    query: t.Object({
+      limit: t.Optional(t.String()),
+    }),
+    detail: { summary: 'Obtener organizadores verificados para la página principal' }
   }
 );
