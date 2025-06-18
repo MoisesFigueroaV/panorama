@@ -9,20 +9,30 @@ import type { CreateEventoPayload, UpdateEventoPayload } from './evento.types';
  * Servicio para crear un nuevo evento.
  */
 export async function createEventoService(id_organizador: number, data: CreateEventoPayload) {
+  console.log('🔍 createEventoService llamado con:', { id_organizador, data });
+  
   const fechaInicio = new Date(data.fecha_inicio);
   const fechaFin = new Date(data.fecha_fin);
 
+  console.log('🔍 Fechas procesadas:', { 
+    fechaInicio: fechaInicio.toISOString(), 
+    fechaFin: fechaFin.toISOString() 
+  });
+
   if (isNaN(fechaInicio.getTime()) || isNaN(fechaFin.getTime())) {
+    console.error('❌ Fechas inválidas:', { fechaInicio, fechaFin });
     throw new CustomError('Las fechas no tienen un formato válido.', 400);
   }
   if (fechaInicio > fechaFin) {
+    console.error('❌ Fecha de inicio posterior a fecha de fin');
     throw new CustomError('La fecha de inicio no puede ser posterior a la fecha de fin.', 400);
   }
   if (data.capacidad < 1) {
+    console.error('❌ Capacidad inválida:', data.capacidad);
     throw new CustomError('La capacidad debe ser mayor o igual a 1.', 400);
   }
 
-  const [evento] = await db.insert(eventoTable).values({
+  const eventoData = {
     titulo: data.titulo,
     descripcion: data.descripcion ?? null,
     fecha_inicio: fechaInicio.toISOString().split('T')[0],
@@ -36,15 +46,20 @@ export async function createEventoService(id_organizador: number, data: CreateEv
     fecha_registro: new Date().toISOString().split('T')[0],
     latitud: data.latitud !== undefined ? Number(data.latitud) : null,
     longitud: data.longitud !== undefined ? Number(data.longitud) : null,
+  };
 
-    // 🔧 Para escalado futuro (no implementado actualmente):
-    // creado_en: new Date(),
-    // actualizado_en: new Date(),
-    // categorias: JSON.stringify(data.categorias ?? [])
-  }).returning();
+  console.log('📤 Datos a insertar en BD:', eventoData);
 
-  if (!evento) throw new CustomError('No se pudo crear el evento.', 500);
-  return evento;
+  try {
+    const [evento] = await db.insert(eventoTable).values(eventoData).returning();
+    console.log('✅ Evento creado exitosamente:', evento);
+
+    if (!evento) throw new CustomError('No se pudo crear el evento.', 500);
+    return evento;
+  } catch (error) {
+    console.error('❌ Error al insertar en BD:', error);
+    throw error;
+  }
 }
 
 /**

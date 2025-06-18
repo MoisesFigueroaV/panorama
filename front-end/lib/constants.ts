@@ -14,7 +14,7 @@ export const ESTADOS_ACREDITACION = {
 // Rutas por rol (usar esta constante para redirecciones)
 export const ROUTES_BY_ROLE = {
   [ROLES.ADMINISTRADOR]: '/admin',
-  [ROLES.ORGANIZADOR]: '/organizer/dashboard',
+  [ROLES.ORGANIZADOR]: '/organizers/dashboard',
   [ROLES.USUARIO]: '/users/profile'
 } as const;
 
