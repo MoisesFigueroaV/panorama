@@ -58,13 +58,8 @@ export function AdminSidebar() {
     {
       href: "/admin/chat",
       icon: MessageSquare,
-      label: "chat",
+      label: "Chat",
     },
-    //{
-      //href: "/admin/categories",
-      //icon: Tag,
-      //label: "Categorías",
-    //},
     // Comentado temporalmente hasta implementar la funcionalidad
     // {
     //   href: "/admin/reports",

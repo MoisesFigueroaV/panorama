@@ -1,6 +1,6 @@
 import Elysia, { t } from 'elysia';
 import { authMiddleware, requireAuth } from '../../middleware/auth.middleware';
-import { createEventoService, updateEventoService, getEventosByOrganizadorService , getEventoByIdService} from './evento.services';
+import { createEventoService, updateEventoService, getEventosByOrganizadorService , getEventoByIdService, getOrganizerDashboardStatsService } from './evento.services';
 import { createEventoSchema, updateEventoSchema, eventoResponseSchema, eventosResponseSchema } from './evento.types';
 import { CustomError } from '../../utils/errors';
 import { getOrganizadorByUserIdService } from '../organizador/organizador.services';
@@ -88,6 +88,40 @@ export const eventoRoutes = new Elysia({ prefix: '/eventos', detail: { tags: ['E
     {
       response: { 200: t.Array(eventoResponseSchema) },
       detail: { summary: 'Listar mis eventos', security: [{ bearerAuth: [] }] }
+    }
+  )
+
+  /**
+   * Obtener estadísticas del dashboard del organizador
+   */
+  .get(
+    '/dashboard-stats',
+    async (context) => {
+      const currentSession = requireAuth()(context.session);
+
+      // Buscar el perfil de organizador del usuario autenticado
+      const organizador = await getOrganizadorByUserIdService(currentSession.subAsNumber);
+      if (!organizador) {
+        throw new CustomError('No tienes un perfil de organizador asociado.', 403);
+      }
+
+      // Obtener estadísticas del dashboard
+      const stats = await getOrganizerDashboardStatsService(organizador.id_organizador);
+      return stats;
+    },
+    {
+      response: { 
+        200: t.Object({
+          eventosActivos: t.Number(),
+          eventosPendientes: t.Number(),
+          eventosTotales: t.Number(),
+          eventosPorCategoria: t.Array(t.Object({
+            categoria: t.String(),
+            cantidad: t.Number()
+          }))
+        })
+      },
+      detail: { summary: 'Obtener estadísticas del dashboard', security: [{ bearerAuth: [] }] }
     }
   )
 

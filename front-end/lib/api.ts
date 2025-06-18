@@ -170,6 +170,22 @@ export const api = {
         }
         
         return response.json();
+      },
+
+      // Obtener estadísticas del dashboard del organizador
+      getDashboardStats: async (token: string) => {
+        const response = await fetch(`${API_BASE}/api/v1/eventos/dashboard-stats`, {
+          headers: { 
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Error al obtener estadísticas del dashboard');
+        }
+        
+        return response.json();
       }
     }
   };

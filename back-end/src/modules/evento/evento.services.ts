@@ -1,6 +1,6 @@
 import { db } from '../../db/drizzle';
 import { eventoTable } from '../../db/schema/evento.schema';
-import { eq, and, like, gte, lte, desc, asc, sql } from 'drizzle-orm';
+import { eq, and, like, gte, lte, desc, asc, sql, count } from 'drizzle-orm';
 import { CustomError } from '../../utils/errors';
 import type { CreateEventoPayload, UpdateEventoPayload } from './evento.types';
 import { organizadorTable } from '../../db/schema/organizador.schema';
@@ -402,4 +402,61 @@ export async function getEventosFilterOptionsService() {
     estados,
     organizadores
   };
+}
+
+/**
+ * Servicio para obtener estadísticas del dashboard del organizador
+ */
+export async function getOrganizerDashboardStatsService(id_organizador: number) {
+  try {
+    // Contar eventos activos (publicados) del organizador
+    const [activeEventsCount] = await db
+      .select({ value: count() })
+      .from(eventoTable)
+      .where(and(
+        eq(eventoTable.id_organizador, id_organizador),
+        eq(eventoTable.id_estado_evento, 2) // 2 = Publicado
+      ));
+
+    // Contar eventos pendientes (borrador) del organizador
+    const [pendingEventsCount] = await db
+      .select({ value: count() })
+      .from(eventoTable)
+      .where(and(
+        eq(eventoTable.id_organizador, id_organizador),
+        eq(eventoTable.id_estado_evento, 1) // 1 = Borrador
+      ));
+
+    // Contar total de eventos del organizador
+    const [totalEventsCount] = await db
+      .select({ value: count() })
+      .from(eventoTable)
+      .where(eq(eventoTable.id_organizador, id_organizador));
+
+    // Obtener eventos por categoría del organizador
+    const eventosPorCategoria = await db
+      .select({
+        id_categoria: categoriaEventoTable.id_categoria,
+        nombre_categoria: categoriaEventoTable.nombre_categoria,
+        count: sql<number>`count(*)`
+      })
+      .from(eventoTable)
+      .leftJoin(categoriaEventoTable, eq(eventoTable.id_categoria, categoriaEventoTable.id_categoria))
+      .where(eq(eventoTable.id_organizador, id_organizador))
+      .groupBy(categoriaEventoTable.id_categoria, categoriaEventoTable.nombre_categoria)
+      .orderBy(desc(sql`count(*)`));
+
+    return {
+      eventosActivos: activeEventsCount.value,
+      eventosPendientes: pendingEventsCount.value,
+      eventosTotales: totalEventsCount.value,
+      eventosPorCategoria: eventosPorCategoria.map(item => ({
+        categoria: item.nombre_categoria || 'Sin categoría',
+        cantidad: Number(item.count)
+      }))
+    };
+  } catch (error) {
+    console.error('Error al obtener estadísticas del organizador:', error);
+    throw new CustomError('Error al obtener estadísticas del dashboard.', 500);
+  }
 }

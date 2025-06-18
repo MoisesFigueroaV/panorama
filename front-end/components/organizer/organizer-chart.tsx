@@ -20,10 +20,16 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarEleme
 
 interface OrganizerChartProps {
   type: "line" | "bar"
+  data?: {
+    eventosPorCategoria?: {
+      categoria: string;
+      cantidad: number;
+    }[];
+  }
 }
 
-export function OrganizerChart({ type }: OrganizerChartProps) {
-  // Sample data for line chart (ticket sales)
+export function OrganizerChart({ type, data }: OrganizerChartProps) {
+  // Sample data for line chart (ticket sales) - keeping this for now
   const lineData: ChartData<"line"> = {
     labels: ["1 May", "5 May", "10 May", "15 May", "20 May", "25 May", "30 May"],
     datasets: [
@@ -47,13 +53,13 @@ export function OrganizerChart({ type }: OrganizerChartProps) {
     ],
   }
 
-  // Sample data for bar chart (events by category)
+  // Real data for bar chart (events by category)
   const barData: ChartData<"bar"> = {
-    labels: ["Música", "Deportes", "Gastronomía", "Arte", "Tecnología", "Aire libre"],
+    labels: data?.eventosPorCategoria?.map(item => item.categoria) || ["Música", "Deportes", "Gastronomía", "Arte", "Tecnología", "Aire libre"],
     datasets: [
       {
         label: "Número de eventos",
-        data: [12, 8, 5, 7, 3, 6],
+        data: data?.eventosPorCategoria?.map(item => item.cantidad) || [12, 8, 5, 7, 3, 6],
         backgroundColor: [
           "#EB4187", // music
           "#4C74FF", // sports
@@ -61,6 +67,10 @@ export function OrganizerChart({ type }: OrganizerChartProps) {
           "#AF41E1", // art
           "#10B981", // tech
           "#65A30D", // outdoor
+          "#EF4444", // red
+          "#8B5CF6", // purple
+          "#06B6D4", // cyan
+          "#84CC16", // lime
         ],
       },
     ],
