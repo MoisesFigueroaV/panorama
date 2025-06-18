@@ -17,6 +17,7 @@ export * from './estadoAcreditacion.schema';
 // Tablas Principales
 export * from './usuario.schema';
 export * from './organizador.schema';
+export * from './redSocialOrganizador.schema';
 export * from './evento.schema';
 // ... exporta aquí seguimiento, notificacion, calificacion, denuncia si los necesitas.
 
