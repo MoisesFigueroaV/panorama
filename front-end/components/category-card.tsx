@@ -16,8 +16,9 @@ export default function CategoryCard({ id, name, count, icon }: CategoryCardProp
     sports: { bg: "#e0f2f6", text: "#a3d7e0" }, // Turquesa
     food: { bg: "#fef2e8", text: "#f9a05d" }, // Naranja
     art: { bg: "#fdf8e6", text: "#f1c84b" }, // Amarillo
-    tech: { bg: "#fde8e5", text: "#f47c6c" }, // Coral
-    outdoor: { bg: "#e0f2f6", text: "#a3d7e0" }, // Turquesa
+    tech: { bg: "#f0f4ff", text: "#6366f1" }, // Índigo
+    outdoor: { bg: "#f0fdf4", text: "#22c55e" }, // Verde
+    other: { bg: "#F5F7FF", text: "#4C74FF" }, // Azul por defecto
   }
 
   const colors = categoryColors[id] || { bg: "#F5F7FF", text: "#4C74FF" }

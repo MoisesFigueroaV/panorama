@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
@@ -14,31 +14,35 @@ import { toast } from "@/components/ui/use-toast"
 import { Eye, Facebook, Globe, Instagram, Linkedin, Plus, Trash, Twitter, Upload } from "lucide-react"
 import Link from "next/link"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useAuth } from "@/context/AuthContext"
+import { api } from "@/lib/api"
 
 // Esquema de validación para el formulario de perfil público
 const publicProfileSchema = z.object({
-  organizationName: z.string().min(2, {
+  nombre_organizacion: z.string().min(2, {
     message: "El nombre de la organización debe tener al menos 2 caracteres.",
   }),
-  description: z.string().max(500, {
+  descripcion: z.string().max(500, {
     message: "La descripción no puede tener más de 500 caracteres.",
   }),
-  website: z
+  sitio_web: z
     .string()
     .url({
       message: "Por favor ingresa una URL válida.",
     })
     .optional()
     .or(z.literal("")),
-  location: z.string().min(2, {
+  ubicacion: z.string().min(2, {
     message: "La ubicación debe tener al menos 2 caracteres.",
   }),
-  foundedYear: z.string().regex(/^\d{4}$/, {
+  anio_fundacion: z.string().regex(/^\d{4}$/, {
     message: "Por favor ingresa un año válido (4 dígitos).",
   }),
-  socialLinks: z.array(
+  telefono_organizacion: z.string().optional(),
+  tipo_organizacion: z.string().optional(),
+  redes_sociales: z.array(
     z.object({
-      platform: z.string(),
+      plataforma: z.string(),
       url: z.string().url({
         message: "Por favor ingresa una URL válida.",
       }),
@@ -49,60 +53,148 @@ const publicProfileSchema = z.object({
 // Tipo para los valores del formulario de perfil público
 type PublicProfileFormValues = z.infer<typeof publicProfileSchema>
 
-// Valores por defecto para el formulario de perfil público
-const defaultPublicProfileValues: Partial<PublicProfileFormValues> = {
-  organizationName: "Eventos Santiago",
-  description:
-    "Organizadores de los mejores conciertos y festivales de música en Santiago. Contamos con más de 5 años de experiencia creando experiencias inolvidables para todo tipo de público.",
-  website: "https://eventossantiago.cl",
-  location: "Santiago, Chile",
-  foundedYear: "2018",
-  socialLinks: [
-    { platform: "facebook", url: "https://facebook.com/eventossantiago" },
-    { platform: "twitter", url: "https://twitter.com/eventossantiago" },
-    { platform: "instagram", url: "https://instagram.com/eventossantiago" },
-    { platform: "linkedin", url: "https://linkedin.com/company/eventossantiago" },
-  ],
+interface OrganizadorPublicProfile {
+  id_organizador: number;
+  nombre_organizacion: string;
+  descripcion: string | null;
+  ubicacion: string | null;
+  anio_fundacion: number | null;
+  sitio_web: string | null;
+  imagen_portada: string | null;
+  logo_organizacion: string | null;
+  tipo_organizacion: string | null;
+  telefono_organizacion: string | null;
+  redes_sociales: Array<{
+    id_red: number;
+    plataforma: string;
+    url: string;
+  }>;
+  total_eventos: number;
+  usuario: {
+    id_usuario: number;
+    nombre_usuario: string;
+    correo: string;
+  } | null;
 }
 
 export default function PublicProfilePage() {
   const [isLoading, setIsLoading] = useState<boolean>(false)
+  const [isLoadingData, setIsLoadingData] = useState<boolean>(true)
+  const [profileData, setProfileData] = useState<OrganizadorPublicProfile | null>(null)
   const [coverImage, setCoverImage] = useState<string>("/placeholder.svg?height=320&width=1920&text=Portada")
   const [logoImage, setLogoImage] = useState<string>("/placeholder.svg?height=128&width=128&text=ES")
+  const { accessToken } = useAuth()
 
   // Formulario de perfil público
   const form = useForm<PublicProfileFormValues>({
     resolver: zodResolver(publicProfileSchema),
-    defaultValues: defaultPublicProfileValues as PublicProfileFormValues,
+    defaultValues: {
+      nombre_organizacion: "",
+      descripcion: "",
+      sitio_web: "",
+      ubicacion: "",
+      anio_fundacion: "",
+      telefono_organizacion: "",
+      tipo_organizacion: "",
+      redes_sociales: [],
+    },
     mode: "onChange",
   })
 
-  // Función para manejar el envío del formulario de perfil público
-  function onSubmit(data: PublicProfileFormValues) {
-    setIsLoading(true)
+  // Cargar datos del perfil
+  useEffect(() => {
+    const loadProfileData = async () => {
+      if (!accessToken) return;
 
-    // Simulamos una petición a la API
-    setTimeout(() => {
-      console.log(data)
-      setIsLoading(false)
+      try {
+        setIsLoadingData(true);
+        const response = await api.organizadores.getPublicProfile(accessToken);
+        setProfileData(response);
+        
+        // Actualizar imágenes si existen
+        if (response.imagen_portada) {
+          setCoverImage(response.imagen_portada);
+        }
+        if (response.logo_organizacion) {
+          setLogoImage(response.logo_organizacion);
+        }
+
+        // Actualizar formulario con datos existentes
+        form.reset({
+          nombre_organizacion: response.nombre_organizacion || "",
+          descripcion: response.descripcion || "",
+          sitio_web: response.sitio_web || "",
+          ubicacion: response.ubicacion || "",
+          anio_fundacion: response.anio_fundacion?.toString() || "",
+          telefono_organizacion: response.telefono_organizacion || "",
+          tipo_organizacion: response.tipo_organizacion || "",
+          redes_sociales: response.redes_sociales.map((red: any) => ({
+            plataforma: red.plataforma,
+            url: red.url,
+          })),
+        });
+      } catch (error: any) {
+        console.error('Error al cargar perfil:', error);
+        toast({
+          title: "Error",
+          description: error.message || "Error al cargar el perfil",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoadingData(false);
+      }
+    };
+
+    loadProfileData();
+  }, [accessToken, form]);
+
+  // Función para manejar el envío del formulario de perfil público
+  async function onSubmit(data: PublicProfileFormValues) {
+    if (!accessToken) {
+      toast({
+        title: "Error",
+        description: "No hay token de autenticación",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const response = await api.organizadores.updatePublicProfile(accessToken, {
+        ...data,
+        anio_fundacion: data.anio_fundacion ? parseInt(data.anio_fundacion) : undefined,
+      });
+
+      console.log('Perfil actualizado:', response);
       toast({
         title: "Perfil público actualizado",
         description: "Tu perfil público ha sido actualizado correctamente.",
-      })
-    }, 1000)
+      });
+    } catch (error: any) {
+      console.error('Error al actualizar perfil:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Error al actualizar el perfil",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   // Función para añadir un nuevo enlace social
   function addSocialLink() {
-    const currentLinks = form.getValues("socialLinks") || []
-    form.setValue("socialLinks", [...currentLinks, { platform: "facebook", url: "" }])
+    const currentLinks = form.getValues("redes_sociales") || []
+    form.setValue("redes_sociales", [...currentLinks, { plataforma: "facebook", url: "" }])
   }
 
   // Función para eliminar un enlace social
   function removeSocialLink(index: number) {
-    const currentLinks = form.getValues("socialLinks") || []
+    const currentLinks = form.getValues("redes_sociales") || []
     form.setValue(
-      "socialLinks",
+      "redes_sociales",
       currentLinks.filter((_, i) => i !== index),
     )
   }
@@ -123,6 +215,39 @@ export default function PublicProfilePage() {
     }
   }
 
+  if (isLoadingData) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Perfil Público</h1>
+          <p className="text-muted-foreground">Cargando datos del perfil...</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-6">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="space-y-4">
+                <div className="h-32 bg-gray-200 rounded-md animate-pulse" />
+                <div className="h-32 w-32 bg-gray-200 rounded-xl animate-pulse mx-auto" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="space-y-4">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="space-y-2">
+                    <div className="h-4 bg-gray-200 rounded animate-pulse w-24" />
+                    <div className="h-10 bg-gray-200 rounded animate-pulse" />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -131,7 +256,7 @@ export default function PublicProfilePage() {
           <p className="text-muted-foreground">Personaliza cómo se ve tu perfil para los asistentes a eventos.</p>
         </div>
         <Button asChild variant="outline" className="gap-2">
-          <Link href={`/organizers/1`} target="_blank">
+          <Link href={`/organizers/${profileData?.id_organizador}`} target="_blank">
             <Eye className="h-4 w-4" />
             Ver perfil público
           </Link>
@@ -189,7 +314,7 @@ export default function PublicProfilePage() {
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 <FormField
                   control={form.control}
-                  name="organizationName"
+                  name="nombre_organizacion"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Nombre de la organización</FormLabel>
@@ -202,10 +327,31 @@ export default function PublicProfilePage() {
                   )}
                 />
 
+                <FormField
+                  control={form.control}
+                  name="descripcion"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Descripción</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Describe tu organización, misión, visión..."
+                          className="resize-none"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Cuéntanos sobre tu organización. Máximo 500 caracteres.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
-                    name="location"
+                    name="ubicacion"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Ubicación</FormLabel>
@@ -219,12 +365,42 @@ export default function PublicProfilePage() {
 
                   <FormField
                     control={form.control}
-                    name="foundedYear"
+                    name="anio_fundacion"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Año de fundación</FormLabel>
                         <FormControl>
-                          <Input placeholder="2023" {...field} />
+                          <Input placeholder="2020" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="sitio_web"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Sitio web</FormLabel>
+                        <FormControl>
+                          <Input placeholder="https://tuorganizacion.com" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="telefono_organizacion"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Teléfono</FormLabel>
+                        <FormControl>
+                          <Input placeholder="+56 9 1234 5678" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -234,60 +410,57 @@ export default function PublicProfilePage() {
 
                 <FormField
                   control={form.control}
-                  name="website"
+                  name="tipo_organizacion"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Sitio web</FormLabel>
-                      <FormControl>
-                        <Input placeholder="https://tuorganizacion.com" {...field} />
-                      </FormControl>
-                      <FormDescription>URL completa de tu sitio web (incluye https://).</FormDescription>
+                      <FormLabel>Tipo de organización</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecciona el tipo de organización" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="empresa">Empresa</SelectItem>
+                          <SelectItem value="ong">ONG</SelectItem>
+                          <SelectItem value="colectivo">Colectivo</SelectItem>
+                          <SelectItem value="independiente">Independiente</SelectItem>
+                          <SelectItem value="institucion">Institución</SelectItem>
+                          <SelectItem value="otro">Otro</SelectItem>
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Descripción</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Describe tu organización..."
-                          className="resize-none min-h-[120px]"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Esta descripción aparecerá en tu perfil público. Máximo 500 caracteres.
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
+                {/* Redes sociales */}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <Label>Redes sociales</Label>
-                    <Button type="button" variant="outline" size="sm" onClick={addSocialLink} className="gap-1">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addSocialLink}
+                      className="gap-2"
+                    >
                       <Plus className="h-4 w-4" />
-                      Añadir red social
+                      Agregar red social
                     </Button>
                   </div>
 
-                  {form.watch("socialLinks")?.map((_, index) => (
-                    <div key={index} className="flex items-center gap-2">
+                  {form.watch("redes_sociales")?.map((_, index) => (
+                    <div key={index} className="flex gap-2">
                       <FormField
                         control={form.control}
-                        name={`socialLinks.${index}.platform`}
+                        name={`redes_sociales.${index}.plataforma`}
                         render={({ field }) => (
                           <FormItem className="flex-1">
                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                               <FormControl>
                                 <SelectTrigger>
-                                  <SelectValue placeholder="Selecciona una plataforma" />
+                                  <SelectValue placeholder="Plataforma" />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
@@ -295,32 +468,32 @@ export default function PublicProfilePage() {
                                 <SelectItem value="twitter">Twitter</SelectItem>
                                 <SelectItem value="instagram">Instagram</SelectItem>
                                 <SelectItem value="linkedin">LinkedIn</SelectItem>
+                                <SelectItem value="youtube">YouTube</SelectItem>
+                                <SelectItem value="tiktok">TikTok</SelectItem>
+                                <SelectItem value="otro">Otro</SelectItem>
                               </SelectContent>
                             </Select>
-                            <FormMessage />
                           </FormItem>
                         )}
                       />
-
                       <FormField
                         control={form.control}
-                        name={`socialLinks.${index}.url`}
+                        name={`redes_sociales.${index}.url`}
                         render={({ field }) => (
-                          <FormItem className="flex-[3]">
+                          <FormItem className="flex-1">
                             <FormControl>
-                              <Input placeholder="https://..." {...field} />
+                              <Input placeholder="URL de la red social" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
-
                       <Button
                         type="button"
-                        variant="ghost"
+                        variant="outline"
                         size="icon"
                         onClick={() => removeSocialLink(index)}
-                        className="text-destructive hover:text-destructive/90 hover:bg-destructive/10"
+                        className="flex-shrink-0"
                       >
                         <Trash className="h-4 w-4" />
                       </Button>
@@ -328,7 +501,7 @@ export default function PublicProfilePage() {
                   ))}
                 </div>
 
-                <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
+                <Button type="submit" disabled={isLoading} className="w-full">
                   {isLoading ? "Guardando..." : "Guardar cambios"}
                 </Button>
               </form>

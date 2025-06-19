@@ -19,7 +19,9 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "bun run --watch src/index.ts"
+    "dev": "bun run --watch src/index.ts",
+    "seed": "bun run src/scripts/seed-categorias.ts",
+    "check": "bun run src/scripts/check-categorias.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",

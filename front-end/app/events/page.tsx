@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useSearchParams } from "next/navigation"
 import { Calendar, MapPin, ChevronDown, Grid, List, ArrowUpDown, ArrowLeft } from "lucide-react"
 import Image from "next/image"
@@ -15,36 +15,132 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent } from "@/components/ui/card"
 import EventCard from "@/components/event-card"
-import { events } from "@/lib/mock-data"
+import { api } from "@/lib/api"
+
+interface EventoReal {
+  id_evento: number
+  titulo: string
+  descripcion: string | null
+  fecha_inicio: string
+  fecha_fin: string
+  ubicacion: string | null
+  imagen: string | null
+  nombre_categoria: string | null
+  nombre_organizacion: string | null
+  logo_organizacion: string | null
+}
+
+interface Categoria {
+  id_categoria: number
+  nombre_categoria: string
+}
 
 export default function EventsPage() {
   const searchParams = useSearchParams()
   const categoryParam = searchParams.get("category")
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [viewMode, setViewMode] = useState("grid")
+  const [eventos, setEventos] = useState<EventoReal[]>([])
+  const [categorias, setCategorias] = useState<Categoria[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [eventsPerPage] = useState(9)
 
   // Mapeo de IDs de categoría a nombres para mostrar
-  const categoryMapping: Record<string, string> = {
-    music: "Música",
-    sports: "Deportes",
-    food: "Gastronomía",
-    art: "Arte y cultura",
-    tech: "Tecnología",
-    outdoor: "Aire libre",
-  }
+  const getCategoryConfig = (nombre: string) => {
+    const lowerName = nombre.toLowerCase();
+    if (lowerName.includes('música') || lowerName.includes('musica')) {
+      return { id: 'music', nombre: nombre };
+    } else if (lowerName.includes('deporte')) {
+      return { id: 'sports', nombre: nombre };
+    } else if (lowerName.includes('gastronomía') || lowerName.includes('gastronomia') || lowerName.includes('comida')) {
+      return { id: 'food', nombre: nombre };
+    } else if (lowerName.includes('arte') || lowerName.includes('cultura')) {
+      return { id: 'art', nombre: nombre };
+    } else if (lowerName.includes('tecnología') || lowerName.includes('tecnologia')) {
+      return { id: 'tech', nombre: nombre };
+    } else if (lowerName.includes('aire libre') || lowerName.includes('outdoor')) {
+      return { id: 'outdoor', nombre: nombre };
+    } else if (lowerName.includes('educación') || lowerName.includes('educacion')) {
+      return { id: 'education', nombre: nombre };
+    } else {
+      return { id: 'other', nombre: nombre };
+    }
+  };
+
+  // Mapeo inverso: de ID a nombre de categoría (usando useMemo para evitar recreaciones)
+  const categoryIdToName = useMemo(() => {
+    const mapping: Record<string, string> = {};
+    categorias.forEach(cat => {
+      const config = getCategoryConfig(cat.nombre_categoria);
+      mapping[config.id] = cat.nombre_categoria;
+    });
+    return mapping;
+  }, [categorias]);
+
+  // Procesar parámetro de categoría de la URL
+  useEffect(() => {
+    if (categoryParam && categoryIdToName[categoryParam]) {
+      setSelectedCategories([categoryIdToName[categoryParam]]);
+    }
+  }, [categoryParam, categoryIdToName]);
 
   useEffect(() => {
-    if (categoryParam && categoryMapping[categoryParam]) {
-      setSelectedCategories([categoryMapping[categoryParam]])
+    const fetchEventos = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        
+        // Si hay categorías seleccionadas, obtener eventos por categoría
+        if (selectedCategories.length > 0) {
+          // Obtener el ID de la primera categoría seleccionada
+          const categoriaSeleccionada = categorias.find(cat => cat.nombre_categoria === selectedCategories[0])
+          if (categoriaSeleccionada) {
+            const eventosResponse = await api.public.getEventosByCategoria(categoriaSeleccionada.id_categoria, 100)
+            setEventos(eventosResponse)
+          }
+        } else {
+          // Obtener todos los eventos destacados
+          const eventosResponse = await api.public.getEventosDestacados(100)
+          setEventos(eventosResponse)
+        }
+      } catch (err: any) {
+        console.error('Error al obtener eventos:', err)
+        setError(err.message || 'Error al cargar eventos')
+      } finally {
+        setLoading(false)
+      }
     }
-  }, [categoryParam])
 
-  // Duplicar eventos para tener más contenido para mostrar
-  const allEvents = [...events, ...events.map((event) => ({ ...event, id: `dup-${event.id}` }))]
+    fetchEventos()
+  }, [selectedCategories])
+
+  // Cargar categorías al inicio
+  useEffect(() => {
+    const fetchCategorias = async () => {
+      try {
+        const categoriasResponse = await api.public.getCategorias()
+        setCategorias(categoriasResponse)
+      } catch (err: any) {
+        console.error('Error al obtener categorías:', err)
+      }
+    }
+
+    fetchCategorias()
+  }, [])
 
   // Filtrar eventos por categoría si hay alguna seleccionada
   const filteredEvents =
-    selectedCategories.length > 0 ? allEvents.filter((event) => selectedCategories.includes(event.category)) : allEvents
+    selectedCategories.length > 0 
+      ? eventos.filter((event) => selectedCategories.includes(event.nombre_categoria || ""))
+      : eventos
+
+  // Calcular paginación
+  const indexOfLastEvent = currentPage * eventsPerPage
+  const indexOfFirstEvent = indexOfLastEvent - eventsPerPage
+  const currentEvents = filteredEvents.slice(indexOfFirstEvent, indexOfLastEvent)
+  const totalPages = Math.ceil(filteredEvents.length / eventsPerPage)
 
   const handleCategoryChange = (category: string, checked: boolean) => {
     if (checked) {
@@ -52,10 +148,12 @@ export default function EventsPage() {
     } else {
       setSelectedCategories((prev) => prev.filter((cat) => cat !== category))
     }
+    setCurrentPage(1) // Resetear a la primera página cuando se cambian filtros
   }
 
   const clearFilters = () => {
     setSelectedCategories([])
+    setCurrentPage(1)
   }
 
   return (
@@ -93,29 +191,77 @@ export default function EventsPage() {
                 <div>
                   <h3 className="font-medium mb-3">Categorías</h3>
                   <div className="space-y-2">
-                    {["Música", "Deportes", "Gastronomía", "Arte y cultura", "Tecnología", "Aire libre"].map(
-                      (category) => (
-                        <div key={category} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`category-${category}`}
-                            checked={selectedCategories.includes(category)}
-                            onCheckedChange={(checked) => handleCategoryChange(category, checked === true)}
-                          />
-                          <label
-                            htmlFor={`category-${category}`}
-                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                          >
-                            {category}
-                          </label>
-                        </div>
-                      ),
-                    )}
+                    {categorias.map((categoria) => (
+                      <div key={categoria.id_categoria} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`category-${categoria.id_categoria}`}
+                          checked={selectedCategories.includes(categoria.nombre_categoria)}
+                          onCheckedChange={(checked) => handleCategoryChange(categoria.nombre_categoria, checked === true)}
+                        />
+                        <label
+                          htmlFor={`category-${categoria.id_categoria}`}
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                          {categoria.nombre_categoria}
+                        </label>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
                 <Separator />
 
-                {/* Precio */}
+                {/* Fecha - Comentado temporalmente */}
+                {/*
+                <div>
+                  <h3 className="font-medium mb-3">Fecha</h3>
+                  <div className="space-y-2">
+                    {["Hoy", "Mañana", "Este fin de semana", "Esta semana", "Este mes", "Personalizada"].map((date) => (
+                      <div key={date} className="flex items-center space-x-2">
+                        <Checkbox id={`date-${date}`} />
+                        <label
+                          htmlFor={`date-${date}`}
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                          {date}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <Separator />
+                */}
+
+                {/* Ubicación - Comentado temporalmente */}
+                {/*
+                <div>
+                  <h3 className="font-medium mb-3">Ubicación</h3>
+                  <div className="space-y-3">
+                    <Select>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Selecciona ciudad" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="santiago">Santiago</SelectItem>
+                        <SelectItem value="valparaiso">Valparaíso</SelectItem>
+                        <SelectItem value="concepcion">Concepción</SelectItem>
+                        <SelectItem value="la-serena">La Serena</SelectItem>
+                        <SelectItem value="antofagasta">Antofagasta</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <div className="flex items-center gap-2">
+                      <Input type="number" placeholder="Radio (km)" className="w-full" />
+                      <span className="text-sm text-muted-foreground">km</span>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+                */}
+
+                {/* Precio - Comentado temporalmente */}
+                {/*
                 <div>
                   <h3 className="font-medium mb-3">Precio</h3>
                   <div className="space-y-2">
@@ -152,53 +298,10 @@ export default function EventsPage() {
                 </div>
 
                 <Separator />
+                */}
 
-                {/* Fecha */}
-                <div>
-                  <h3 className="font-medium mb-3">Fecha</h3>
-                  <div className="space-y-2">
-                    {["Hoy", "Mañana", "Este fin de semana", "Esta semana", "Este mes", "Personalizada"].map((date) => (
-                      <div key={date} className="flex items-center space-x-2">
-                        <Checkbox id={`date-${date}`} />
-                        <label
-                          htmlFor={`date-${date}`}
-                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                        >
-                          {date}
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <Separator />
-
-                {/* Ubicación */}
-                <div>
-                  <h3 className="font-medium mb-3">Ubicación</h3>
-                  <div className="space-y-3">
-                    <Select>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Selecciona ciudad" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="santiago">Santiago</SelectItem>
-                        <SelectItem value="valparaiso">Valparaíso</SelectItem>
-                        <SelectItem value="concepcion">Concepción</SelectItem>
-                        <SelectItem value="la-serena">La Serena</SelectItem>
-                        <SelectItem value="antofagasta">Antofagasta</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <div className="flex items-center gap-2">
-                      <Input type="number" placeholder="Radio (km)" className="w-full" />
-                      <span className="text-sm text-muted-foreground">km</span>
-                    </div>
-                  </div>
-                </div>
-
-                <Separator />
-
-                {/* Más filtros */}
+                {/* Más filtros - Comentado temporalmente */}
+                {/*
                 <div>
                   <h3 className="font-medium mb-3">Más filtros</h3>
                   <div className="space-y-2">
@@ -240,6 +343,7 @@ export default function EventsPage() {
                     </div>
                   </div>
                 </div>
+                */}
 
                 <Button className="w-full bg-primary text-white">Aplicar filtros</Button>
               </div>
@@ -251,7 +355,10 @@ export default function EventsPage() {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
               <div>
                 <h2 className="text-2xl font-bold text-primary">Todos los eventos</h2>
-                <p className="text-muted-foreground">Mostrando {filteredEvents.length} eventos</p>
+                <p className="text-muted-foreground">
+                  Mostrando {currentEvents.length} de {filteredEvents.length} eventos
+                  {selectedCategories.length > 0 && ` en categoría${selectedCategories.length > 1 ? 's' : ''}: ${selectedCategories.join(', ')}`}
+                </p>
               </div>
               <div className="flex items-center gap-3">
                 <Tabs value={viewMode} onValueChange={setViewMode} className="w-[200px]">
@@ -305,66 +412,86 @@ export default function EventsPage() {
               )}
             </div>
 
-            {viewMode === "grid" ? (
+            {loading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredEvents.map((event) => (
-                  <EventCard key={event.id} event={event} />
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <div key={i} className="h-64 bg-gray-200 rounded-lg animate-pulse" />
+                ))}
+              </div>
+            ) : error ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">Error al cargar eventos: {error}</p>
+                <Button 
+                  onClick={() => window.location.reload()} 
+                  className="mt-4"
+                >
+                  Reintentar
+                </Button>
+              </div>
+            ) : filteredEvents.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">No se encontraron eventos con los filtros seleccionados.</p>
+              </div>
+            ) : viewMode === "grid" ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {currentEvents.map((event) => (
+                  <EventCard key={event.id_evento} event={event} />
                 ))}
               </div>
             ) : (
               <div className="space-y-4">
-                {filteredEvents.map((event) => (
-                  <Card key={event.id} className="overflow-hidden">
+                {currentEvents.map((event) => (
+                  <Card key={event.id_evento} className="overflow-hidden">
                     <div className="flex flex-col sm:flex-row">
                       <div className="relative w-full sm:w-96 h-64 sm:h-64 flex-shrink-0">
                         <Image
-                          src={event.image || "/placeholder.svg"}
-                          alt={event.title}
+                          src={event.imagen || "/placeholder.svg"}
+                          alt={event.titulo}
                           fill
                           className="object-cover"
                         />
                         <div className="absolute top-2 left-2">
                           <Badge
                             className={`category-badge-${
-                              event.category.toLowerCase() === "música"
+                              event.nombre_categoria?.toLowerCase() === "música"
                                 ? "music"
-                                : event.category.toLowerCase() === "deportes"
+                                : event.nombre_categoria?.toLowerCase() === "deportes"
                                   ? "sports"
-                                  : event.category.toLowerCase() === "gastronomía"
+                                  : event.nombre_categoria?.toLowerCase() === "gastronomía"
                                     ? "food"
-                                    : event.category.toLowerCase() === "arte y cultura"
+                                    : event.nombre_categoria?.toLowerCase() === "arte y cultura"
                                       ? "art"
-                                      : event.category.toLowerCase() === "tecnología"
+                                      : event.nombre_categoria?.toLowerCase() === "tecnología"
                                         ? "tech"
                                         : "outdoor"
                             }`}
                           >
-                            {event.category}
+                            {event.nombre_categoria}
                           </Badge>
                         </div>
                       </div>
                       <CardContent className="p-4 flex-grow">
-                        <Link href={`/events/${event.id}`}>
+                        <Link href={`/events/${event.id_evento}`}>
                           <h3 className="text-xl font-semibold mb-2 hover:text-primary transition-colors">
-                            {event.title}
+                            {event.titulo}
                           </h3>
                         </Link>
                         <div className="flex items-center gap-2 text-muted-foreground mb-1">
                           <Calendar className="h-4 w-4 flex-shrink-0 text-primary" />
                           <span className="text-sm">
-                            {event.date} • {event.time}
+                            {event.fecha_inicio} • {event.fecha_fin}
                           </span>
                         </div>
                         <div className="flex items-center gap-2 text-muted-foreground mb-3">
                           <MapPin className="h-4 w-4 flex-shrink-0 text-primary" />
-                          <span className="text-sm">{event.location}</span>
+                          <span className="text-sm">{event.ubicacion}</span>
                         </div>
-                        <p className="text-muted-foreground text-sm mb-4">{event.description}</p>
+                        <p className="text-muted-foreground text-sm mb-4">{event.descripcion}</p>
                         <div className="flex justify-between items-center">
                           <Badge variant="outline" className="bg-primary/5 text-primary">
                             Desde $10.000
                           </Badge>
-                          <Link href={`/events/${event.id}`}>
+                          <Link href={`/events/${event.id_evento}`}>
                             <Button
                               variant="outline"
                               size="sm"
@@ -384,29 +511,60 @@ export default function EventsPage() {
             {/* Pagination */}
             <div className="flex justify-center mt-12">
               <nav className="flex items-center gap-1">
-                <Button variant="outline" size="icon" disabled>
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(currentPage - 1)}
+                >
                   <ChevronDown className="h-4 w-4 rotate-90" />
                 </Button>
-                <Button variant="outline" size="sm" className="bg-primary text-white hover:bg-primary/90">
-                  1
-                </Button>
-                <Button variant="outline" size="sm">
-                  2
-                </Button>
-                <Button variant="outline" size="sm">
-                  3
-                </Button>
-                <Button variant="outline" size="sm">
-                  4
-                </Button>
-                <Button variant="outline" size="sm">
-                  5
-                </Button>
-                <span className="mx-1">...</span>
-                <Button variant="outline" size="sm">
-                  12
-                </Button>
-                <Button variant="outline" size="icon">
+                
+                {/* Mostrar páginas */}
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNumber;
+                  if (totalPages <= 5) {
+                    pageNumber = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNumber = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNumber = totalPages - 4 + i;
+                  } else {
+                    pageNumber = currentPage - 2 + i;
+                  }
+                  
+                  return (
+                    <Button
+                      key={pageNumber}
+                      variant={currentPage === pageNumber ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCurrentPage(pageNumber)}
+                      className={currentPage === pageNumber ? "bg-primary text-white hover:bg-primary/90" : ""}
+                    >
+                      {pageNumber}
+                    </Button>
+                  );
+                })}
+                
+                {totalPages > 5 && currentPage < totalPages - 2 && (
+                  <>
+                    <span className="mx-1">...</span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(totalPages)}
+                    >
+                      {totalPages}
+                    </Button>
+                  </>
+                )}
+                
+                <Button 
+                  variant="outline" 
+                  size="icon"
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage(currentPage + 1)}
+                >
                   <ChevronDown className="h-4 w-4 -rotate-90" />
                 </Button>
               </nav>

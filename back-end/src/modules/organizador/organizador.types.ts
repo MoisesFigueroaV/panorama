@@ -1,35 +1,57 @@
 import { t } from 'elysia';
 
 export const registroCompletoOrganizadorSchema = t.Object({
+  // Campos de usuario
   nombre_usuario: t.String({ minLength: 3, maxLength: 100 }),
   correo: t.String({ format: 'email' }),
   contrasena: t.String({ minLength: 8 }),
-  sexo: t.Optional(t.String({ enum: ['M', 'F', 'O'] })),
-  fecha_nacimiento: t.Optional(t.String({ format: 'date' })),
+  sexo: t.Optional(t.Nullable(t.String({ enum: ['M', 'F', 'O'] }))),
+  fecha_nacimiento: t.Optional(t.Nullable(t.String({ format: 'date' }))),
+  
+  // Campos de organizador
   nombre_organizacion: t.String({ minLength: 3, maxLength: 150 }),
-  descripcion: t.Optional(t.String()),
-  documento_acreditacion: t.Optional(t.String()),
-  ubicacion: t.Optional(t.String()),
-  anio_fundacion: t.Optional(t.Integer()),
-  sitio_web: t.Optional(t.String()),
-  imagen_portada: t.Optional(t.String()),
-  logo_organizacion: t.Optional(t.String())
+  tipo_organizacion: t.String({ maxLength: 50 }),
+  rut_organizacion: t.String({ maxLength: 20 }),
+  descripcion: t.Optional(t.Nullable(t.String())),
+  telefono_organizacion: t.Optional(t.Nullable(t.String({ maxLength: 20 }))),
+  ubicacion: t.Optional(t.Nullable(t.String({ maxLength: 250 }))),
+  anio_fundacion: t.Optional(t.Nullable(t.String())),
+  sitio_web: t.Optional(t.Nullable(t.String({ format: 'url' }))),
+  redes_sociales: t.Optional(t.Nullable(t.String())), // JSON string con array de redes sociales
+  documento_acreditacion_file: t.Optional(t.Any()), // Cambiado a Any para manejar FormData
 });
+
 export type RegistroCompletoOrganizadorApiPayload = typeof registroCompletoOrganizadorSchema.static;
 
 export const createOrganizadorPerfilSchema = t.Object({
   nombre_organizacion: t.String({ minLength: 3, maxLength: 150 }),
-  descripcion: t.Optional(t.String()),
-  documento_acreditacion: t.Optional(t.String()),
-  ubicacion: t.Optional(t.String()),
-  anio_fundacion: t.Optional(t.Integer()),
-  sitio_web: t.Optional(t.String()),
-  imagen_portada: t.Optional(t.String()),
-  logo_organizacion: t.Optional(t.String())
+  tipo_organizacion: t.String({ maxLength: 50 }),
+  rut_organizacion: t.String({ maxLength: 20 }),
+  descripcion: t.Optional(t.Nullable(t.String())),
+  telefono_organizacion: t.Optional(t.Nullable(t.String({ maxLength: 20 }))),
+  ubicacion: t.Optional(t.Nullable(t.String({ maxLength: 250 }))),
+  anio_fundacion: t.Optional(t.Nullable(t.String())),
+  sitio_web: t.Optional(t.Nullable(t.String({ format: 'url' }))),
+  redes_sociales: t.Optional(t.Nullable(t.String())), // JSON string
+  documento_acreditacion_file: t.Optional(t.Any()), // Cambiado a Any
 });
+
 export type CreateOrganizadorPerfilApiPayload = typeof createOrganizadorPerfilSchema.static;
 
-export const updateOrganizadorPerfilSchema = t.Partial(createOrganizadorPerfilSchema);
+// Schema para actualizar un perfil de organizador (por el propio organizador)
+export const updateOrganizadorPerfilSchema = t.Partial(t.Object({
+  nombre_organizacion: t.String({ minLength: 3, maxLength: 150 }),
+  tipo_organizacion: t.String({ maxLength: 50 }),
+  rut_organizacion: t.String({ maxLength: 20 }),
+  descripcion: t.Nullable(t.String()),
+  telefono_organizacion: t.Nullable(t.String({ maxLength: 20 })),
+  ubicacion: t.Nullable(t.String({ maxLength: 250 })),
+  anio_fundacion: t.Nullable(t.String()),
+  sitio_web: t.Nullable(t.String({ format: 'url' })),
+  redes_sociales: t.Nullable(t.String()), // JSON string
+  documento_acreditacion_file: t.Optional(t.Any()), // Cambiado a Any
+}));
+
 export type UpdateOrganizadorPerfilApiPayload = typeof updateOrganizadorPerfilSchema.static;
 
 export const organizadorParamsSchema = t.Object({

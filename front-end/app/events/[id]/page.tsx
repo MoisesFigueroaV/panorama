@@ -1,24 +1,69 @@
+"use client"
+
+import { use } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { Calendar, MapPin, Share2, Heart, ArrowLeft, ExternalLink } from "lucide-react"
+import { Calendar, MapPin, Share2, Heart, ArrowLeft, ExternalLink, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import EventMap from "@/components/event-map"
-import { events } from "@/lib/mock-data"
+// import EventMap from "@/components/event-map" // Deshabilitado temporalmente
+import { useEventoById, useEventosDestacados } from "@/lib/hooks/usePublicData"
+import { format } from "date-fns"
+import { es } from "date-fns/locale"
 
 interface EventPageProps {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
 export default function EventPage({ params }: EventPageProps) {
-  // Find the event by ID
-  const event = events.find((e) => e.id === params.id) || events[0]
+  const { id } = use(params)
+  const eventoId = parseInt(id)
+  const { evento, loading, error } = useEventoById(eventoId)
+  const { eventos: eventosRelacionados } = useEventosDestacados(3)
 
-  // Related events (excluding current event)
-  const relatedEvents = events.filter((e) => e.id !== event.id).slice(0, 3)
+  if (loading) {
+    return (
+      <main className="min-h-screen pb-16">
+        <div className="container py-12">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
+              <p className="text-muted-foreground">Cargando evento...</p>
+            </div>
+          </div>
+        </div>
+      </main>
+    )
+  }
+
+  if (error || !evento) {
+    return (
+      <main className="min-h-screen pb-16">
+        <div className="container py-12">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <p className="text-muted-foreground mb-4">
+                {error || 'Evento no encontrado'}
+              </p>
+              <Link href="/events">
+                <Button>Volver a eventos</Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </main>
+    )
+  }
+
+  // Formatear fechas
+  const fechaInicio = new Date(evento.fecha_inicio)
+  const fechaFin = new Date(evento.fecha_fin)
+  const fechaFormateada = format(fechaInicio, "EEEE, d 'de' MMMM 'de' yyyy", { locale: es })
+  const horaInicio = format(fechaInicio, "HH:mm")
+  const horaFin = format(fechaFin, "HH:mm")
 
   return (
     <main className="min-h-screen pb-16">
@@ -35,18 +80,18 @@ export default function EventPage({ params }: EventPageProps) {
           </Link>
 
           <div className="max-w-3xl text-white">
-            <Badge className="mb-4">{event.category}</Badge>
-            <h1 className="text-3xl md:text-5xl font-bold mb-4">{event.title}</h1>
+            <Badge className="mb-4">{evento.nombre_categoria}</Badge>
+            <h1 className="text-3xl md:text-5xl font-bold mb-4">{evento.titulo}</h1>
             <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
               <div className="flex items-center gap-2">
                 <Calendar className="h-5 w-5" />
                 <span>
-                  {event.date} • {event.time}
+                  {fechaFormateada} • {horaInicio} - {horaFin}
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 <MapPin className="h-5 w-5" />
-                <span>{event.location}</span>
+                <span>{evento.ubicacion || 'Ubicación por confirmar'}</span>
               </div>
             </div>
             <div className="flex flex-col sm:flex-row gap-4">
@@ -74,7 +119,13 @@ export default function EventPage({ params }: EventPageProps) {
           </div>
         </div>
         <div className="absolute inset-0 z-0">
-          <Image src={event.image || "/placeholder.svg"} alt={event.title} fill className="object-cover" priority />
+          <Image 
+            src={evento.imagen || "/placeholder.svg"} 
+            alt={evento.titulo} 
+            fill 
+            className="object-cover" 
+            priority 
+          />
         </div>
       </section>
 
@@ -85,25 +136,18 @@ export default function EventPage({ params }: EventPageProps) {
             <div className="space-y-8">
               <div>
                 <h2 className="text-2xl font-bold mb-4">Descripción</h2>
-                <p className="text-muted-foreground">{event.description}</p>
-                <p className="text-muted-foreground mt-4">
-                  Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, nisl vel ultricies lacinia, nisl
-                  nisl aliquam nisl, eget aliquam nisl nisl sit amet nisl. Sed euismod, nisl vel ultricies lacinia, nisl
-                  nisl aliquam nisl, eget aliquam nisl nisl sit amet nisl.
-                </p>
-                <p className="text-muted-foreground mt-4">
-                  Sed euismod, nisl vel ultricies lacinia, nisl nisl aliquam nisl, eget aliquam nisl nisl sit amet nisl.
-                  Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, nisl vel ultricies lacinia, nisl
-                  nisl aliquam nisl, eget aliquam nisl nisl sit amet nisl.
-                </p>
+                <p className="text-muted-foreground">{evento.descripcion || 'Descripción no disponible'}</p>
               </div>
 
+              {/* Mapa deshabilitado temporalmente */}
+              {/*
               <div>
                 <h2 className="text-2xl font-bold mb-4">Ubicación</h2>
                 <div className="h-[400px] rounded-lg overflow-hidden border">
-                  <EventMap events={[event]} />
+                  <EventMap events={[evento]} />
                 </div>
               </div>
+              */}
             </div>
           </div>
 
@@ -114,24 +158,31 @@ export default function EventPage({ params }: EventPageProps) {
               <div className="space-y-4 mb-6">
                 <div>
                   <h3 className="font-medium mb-1">Fecha y hora</h3>
-                  <p className="text-muted-foreground">{event.date}</p>
-                  <p className="text-muted-foreground">{event.time}</p>
+                  <p className="text-muted-foreground">{fechaFormateada}</p>
+                  <p className="text-muted-foreground">{horaInicio} - {horaFin}</p>
                 </div>
 
                 <div>
                   <h3 className="font-medium mb-1">Ubicación</h3>
-                  <p className="text-muted-foreground">{event.location}</p>
+                  <p className="text-muted-foreground">{evento.ubicacion || 'Por confirmar'}</p>
                 </div>
 
                 <div>
                   <h3 className="font-medium mb-1">Organizador</h3>
-                  <p className="text-muted-foreground">Eventos Santiago</p>
+                  <p className="text-muted-foreground">{evento.nombre_organizacion || 'Organizador no especificado'}</p>
                 </div>
 
                 <div>
                   <h3 className="font-medium mb-1">Categoría</h3>
-                  <Badge>{event.category}</Badge>
+                  <Badge>{evento.nombre_categoria}</Badge>
                 </div>
+
+                {evento.capacidad && (
+                  <div>
+                    <h3 className="font-medium mb-1">Capacidad</h3>
+                    <p className="text-muted-foreground">{evento.capacidad} personas</p>
+                  </div>
+                )}
               </div>
 
               <Separator className="my-6" />
@@ -156,41 +207,48 @@ export default function EventPage({ params }: EventPageProps) {
       </section>
 
       {/* Related Events */}
-      <section className="container py-12">
-        <h2 className="text-2xl font-bold mb-6">Eventos relacionados</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {relatedEvents.map((relatedEvent) => (
-            <Link key={relatedEvent.id} href={`/events/${relatedEvent.id}`} className="group">
-              <div className="bg-card rounded-lg border overflow-hidden h-full flex flex-col transition-shadow hover:shadow-md">
-                <div className="relative h-48">
-                  <Image
-                    src={relatedEvent.image || "/placeholder.svg"}
-                    alt={relatedEvent.title}
-                    fill
-                    className="object-cover"
-                  />
-                  <div className="absolute top-2 left-2">
-                    <Badge>{relatedEvent.category}</Badge>
+      {eventosRelacionados && eventosRelacionados.length > 0 && (
+        <section className="container py-12">
+          <h2 className="text-2xl font-bold mb-6">Eventos relacionados</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {eventosRelacionados
+              .filter(relatedEvent => relatedEvent.id_evento !== evento.id_evento)
+              .slice(0, 3)
+              .map((relatedEvent) => (
+                <Link key={relatedEvent.id_evento} href={`/events/${relatedEvent.id_evento}`} className="group">
+                  <div className="bg-card rounded-lg border overflow-hidden h-full flex flex-col transition-shadow hover:shadow-md">
+                    <div className="relative h-48">
+                      <Image
+                        src={relatedEvent.imagen || "/placeholder.svg"}
+                        alt={relatedEvent.titulo}
+                        fill
+                        className="object-cover"
+                      />
+                      <div className="absolute top-2 left-2">
+                        <Badge>{relatedEvent.nombre_categoria}</Badge>
+                      </div>
+                    </div>
+                    <div className="p-4 flex-grow">
+                      <h3 className="font-semibold text-lg mb-2 group-hover:text-primary transition-colors">
+                        {relatedEvent.titulo}
+                      </h3>
+                      <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                        <Calendar className="h-4 w-4" />
+                        <span className="text-sm">
+                          {format(new Date(relatedEvent.fecha_inicio), "dd/MM/yyyy", { locale: es })}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <MapPin className="h-4 w-4" />
+                        <span className="text-sm">{relatedEvent.ubicacion || 'Ubicación por confirmar'}</span>
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div className="p-4 flex-grow">
-                  <h3 className="font-semibold text-lg mb-2 group-hover:text-primary transition-colors">
-                    {relatedEvent.title}
-                  </h3>
-                  <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                    <Calendar className="h-4 w-4" />
-                    <span className="text-sm">{relatedEvent.date}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <MapPin className="h-4 w-4" />
-                    <span className="text-sm">{relatedEvent.location}</span>
-                  </div>
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </section>
+                </Link>
+              ))}
+          </div>
+        </section>
+      )}
     </main>
   )
 }

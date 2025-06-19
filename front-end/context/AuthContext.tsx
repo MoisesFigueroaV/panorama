@@ -49,9 +49,55 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
   const pathname = usePathname();
 
+  // Verificar sesión al cargar y configurar interceptor
   useEffect(() => {
     checkSession()
+    setupAuthInterceptor()
   }, [])
+
+  const setupAuthInterceptor = () => {
+    // Configurar interceptor para manejar renovación de tokens
+    apiClient.interceptors.response.use(
+      (response) => response,
+      async (error) => {
+        const originalRequest = error.config;
+
+        // Si el error es 401 y no es una solicitud de refresh
+        if (error.response?.status === 401 && !originalRequest._retry) {
+          originalRequest._retry = true;
+
+          try {
+            const refreshToken = getCookie('refreshToken') as string;
+            if (!refreshToken) {
+              throw new Error('No refresh token available');
+            }
+
+            // Intentar refrescar el token
+            const response = await apiClient.post('/auth/refresh', {
+              refreshToken,
+            });
+
+            const { accessToken, refreshToken: newRefreshToken } = response.data;
+
+            // Actualizar tokens
+            setAccessToken(accessToken);
+            setRefreshToken(newRefreshToken);
+            setLocalAccessToken(accessToken);
+
+            // Reintentar la solicitud original
+            originalRequest.headers['Authorization'] = `Bearer ${accessToken}`;
+            return apiClient(originalRequest);
+          } catch (refreshError) {
+            // Si falla el refresh, limpiar sesión
+            await clearSession();
+            return Promise.reject(refreshError);
+          }
+        }
+
+        return Promise.reject(error);
+      }
+    );
+  };
 
   const checkSession = async () => {
     try {
@@ -59,6 +105,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (token) {
         // Configurar el token en el cliente API
         setAccessToken(token)
+        setLocalAccessToken(token)
         
         // Verificar la sesión con el backend
         const response = await apiClient.get('/usuarios/yo')
@@ -78,19 +125,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const clearSession = async () => {
     try {
+      console.log('Limpiando tokens en el cliente API...');
       // Limpiar tokens en el cliente API
       clearAuthTokens()
       
+      console.log('Limpiando cookies...');
       // Limpiar cookies
       deleteCookie('accessToken')
       deleteCookie('refreshToken')
       
+      console.log('Limpiando estado local...');
       // Limpiar estado
       setUser(null)
       setLocalAccessToken(null)
       
+      console.log('Limpiando headers de la API...');
       // Limpiar headers de la API
       delete apiClient.defaults.headers.common['Authorization']
+      
+      console.log('Sesión limpiada completamente');
     } catch (err) {
       console.error('Error al limpiar sesión:', err)
     }
@@ -115,8 +168,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         console.log('Redirigiendo a /admin');
         router.push('/admin');
       } else if (response.usuario.rol?.id_rol === 2) {
-        console.log('Redirigiendo a /organizer/dashboard');
-        router.push('/organizer/dashboard');
+        console.log('Redirigiendo a /organizers/dashboard');
+        router.push('/organizers/dashboard');
       } else if (response.usuario.rol?.id_rol === 3) {
         console.log('Redirigiendo a /users/profile');
         router.push('/users/profile');
@@ -132,29 +185,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const logout = async () => {
     try {
-      // Intentar hacer logout en el backend si hay token
-      const token = getAccessToken()
-      if (token) {
-        try {
-          await apiClient.post('/auth/logout')
-        } catch (err) {
-          console.error('Error al hacer logout en el backend:', err)
-        }
-      }
-
-      // Limpiar toda la sesión
-      await clearSession()
+      console.log('Iniciando logout...');
       
-      // Si estamos en la página principal, no redirigir
-      if (pathname === '/') {
-        // Forzar recarga de la página para limpiar cualquier estado residual
-        window.location.reload()
-      } else {
-        // Si estamos en otra página, redirigir a la principal
-        router.push('/')
-        // Forzar recarga de la página para limpiar cualquier estado residual
-        window.location.href = '/'
-      }
+      // Limpiar toda la sesión localmente
+      console.log('Limpiando sesión local...');
+      await clearSession()
+      console.log('Sesión limpiada exitosamente');
+      
+      // Redirigir a la página principal
+      console.log('Redirigiendo a página principal...');
+      router.push('/')
     } catch (err) {
       console.error('Error durante el logout:', err)
       // Aún así, intentar limpiar la sesión y redirigir a la principal

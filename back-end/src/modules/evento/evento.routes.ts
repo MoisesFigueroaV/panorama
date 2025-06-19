@@ -1,6 +1,6 @@
 import Elysia, { t } from 'elysia';
 import { authMiddleware, requireAuth } from '../../middleware/auth.middleware';
-import { createEventoService, updateEventoService, getEventosByOrganizadorService , getEventoByIdService} from './evento.services';
+import { createEventoService, updateEventoService, getEventosByOrganizadorService , getEventoByIdService, getOrganizerDashboardStatsService, getEventosDestacadosService, getCategoriasEventosService, getEventosByCategoriaService } from './evento.services';
 import { createEventoSchema, updateEventoSchema, eventoResponseSchema, eventosResponseSchema } from './evento.types';
 import { CustomError } from '../../utils/errors';
 import { getOrganizadorByUserIdService } from '../organizador/organizador.services';
@@ -37,15 +37,26 @@ export const eventoRoutes = new Elysia({ prefix: '/eventos', detail: { tags: ['E
   .post(
     '/',
     async (context) => {
+      console.log('🚀 POST /eventos - Petición recibida');
+      console.log('🚀 Headers:', context.request.headers);
+      console.log('🚀 Body:', context.body);
+      
       const currentSession = requireAuth()(context.session);
+      console.log('🚀 Sesión autenticada:', currentSession);
 
       // Buscar el perfil de organizador del usuario autenticado
       const organizador = await getOrganizadorByUserIdService(currentSession.subAsNumber);
+      console.log('🚀 Organizador encontrado:', organizador);
+      
       if (!organizador) {
+        console.error('❌ No se encontró perfil de organizador para usuario:', currentSession.subAsNumber);
         throw new CustomError('No tienes un perfil de organizador asociado.', 403);
       }
 
+      console.log('🚀 Creando evento para organizador:', organizador.id_organizador);
       const evento = await createEventoService(organizador.id_organizador, context.body);
+      console.log('🚀 Evento creado exitosamente:', evento);
+      
       context.set.status = 201;
       return mapEventoToResponse(evento);
     },
@@ -81,6 +92,40 @@ export const eventoRoutes = new Elysia({ prefix: '/eventos', detail: { tags: ['E
   )
 
   /**
+   * Obtener estadísticas del dashboard del organizador
+   */
+  .get(
+    '/dashboard-stats',
+    async (context) => {
+      const currentSession = requireAuth()(context.session);
+
+      // Buscar el perfil de organizador del usuario autenticado
+      const organizador = await getOrganizadorByUserIdService(currentSession.subAsNumber);
+      if (!organizador) {
+        throw new CustomError('No tienes un perfil de organizador asociado.', 403);
+      }
+
+      // Obtener estadísticas del dashboard
+      const stats = await getOrganizerDashboardStatsService(organizador.id_organizador);
+      return stats;
+    },
+    {
+      response: { 
+        200: t.Object({
+          eventosActivos: t.Number(),
+          eventosPendientes: t.Number(),
+          eventosTotales: t.Number(),
+          eventosPorCategoria: t.Array(t.Object({
+            categoria: t.String(),
+            cantidad: t.Number()
+          }))
+        })
+      },
+      detail: { summary: 'Obtener estadísticas del dashboard', security: [{ bearerAuth: [] }] }
+    }
+  )
+
+  /**
    * Actualizar evento existente
    */
   .put(
@@ -109,3 +154,74 @@ export const eventoRoutes = new Elysia({ prefix: '/eventos', detail: { tags: ['E
       detail: { summary: 'Actualizar mi evento', security: [{ bearerAuth: [] }] }
     }
   );
+
+// Rutas públicas para eventos
+export const publicEventoRoutes = new Elysia({
+  prefix: '/eventos',
+  detail: { tags: ['Eventos Públicos'] }
+})
+.get(
+  '/destacados',
+  async ({ query }) => {
+    const limit = query.limit ? parseInt(query.limit) : 6;
+    return await getEventosDestacadosService(limit);
+  },
+  {
+    query: t.Object({
+      limit: t.Optional(t.String()),
+    }),
+    detail: { summary: 'Obtener eventos destacados para la página principal' }
+  }
+)
+.get(
+  '/organizador/:id',
+  async ({ params }) => {
+    const organizadorId = parseInt(params.id);
+    return await getEventosByOrganizadorService(organizadorId);
+  },
+  {
+    params: t.Object({
+      id: t.String(),
+    }),
+    detail: { summary: 'Obtener eventos de un organizador específico' }
+  }
+)
+.get(
+  '/categorias',
+  async () => {
+    return await getCategoriasEventosService();
+  },
+  {
+    detail: { summary: 'Obtener todas las categorías de eventos' }
+  }
+)
+.get(
+  '/categoria/:id',
+  async ({ params, query }) => {
+    const categoriaId = parseInt(params.id);
+    const limit = query.limit ? parseInt(query.limit) : 100;
+    return await getEventosByCategoriaService(categoriaId, limit);
+  },
+  {
+    params: t.Object({
+      id: t.String(),
+    }),
+    query: t.Object({
+      limit: t.Optional(t.String()),
+    }),
+    detail: { summary: 'Obtener eventos por categoría específica' }
+  }
+)
+.get(
+  '/:id',
+  async ({ params }) => {
+    const eventoId = parseInt(params.id);
+    return await getEventoByIdService(eventoId);
+  },
+  {
+    params: t.Object({
+      id: t.String(),
+    }),
+    detail: { summary: 'Obtener un evento específico por ID' }
+  }
+);

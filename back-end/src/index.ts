@@ -15,10 +15,12 @@ import { usuarioRoutes, userProfileRoutes } from './modules/usuario/usuario.rout
 import {
   authOrganizadorRoutes,
   organizadorUsuarioRoutes,
-  publicOrganizadorRoutes
+  publicOrganizadorRoutes,
+  publicOrganizadoresVerificadosRoutes
 } from './modules/organizador/organizador.routes';
 import { eventoRoutes } from './modules/evento/evento.routes';
 import { adminRoutes } from './modules/admin/admin.routes';
+import { eventoRoutes, publicEventoRoutes } from './modules/evento/evento.routes';
 
 // Cargar variables de entorno
 dotenv.config();
@@ -46,6 +48,7 @@ const app = new Elysia()
         { name: 'Roles de Usuario', description: 'Gestión de roles de usuario' },
         { name: 'Usuarios', description: 'Gestión de perfiles de usuario' },
         { name: 'Organizadores', description: 'Gestión de perfiles de organizadores de eventos' },
+        { name: 'Eventos', description: 'Gestión de eventos' },
         { name: 'Admin', description: 'Operaciones de administración (KPIs, gestión de usuarios, organizadores, etc.)' },
         { name: 'Eventos', description: 'Gestión de eventos, incluyendo creación, actualización y consulta' },
       ],
@@ -106,6 +109,13 @@ const app = new Elysia()
       .use(authOrganizadorRoutes)
       .use(organizadorUsuarioRoutes)
       .use(publicOrganizadorRoutes)
+      .use(publicOrganizadoresVerificadosRoutes)
+      
+      // Módulo de Eventos
+      .use(eventoRoutes)
+      .use(publicEventoRoutes)
+      
+      // Módulo de Administración Centralizado
       .use(adminRoutes)
       .use(eventoRoutes)
   )

@@ -39,9 +39,24 @@ export const useAdminOrganizers = () => {
         estado: org.estadoAcreditacionActual
       })));
       setOrganizers(response.data);
-    } catch (err) {
+    } catch (err: any) {
       console.error('❌ Error fetching organizers:', err);
-      setError('No se pudo cargar la lista de organizadores.');
+      
+      // Extraer el mensaje de error correctamente
+      let errorMessage = 'No se pudo cargar la lista de organizadores.';
+      
+      if (err.response?.data?.error) {
+        // Si el error viene en formato { error: "mensaje" }
+        errorMessage = err.response.data.error;
+      } else if (err.response?.data) {
+        // Si el error es directamente un string
+        errorMessage = typeof err.response.data === 'string' ? err.response.data : errorMessage;
+      } else if (err.message) {
+        // Si hay un mensaje en el error
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -97,10 +112,28 @@ export const useAdminOrganizers = () => {
       });
     } catch (err: any) {
       console.error('❌ Error updating accreditation:', err.response?.data || err);
+      
+      // Extraer el mensaje de error correctamente
+      let errorMessage = "No se pudo actualizar el estado del organizador.";
+      
+      if (err.response?.data?.error) {
+        // Si el error viene en formato { error: "mensaje" }
+        errorMessage = err.response.data.error;
+      } else if (err.response?.data?.message) {
+        // Si el error viene en formato { message: "mensaje" }
+        errorMessage = err.response.data.message;
+      } else if (err.response?.data) {
+        // Si el error es directamente un string
+        errorMessage = typeof err.response.data === 'string' ? err.response.data : errorMessage;
+      } else if (err.message) {
+        // Si hay un mensaje en el error
+        errorMessage = err.message;
+      }
+      
       toast({
         variant: "destructive",
         title: "Error",
-        description: err.response?.data?.message || "No se pudo actualizar el estado del organizador.",
+        description: errorMessage,
       });
     }
   };

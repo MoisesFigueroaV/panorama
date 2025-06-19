@@ -7,14 +7,23 @@ import { Calendar, Globe, Home, LogOut, MessageSquare, PlusCircle, Users } from 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { useAuth } from "@/context/AuthContext"
 
 export function OrganizerSidebar() {
   const pathname = usePathname()
   const router = useRouter()
+  const { logout } = useAuth()
 
-  // Función simulada de cierre de sesión
-  const handleSignOut = () => {
-    router.push("/")
+  // Función de cierre de sesión que limpia el estado de autenticación
+  const handleSignOut = async () => {
+    try {
+      await logout()
+      router.push("/")
+    } catch (error) {
+      console.error("Error al cerrar sesión:", error)
+      // Aún redirigir a la página principal en caso de error
+      router.push("/")
+    }
   }
 
   const routes = [
