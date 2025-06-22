@@ -101,24 +101,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const checkSession = async () => {
     try {
+      console.log('🔍 Verificando sesión...');
       const token = getAccessToken()
+      console.log('🔍 Token obtenido:', token ? 'Presente' : 'Ausente');
+      
       if (token) {
+        console.log('🔍 Configurando token en el cliente API...');
         // Configurar el token en el cliente API
         setAccessToken(token)
         setLocalAccessToken(token)
         
+        console.log('🔍 Verificando sesión con el backend...');
         // Verificar la sesión con el backend
         const response = await apiClient.get('/usuarios/yo')
+        console.log('🔍 Respuesta del backend:', response.data);
         // La respuesta viene en un array, tomamos el primer elemento
         setUser(response.data[0])
+        console.log('🔍 Usuario configurado:', response.data[0]);
       } else {
+        console.log('🔍 No hay token, limpiando sesión...');
         // Si no hay token, limpiar todo
         await clearSession()
       }
     } catch (err) {
-      console.error('Error al verificar sesión:', err)
+      console.error('❌ Error al verificar sesión:', err)
       await clearSession()
     } finally {
+      console.log('🔍 Finalizando verificación de sesión...');
       setIsLoadingSession(false)
     }
   }

@@ -25,6 +25,9 @@ import { useAuth } from "@/context/AuthContext"
 import { api } from "@/lib/api"
 import { CATEGORIAS_EVENTO, CATEGORIAS_MAPPING } from "@/lib/evento-constants"
 import { toast } from "sonner"
+import { useOrganizerProfile } from "@/lib/hooks/useOrganizerProfile"
+import { AlertCircle } from "lucide-react"
+import { ImageUpload } from "@/components/ui/image-upload"
 
 // Schema de validación que coincide exactamente con el back-end
 const eventFormSchema = z.object({
@@ -42,6 +45,8 @@ const eventFormSchema = z.object({
   fecha_fin: z.date({
     required_error: "Por favor selecciona una fecha de fin",
   }),
+  hora_inicio: z.string().min(1, "Por favor ingresa la hora de inicio"),
+  hora_fin: z.string().min(1, "Por favor ingresa la hora de fin"),
   ubicacion: z.string().max(250, {
     message: "La ubicación no puede tener más de 250 caracteres",
   }).optional(),
@@ -61,13 +66,16 @@ const defaultValues: Partial<EventFormValues> = {
   capacidad: "1",
   id_categoria: "1",
   imagen: "",
+  hora_inicio: "09:00",
+  hora_fin: "18:00",
 }
 
 export default function CreateEventPage() {
+  const { accessToken, user, isAuthenticated, isLoadingSession } = useAuth()
+  const { profile, loading: profileLoading, error: profileError } = useOrganizerProfile()
   const [activeTab, setActiveTab] = useState("basic")
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
-  const { accessToken, user, isAuthenticated, isLoadingSession } = useAuth()
 
   // Logs de diagnóstico de autenticación
   console.log('🔍 Estado de autenticación:', {
@@ -81,7 +89,20 @@ export default function CreateEventPage() {
 
   const form = useForm<EventFormValues>({
     resolver: zodResolver(eventFormSchema),
-    defaultValues,
+    defaultValues: {
+      titulo: "",
+      descripcion: "",
+      fecha_inicio: undefined,
+      fecha_fin: undefined,
+      hora_inicio: "09:00",
+      hora_fin: "18:00",
+      imagen: "",
+      ubicacion: "",
+      latitud: undefined,
+      longitud: undefined,
+      capacidad: "50",
+      id_categoria: "",
+    },
   })
 
   // Log para verificar el estado del formulario
@@ -92,6 +113,74 @@ export default function CreateEventPage() {
     isDirty: form.formState.isDirty,
     values: form.getValues()
   })
+
+  // Mostrar loading mientras se verifica el perfil
+  if (profileLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <Link href="/organizers/dashboard/events" className="inline-block mb-4">
+              <Button variant="ghost" className="gap-2">
+                <ChevronLeft className="h-4 w-4" />
+                Volver a eventos
+              </Button>
+            </Link>
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">Crear nuevo evento</h1>
+              <p className="text-muted-foreground">Verificando tu perfil de organizador...</p>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      </div>
+    )
+  }
+
+  // Mostrar error si no hay perfil de organizador
+  if (profileError || !profile?.hasProfile) {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <Link href="/organizers/dashboard/events" className="inline-block mb-4">
+              <Button variant="ghost" className="gap-2">
+                <ChevronLeft className="h-4 w-4" />
+                Volver a eventos
+              </Button>
+            </Link>
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">Crear nuevo evento</h1>
+              <p className="text-muted-foreground">No puedes crear eventos sin un perfil de organizador</p>
+            </div>
+          </div>
+        </div>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center justify-center space-y-4 py-8">
+              <AlertCircle className="h-12 w-12 text-red-500" />
+              <div className="text-center space-y-2">
+                <h3 className="text-lg font-semibold">Perfil de organizador requerido</h3>
+                <p className="text-muted-foreground max-w-md">
+                  {profileError || 'No tienes un perfil de organizador asociado. Debes crear un perfil de organizador antes de poder crear eventos.'}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Link href="/organizers/profile">
+                  <Button className="gap-2">
+                    <Calendar className="h-4 w-4" />
+                    Crear perfil de organizador
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   async function onSubmit(data: EventFormValues) {
     console.log('🔍 onSubmit llamado con datos:', data)
@@ -141,17 +230,25 @@ export default function CreateEventPage() {
         descripcion: data.descripcion || undefined,
         fecha_inicio: data.fecha_inicio.toISOString().split('T')[0], // Solo fecha YYYY-MM-DD
         fecha_fin: data.fecha_fin.toISOString().split('T')[0], // Solo fecha YYYY-MM-DD
+        hora_inicio: data.hora_inicio || undefined,
+        hora_fin: data.hora_fin || undefined,
         ubicacion: data.ubicacion || undefined,
         capacidad: parseInt(data.capacidad), // Convertir a integer como espera el back-end
         id_categoria: parseInt(data.id_categoria), // Convertir a integer como espera el back-end
-        latitud: data.latitud || undefined,
-        longitud: data.longitud || undefined,
         id_estado_evento: 1 // Borrador por defecto - requiere aprobación del admin
       }
 
-      // Solo agregar imagen si es una URL válida
+      // Solo agregar imagen si es una URL válida y no está vacía
       if (data.imagen && data.imagen.trim() !== "") {
         eventoData.imagen = data.imagen.trim()
+      }
+
+      // Solo agregar coordenadas si tienen valores válidos
+      if (data.latitud !== undefined && data.latitud !== null && data.latitud !== 0) {
+        eventoData.latitud = Number(data.latitud)
+      }
+      if (data.longitud !== undefined && data.longitud !== null && data.longitud !== 0) {
+        eventoData.longitud = Number(data.longitud)
       }
 
       console.log('📤 Enviando datos al API:', eventoData)
@@ -164,7 +261,21 @@ export default function CreateEventPage() {
     } catch (error: any) {
       console.error('❌ Error al crear evento:', error)
       console.error('❌ Detalles del error:', error.response?.data || error.message)
-      toast.error(error.message || "Error al crear el evento")
+      
+      // Manejar diferentes tipos de errores
+      let errorMessage = "Error al crear el evento"
+      
+      if (error.response?.status === 403) {
+        errorMessage = "No tienes permisos para crear eventos. Verifica que tengas un perfil de organizador."
+      } else if (error.response?.status === 400) {
+        errorMessage = error.response.data?.error || "Datos de entrada inválidos. Verifica la información del formulario."
+      } else if (error.response?.status === 500) {
+        errorMessage = "Error interno del servidor. Intenta nuevamente más tarde."
+      } else if (error.message) {
+        errorMessage = error.message
+      }
+      
+      toast.error(errorMessage)
     } finally {
       setIsLoading(false)
     }
@@ -345,6 +456,46 @@ export default function CreateEventPage() {
                     />
                   </div>
 
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <FormField
+                      control={form.control}
+                      name="hora_inicio"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Hora de inicio</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="time" 
+                              placeholder="09:00" 
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormDescription>Hora exacta de inicio del evento.</FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="hora_fin"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Hora de fin</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="time" 
+                              placeholder="18:00" 
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormDescription>Hora exacta de finalización del evento.</FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
                   <Separator />
 
                   <FormField
@@ -398,46 +549,15 @@ export default function CreateEventPage() {
                   <div>
                     <h3 className="text-lg font-medium">Imagen del evento</h3>
                     <p className="text-sm text-muted-foreground mb-4">
-                      Proporciona la URL de una imagen que represente tu evento. Es opcional.
+                      Sube una imagen que represente tu evento. Es opcional pero recomendado.
                     </p>
 
-                    <FormField
-                      control={form.control}
-                      name="imagen"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>URL de la imagen</FormLabel>
-                          <FormControl>
-                            <Input 
-                              placeholder="https://ejemplo.com/imagen-evento.jpg" 
-                              {...field} 
-                            />
-                          </FormControl>
-                          <FormDescription>
-                            Ingresa la URL completa de una imagen (JPG, PNG, GIF). Debe ser una URL pública accesible.
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+                    <ImageUpload
+                      onImageUpload={(imageUrl) => {
+                        form.setValue('imagen', imageUrl)
+                      }}
+                      currentImage={form.watch("imagen")}
                     />
-
-                    {/* Vista previa de la imagen si se proporciona una URL */}
-                    {form.watch("imagen") && (
-                      <div className="mt-4">
-                        <h4 className="text-sm font-medium mb-2">Vista previa:</h4>
-                        <div className="relative w-full h-48 border rounded-lg overflow-hidden">
-                          <img
-                            src={form.watch("imagen")}
-                            alt="Vista previa del evento"
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.currentTarget.src = "/placeholder.svg"
-                              toast.error("No se pudo cargar la imagen. Verifica que la URL sea correcta.")
-                            }}
-                          />
-                        </div>
-                      </div>
-                    )}
                   </div>
                 </div>
               </CardContent>

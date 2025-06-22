@@ -127,6 +127,48 @@ export const organizadorUsuarioRoutes = new Elysia({
       security: [{ bearerAuth: [] }] 
     }
   }
+)
+/**
+ * Verificar si el usuario tiene perfil de organizador
+ */
+.get(
+  '/yo/check-profile',
+  async (context) => {
+    const currentSession = requireAuth()(context.session);
+    
+    try {
+      const organizador = await getOrganizadorByUserIdService(currentSession.subAsNumber);
+      return { 
+        hasProfile: true, 
+        organizador: {
+          id_organizador: organizador.id_organizador,
+          nombre_organizacion: organizador.nombre_organizacion,
+          estado_acreditacion: organizador.id_estado_acreditacion_actual || 0
+        }
+      };
+    } catch (error) {
+      if (error instanceof CustomError && error.status === 404) {
+        return { hasProfile: false, organizador: null };
+      }
+      throw error;
+    }
+  },
+  {
+    response: { 
+      200: t.Object({
+        hasProfile: t.Boolean(),
+        organizador: t.Union([
+          t.Object({
+            id_organizador: t.Number(),
+            nombre_organizacion: t.String(),
+            estado_acreditacion: t.Number()
+          }),
+          t.Null()
+        ])
+      })
+    },
+    detail: { summary: 'Verificar si el usuario tiene perfil de organizador', security: [{ bearerAuth: [] }] }
+  }
 );
 
 // Rutas públicas para ver organizadores

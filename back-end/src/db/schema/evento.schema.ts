@@ -1,5 +1,5 @@
 // src/db/schema/evento.schema.ts
-import { pgTable, serial, integer, varchar, text, date, numeric } from 'drizzle-orm/pg-core';
+import { pgTable, serial, integer, varchar, text, date, numeric, time } from 'drizzle-orm/pg-core';
 import { sql, relations } from 'drizzle-orm';
 import { organizadorTable } from './organizador.schema';
 import { categoriaEventoTable } from './categoriaEvento.schema';
@@ -13,6 +13,8 @@ export const eventoTable = pgTable('evento', {
   descripcion: text('descripcion'),
   fecha_inicio: date('fecha_inicio').notNull(),
   fecha_fin: date('fecha_fin').notNull(),
+  hora_inicio: time('hora_inicio').notNull(),
+  hora_fin: time('hora_fin').notNull(),
   fecha_registro: date('fecha_registro').default(sql`CURRENT_DATE`),
   ubicacion: varchar('ubicacion', { length: 250 }),
   latitud: numeric('latitud', { precision: 9, scale: 6 }).$type<number>(),

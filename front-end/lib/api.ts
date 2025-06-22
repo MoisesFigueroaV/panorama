@@ -13,35 +13,40 @@ export const api = {
     },
     eventos: {
       // Crear evento
-      create: async (eventoData: any, token: string) => {
-        console.log('🚀 API: Iniciando creación de evento')
-        console.log('🚀 API: URL base:', API_BASE)
-        console.log('🚀 API: Datos a enviar:', eventoData)
-        console.log('🚀 API: Token presente:', !!token)
+      create: async (data: any, token: string) => {
+        console.log('🚀 API: Enviando petición POST /eventos');
+        console.log('🚀 API: Datos:', data);
         
-        const url = `${API_BASE}/api/v1/eventos`
-        console.log('🚀 API: URL completa:', url)
-        
-        const response = await fetch(url, {
+        const response = await fetch(`${API_BASE}/api/v1/eventos`, {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           },
-          body: JSON.stringify(eventoData)
+          body: JSON.stringify(data)
         });
         
-        console.log('🚀 API: Respuesta recibida, status:', response.status)
+        console.log('🚀 API: Respuesta recibida, status:', response.status);
         
-        if (!response.ok) {
-          const error = await response.json();
-          console.error('🚀 API: Error en respuesta:', error)
-          throw new Error(error.error || 'Error al crear el evento');
+        // Intentar obtener el texto de la respuesta primero
+        const responseText = await response.text();
+        console.log('🚀 API: Respuesta texto:', responseText);
+        
+        let responseData;
+        try {
+          responseData = JSON.parse(responseText);
+        } catch (parseError) {
+          console.error('🚀 API: Error al parsear JSON:', parseError);
+          console.error('🚀 API: Respuesta no válida:', responseText);
+          throw new Error(`Error del servidor: ${responseText}`);
         }
         
-        const result = await response.json();
-        console.log('🚀 API: Evento creado exitosamente:', result)
-        return result;
+        if (!response.ok) {
+          console.error('🚀 API: Error en respuesta:', responseData);
+          throw new Error(responseData.error || 'Error al crear evento');
+        }
+        
+        return responseData;
       },
       
       // Obtener eventos del organizador
@@ -277,6 +282,22 @@ export const api = {
       }
     },
     organizadores: {
+      // Verificar si el usuario tiene perfil de organizador
+      checkProfile: async (token: string) => {
+        const response = await fetch(`${API_BASE}/api/v1/organizadores/yo/check-profile`, {
+          headers: { 
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Error al verificar perfil de organizador');
+        }
+        
+        return response.json();
+      },
+
       // Obtener perfil público del organizador
       getPublicProfile: async (token: string) => {
         const response = await fetch(`${API_BASE}/api/v1/organizadores/yo/public-profile`, {
@@ -307,6 +328,28 @@ export const api = {
         if (!response.ok) {
           const error = await response.json();
           throw new Error(error.error || 'Error al actualizar perfil público');
+        }
+        
+        return response.json();
+      }
+    },
+    upload: {
+      // Subir imagen
+      uploadImage: async (file: File, token: string) => {
+        const formData = new FormData();
+        formData.append('image', file);
+        
+        const response = await fetch(`${API_BASE}/api/v1/upload/image`, {
+          method: 'POST',
+          headers: { 
+            'Authorization': `Bearer ${token}`
+          },
+          body: formData
+        });
+        
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Error al subir imagen');
         }
         
         return response.json();

@@ -12,12 +12,17 @@ interface EventCardProps {
     titulo: string
     fecha_inicio: string
     fecha_fin: string
+    hora_inicio: string
+    hora_fin: string
     ubicacion: string | null
     imagen: string | null
     nombre_categoria: string | null
     descripcion: string | null
     nombre_organizacion: string | null
     logo_organizacion: string | null
+    ya_realizado?: boolean
+    proximo?: boolean
+    en_curso?: boolean
   }
 }
 
@@ -70,6 +75,24 @@ export default function EventCard({ event }: EventCardProps) {
             {event.nombre_categoria || "Evento"}
           </Badge>
         </div>
+        
+        {/* Badge de estado del evento */}
+        {(event.ya_realizado || event.proximo || event.en_curso) && (
+          <div className="absolute top-2 left-2 mt-8">
+            <Badge
+              variant={event.ya_realizado ? "secondary" : event.en_curso ? "default" : "default"}
+              className={`${
+                event.ya_realizado 
+                  ? "bg-gray-500 text-white" 
+                  : event.en_curso 
+                    ? "bg-green-500 text-white" 
+                    : "bg-blue-500 text-white"
+              }`}
+            >
+              {event.ya_realizado ? "Ya realizado" : event.en_curso ? "En curso" : "Próximo"}
+            </Badge>
+          </div>
+        )}
         <div className="absolute top-2 right-2 flex gap-2">
           <TooltipProvider>
             <Tooltip>
@@ -115,7 +138,7 @@ export default function EventCard({ event }: EventCardProps) {
         <div className="flex items-center gap-2 text-muted-foreground mb-1">
           <Calendar className="h-4 w-4 flex-shrink-0 text-accent" />
           <span className="text-sm">
-            {formatDate(event.fecha_inicio)} • {formatTime(event.fecha_inicio)}
+            {formatDate(event.fecha_inicio)} • {event.hora_inicio}
           </span>
         </div>
         <div className="flex items-center gap-2 text-muted-foreground mb-3">

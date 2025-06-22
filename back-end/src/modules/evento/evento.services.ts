@@ -35,21 +35,27 @@ export async function createEventoService(id_organizador: number, data: CreateEv
     throw new CustomError('La capacidad debe ser mayor o igual a 1.', 400);
   }
 
-  const eventoData = {
+  const eventoData: any = {
     titulo: data.titulo,
     descripcion: data.descripcion ?? null,
     fecha_inicio: fechaInicio.toISOString().split('T')[0],
     fecha_fin: fechaFin.toISOString().split('T')[0],
+    hora_inicio: data.hora_inicio,
+    hora_fin: data.hora_fin,
     imagen: data.imagen ?? null,
     ubicacion: data.ubicacion ?? null,
     capacidad: data.capacidad,
     id_categoria: data.id_categoria,
     id_organizador,
-    id_estado_evento: data.id_estado_evento ?? null,
     fecha_registro: new Date().toISOString().split('T')[0],
-    latitud: data.latitud !== undefined ? Number(data.latitud) : null,
-    longitud: data.longitud !== undefined ? Number(data.longitud) : null,
+    latitud: data.latitud !== undefined && data.latitud !== null && data.latitud !== '' ? Number(data.latitud) : null,
+    longitud: data.longitud !== undefined && data.longitud !== null && data.longitud !== '' ? Number(data.longitud) : null,
   };
+
+  // Solo agregar id_estado_evento si se proporciona
+  if (data.id_estado_evento !== undefined && data.id_estado_evento !== null) {
+    eventoData.id_estado_evento = data.id_estado_evento;
+  }
 
   console.log('📤 Datos a insertar en BD:', eventoData);
 
@@ -61,7 +67,19 @@ export async function createEventoService(id_organizador: number, data: CreateEv
     return evento;
   } catch (error) {
     console.error('❌ Error al insertar en BD:', error);
-    throw error;
+    
+    // Si ya es un CustomError, re-lanzarlo
+    if (error instanceof CustomError) {
+      throw error;
+    }
+    
+    // Para errores de base de datos, crear un CustomError
+    if (error instanceof Error) {
+      throw new CustomError(`Error de base de datos: ${error.message}`, 500);
+    }
+    
+    // Para otros tipos de errores
+    throw new CustomError('Error interno del servidor al crear el evento', 500);
   }
 }
 
@@ -84,6 +102,8 @@ export async function updateEventoService(id_evento: number, id_organizador: num
     ...(data.id_estado_evento !== undefined && { id_estado_evento: data.id_estado_evento }),
     ...(data.fecha_inicio !== undefined && { fecha_inicio: new Date(data.fecha_inicio).toISOString().split('T')[0] }),
     ...(data.fecha_fin !== undefined && { fecha_fin: new Date(data.fecha_fin).toISOString().split('T')[0] }),
+    ...(data.hora_inicio !== undefined && { hora_inicio: data.hora_inicio }),
+    ...(data.hora_fin !== undefined && { hora_fin: data.hora_fin }),
     ...(data.latitud !== undefined && { latitud: data.latitud != null ? Number(data.latitud) : null }),
     ...(data.longitud !== undefined && { longitud: data.longitud != null ? Number(data.longitud) : null }),
     // 🔧 Para escalabilidad futura:
@@ -355,6 +375,8 @@ export async function getEventosWithFiltersService(params: {
     descripcion: eventoTable.descripcion,
     fecha_inicio: eventoTable.fecha_inicio,
     fecha_fin: eventoTable.fecha_fin,
+    hora_inicio: eventoTable.hora_inicio,
+    hora_fin: eventoTable.hora_fin,
     fecha_registro: eventoTable.fecha_registro,
     ubicacion: eventoTable.ubicacion,
     imagen: eventoTable.imagen,
@@ -504,6 +526,8 @@ export async function getEventosDestacadosService(limit: number = 6) {
         descripcion: eventoTable.descripcion,
         fecha_inicio: eventoTable.fecha_inicio,
         fecha_fin: eventoTable.fecha_fin,
+        hora_inicio: eventoTable.hora_inicio,
+        hora_fin: eventoTable.hora_fin,
         ubicacion: eventoTable.ubicacion,
         imagen: eventoTable.imagen,
         capacidad: eventoTable.capacidad,
@@ -520,19 +544,19 @@ export async function getEventosDestacadosService(limit: number = 6) {
       .from(eventoTable)
       .leftJoin(organizadorTable, eq(eventoTable.id_organizador, organizadorTable.id_organizador))
       .leftJoin(categoriaEventoTable, eq(eventoTable.id_categoria, categoriaEventoTable.id_categoria))
-      .where(
-        and(
-          eq(eventoTable.id_estado_evento, 2), // Solo eventos publicados
-          gte(eventoTable.fecha_inicio, new Date().toISOString().split('T')[0]) // Solo eventos futuros
-        )
-      )
       .orderBy(desc(eventoTable.fecha_registro)) // Más recientes primero
       .limit(limit);
+
+    const fechaActual = new Date().toISOString().split('T')[0];
 
     return eventos.map(evento => ({
       ...evento,
       latitud: evento.latitud !== null ? Number(evento.latitud) : null,
-      longitud: evento.longitud !== null ? Number(evento.longitud) : null
+      longitud: evento.longitud !== null ? Number(evento.longitud) : null,
+      // Agregar campo para indicar si el evento ya pasó
+      ya_realizado: evento.fecha_fin < fechaActual,
+      proximo: evento.fecha_inicio >= fechaActual && evento.fecha_fin >= fechaActual,
+      en_curso: evento.fecha_inicio <= fechaActual && evento.fecha_fin >= fechaActual
     }));
   } catch (error) {
     console.error('Error al obtener eventos destacados:', error);
@@ -572,6 +596,8 @@ export async function getEventosByCategoriaService(categoriaId: number, limit: n
         descripcion: eventoTable.descripcion,
         fecha_inicio: eventoTable.fecha_inicio,
         fecha_fin: eventoTable.fecha_fin,
+        hora_inicio: eventoTable.hora_inicio,
+        hora_fin: eventoTable.hora_fin,
         ubicacion: eventoTable.ubicacion,
         imagen: eventoTable.imagen,
         capacidad: eventoTable.capacidad,
@@ -588,20 +614,20 @@ export async function getEventosByCategoriaService(categoriaId: number, limit: n
       .from(eventoTable)
       .leftJoin(organizadorTable, eq(eventoTable.id_organizador, organizadorTable.id_organizador))
       .leftJoin(categoriaEventoTable, eq(eventoTable.id_categoria, categoriaEventoTable.id_categoria))
-      .where(
-        and(
-          eq(eventoTable.id_categoria, categoriaId),
-          eq(eventoTable.id_estado_evento, 2), // Solo eventos publicados
-          gte(eventoTable.fecha_inicio, new Date().toISOString().split('T')[0]) // Solo eventos futuros
-        )
-      )
+      .where(eq(eventoTable.id_categoria, categoriaId))
       .orderBy(desc(eventoTable.fecha_registro)) // Más recientes primero
       .limit(limit);
+
+    const fechaActual = new Date().toISOString().split('T')[0];
 
     return eventos.map(evento => ({
       ...evento,
       latitud: evento.latitud !== null ? Number(evento.latitud) : null,
-      longitud: evento.longitud !== null ? Number(evento.longitud) : null
+      longitud: evento.longitud !== null ? Number(evento.longitud) : null,
+      // Agregar campo para indicar si el evento ya pasó
+      ya_realizado: evento.fecha_fin < fechaActual,
+      proximo: evento.fecha_inicio >= fechaActual && evento.fecha_fin >= fechaActual,
+      en_curso: evento.fecha_inicio <= fechaActual && evento.fecha_fin >= fechaActual
     }));
   } catch (error) {
     console.error('Error al obtener eventos por categoría:', error);

@@ -16,16 +16,21 @@ export const apiClient = axios.create({
 
 // Función para obtener el token de acceso
 export const getAccessToken = () => {
-  return getCookie('accessToken') as string | undefined;
+  const token = getCookie('accessToken') as string | undefined;
+  console.log('🔍 getAccessToken:', token ? 'Token encontrado' : 'No hay token');
+  return token;
 };
 
 // Función para obtener el token de refresco
 export const getRefreshToken = () => {
-  return getCookie('refreshToken') as string | undefined;
+  const token = getCookie('refreshToken') as string | undefined;
+  console.log('🔍 getRefreshToken:', token ? 'Token encontrado' : 'No hay token');
+  return token;
 };
 
 // Función para establecer el token de acceso
 export const setAccessToken = (token: string | null) => {
+  console.log('🔍 setAccessToken:', token ? 'Configurando token' : 'Limpiando token');
   if (token) {
     setCookie('accessToken', token, {
       maxAge: 60 * 60, // 1 hora
@@ -34,9 +39,11 @@ export const setAccessToken = (token: string | null) => {
       sameSite: 'strict'
     });
     apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    console.log('🔍 Token configurado en headers:', !!apiClient.defaults.headers.common['Authorization']);
   } else {
     deleteCookie('accessToken');
     delete apiClient.defaults.headers.common['Authorization'];
+    console.log('🔍 Token eliminado de headers');
   }
 };
 
