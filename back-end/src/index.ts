@@ -5,6 +5,10 @@ import { cors } from '@elysiajs/cors';
 import { errorPlugin } from './utils/errors';
 import { authMiddleware } from './middleware/auth.middleware';
 import * as dotenv from 'dotenv';
+import { readFile } from 'fs/promises';
+import { join } from 'path';
+import { existsSync } from 'fs';
+import { getContentType } from './utils/content-type';
 
 // ====================================================================
 // IMPORTACIÓN DE TODOS LOS MÓDULOS DE RUTAS
@@ -19,6 +23,7 @@ import {
 } from './modules/organizador/organizador.routes';
 import { adminRoutes } from './modules/admin/admin.routes';
 import { eventoRoutes, publicEventoRoutes } from './modules/evento/evento.routes';
+import { uploadRoutes } from './modules/upload/upload.routes';
 
 // Cargar variables de entorno
 dotenv.config();
@@ -119,6 +124,9 @@ const app = new Elysia()
       
       // Módulo de Administración Centralizado
       .use(adminRoutes)
+
+      // Módulo de Subida de Archivos
+      .use(uploadRoutes)
   )
 
   // Iniciar el servidor

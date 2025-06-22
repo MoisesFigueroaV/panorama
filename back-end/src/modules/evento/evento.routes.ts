@@ -37,28 +37,46 @@ export const eventoRoutes = new Elysia({ prefix: '/eventos', detail: { tags: ['E
   .post(
     '/',
     async (context) => {
-      console.log('🚀 POST /eventos - Petición recibida');
-      console.log('🚀 Headers:', context.request.headers);
-      console.log('🚀 Body:', context.body);
-      
-      const currentSession = requireAuth()(context.session);
-      console.log('🚀 Sesión autenticada:', currentSession);
+      try {
+        console.log('🚀 POST /eventos - Petición recibida');
+        console.log('🚀 Headers:', context.request.headers);
+        console.log('🚀 Body:', context.body);
+        
+        const currentSession = requireAuth()(context.session);
+        console.log('🚀 Sesión autenticada:', currentSession);
 
-      // Buscar el perfil de organizador del usuario autenticado
-      const organizador = await getOrganizadorByUserIdService(currentSession.subAsNumber);
-      console.log('🚀 Organizador encontrado:', organizador);
-      
-      if (!organizador) {
-        console.error('❌ No se encontró perfil de organizador para usuario:', currentSession.subAsNumber);
-        throw new CustomError('No tienes un perfil de organizador asociado.', 403);
+        // Buscar el perfil de organizador del usuario autenticado
+        const organizador = await getOrganizadorByUserIdService(currentSession.subAsNumber);
+        console.log('🚀 Organizador encontrado:', organizador);
+        
+        if (!organizador) {
+          console.error('❌ No se encontró perfil de organizador para usuario:', currentSession.subAsNumber);
+          throw new CustomError('No tienes un perfil de organizador asociado.', 403);
+        }
+
+        console.log('🚀 Creando evento para organizador:', organizador.id_organizador);
+        const evento = await createEventoService(organizador.id_organizador, context.body);
+        console.log('🚀 Evento creado exitosamente:', evento);
+        
+        context.set.status = 201;
+        return mapEventoToResponse(evento);
+      } catch (error) {
+        console.error('❌ Error en POST /eventos:', error);
+        
+        // Si es un CustomError, dejarlo pasar para que el middleware lo maneje
+        if (error instanceof CustomError) {
+          throw error;
+        }
+        
+        // Si es un error de validación de Elysia, manejarlo
+        if (error instanceof Error && error.message.includes('Validation failed')) {
+          throw new CustomError('Datos de entrada inválidos: ' + error.message, 400);
+        }
+        
+        // Para otros errores, devolver un error genérico
+        console.error('❌ Error no manejado:', error);
+        throw new CustomError('Error interno del servidor al crear el evento', 500);
       }
-
-      console.log('🚀 Creando evento para organizador:', organizador.id_organizador);
-      const evento = await createEventoService(organizador.id_organizador, context.body);
-      console.log('🚀 Evento creado exitosamente:', evento);
-      
-      context.set.status = 201;
-      return mapEventoToResponse(evento);
     },
     {
       body: createEventoSchema,

@@ -7,12 +7,17 @@ interface EventoDestacado {
   descripcion: string | null;
   fecha_inicio: string;
   fecha_fin: string;
+  hora_inicio: string;
+  hora_fin: string;
   ubicacion: string | null;
   imagen: string | null;
   capacidad: number;
   nombre_organizacion: string | null;
   logo_organizacion: string | null;
   nombre_categoria: string | null;
+  ya_realizado: boolean;
+  proximo: boolean;
+  en_curso: boolean;
 }
 
 interface OrganizadorVerificado {

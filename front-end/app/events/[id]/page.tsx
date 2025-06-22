@@ -62,8 +62,8 @@ export default function EventPage({ params }: EventPageProps) {
   const fechaInicio = new Date(evento.fecha_inicio)
   const fechaFin = new Date(evento.fecha_fin)
   const fechaFormateada = format(fechaInicio, "EEEE, d 'de' MMMM 'de' yyyy", { locale: es })
-  const horaInicio = format(fechaInicio, "HH:mm")
-  const horaFin = format(fechaFin, "HH:mm")
+  const horaInicio = evento.hora_inicio || "09:00"
+  const horaFin = evento.hora_fin || "18:00"
 
   return (
     <main className="min-h-screen pb-16">
