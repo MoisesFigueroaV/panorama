@@ -47,17 +47,33 @@ export async function saveImage(file: File, filename?: string): Promise<string> 
   }
 }
 
-export function getImageUrl(filename: string): string {
-  if (!isSupabaseConfigured()) {
-    // Versión temporal: devolver una URL de placeholder
-    return 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800&h=600&fit=crop'
+/**
+ * Construye la URL pública de un archivo en Supabase Storage.
+ * Esta función es "idempotente": si ya recibe una URL completa, la devuelve sin cambios.
+ * @param filePath La ruta del archivo o una URL completa.
+ * @returns La URL pública completa y válida.
+ */
+export function getImageUrl(filePath: string): string {
+  if (!filePath) {
+    return ''; 
   }
 
+  // Si la cadena ya empieza con 'http', asumimos que es una URL válida y la devolvemos tal cual.
+  if (filePath.startsWith('http')) {
+    return filePath;
+  }
+  
+  if (!isSupabaseConfigured()) {
+    console.warn('Supabase no está configurado, devolviendo URL de placeholder para imagen.');
+    return 'https://images.unsplash.com/photo-1549488344-cbb6c34cf08b?w=600&q=80';
+  }
+  
   const { data } = supabase!.storage
     .from('eventos-media')
-    .getPublicUrl(`Imagenes/${filename}`)
+    // CAMBIO TEMPORAL: quitamos la carpeta Imagenes/
+    .getPublicUrl(`${filePath}`);
   
-  return data.publicUrl
+  return data.publicUrl;
 }
 
 export function getImagePath(filename: string): string {

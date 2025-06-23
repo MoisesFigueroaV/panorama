@@ -29,7 +29,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 interface OrganizadorRegistradoResponse {
   id_organizador: number;
   nombre_organizacion: string;
-  descripcion?: string;
+  descripcion: string;
   documento_acreditacion?: string;
   acreditado: boolean;
   ubicacion?: string;

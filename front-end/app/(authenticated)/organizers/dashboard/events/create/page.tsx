@@ -28,6 +28,9 @@ import { toast } from "sonner"
 import { useOrganizerProfile } from "@/lib/hooks/useOrganizerProfile"
 import { AlertCircle } from "lucide-react"
 import { ImageUpload } from "@/components/ui/image-upload"
+import dynamic from 'next/dynamic'
+
+const EventMapPicker = dynamic(() => import('@/components/event-map-picker'), { ssr: false })
 
 // Schema de validación que coincide exactamente con el back-end
 const eventFormSchema = z.object({
@@ -36,9 +39,9 @@ const eventFormSchema = z.object({
   }).max(150, {
     message: "El título no puede tener más de 150 caracteres",
   }),
-  descripcion: z.string().max(1000, {
-    message: "La descripción no puede tener más de 1000 caracteres",
-  }).optional(),
+  descripcion: z.string().max(800, {
+    message: "La descripción no puede tener más de 800 caracteres",
+  }).default(""),
   fecha_inicio: z.date({
     required_error: "Por favor selecciona una fecha de inicio",
   }),
@@ -49,25 +52,43 @@ const eventFormSchema = z.object({
   hora_fin: z.string().min(1, "Por favor ingresa la hora de fin"),
   ubicacion: z.string().max(250, {
     message: "La ubicación no puede tener más de 250 caracteres",
-  }).optional(),
+  }),
   capacidad: z.string().min(1, "La capacidad debe ser mayor a 0"),
   id_categoria: z.string().min(1, "Debes seleccionar una categoría"),
-  imagen: z.string().url("Debe ser una URL válida").optional().or(z.literal("")),
-  latitud: z.number().optional(),
-  longitud: z.number().optional(),
+  imagen: z.string().url("Debe ser una URL válida").or(z.literal("")),
+  latitud: z.number(),
+  longitud: z.number(),
 })
 
 type EventFormValues = z.infer<typeof eventFormSchema>
 
-const defaultValues: Partial<EventFormValues> = {
+const defaultValues: EventFormValues = {
   titulo: "",
   descripcion: "",
+  fecha_inicio: new Date(),
+  fecha_fin: new Date(),
+  hora_inicio: "09:00",
+  hora_fin: "18:00",
   ubicacion: "",
   capacidad: "1",
   id_categoria: "1",
-  imagen: "",
-  hora_inicio: "09:00",
-  hora_fin: "18:00",
+  imagen: "https://via.placeholder.com/600x400?text=Evento",
+  latitud: -36.82,
+  longitud: -73.05,
+}
+
+async function geocodeAddress(address: string): Promise<{ lat: number, lon: number } | null> {
+  if (!address) return null;
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`);
+    const data = await res.json();
+    if (data && data.length > 0) {
+      return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+    }
+    return null;
+  } catch (e) {
+    return null;
+  }
 }
 
 export default function CreateEventPage() {
@@ -75,6 +96,7 @@ export default function CreateEventPage() {
   const { profile, loading: profileLoading, error: profileError } = useOrganizerProfile()
   const [activeTab, setActiveTab] = useState("basic")
   const [isLoading, setIsLoading] = useState(false)
+  const [isUploadingImage, setIsUploadingImage] = useState(false)
   const router = useRouter()
 
   // Logs de diagnóstico de autenticación
@@ -89,20 +111,7 @@ export default function CreateEventPage() {
 
   const form = useForm<EventFormValues>({
     resolver: zodResolver(eventFormSchema),
-    defaultValues: {
-      titulo: "",
-      descripcion: "",
-      fecha_inicio: undefined,
-      fecha_fin: undefined,
-      hora_inicio: "09:00",
-      hora_fin: "18:00",
-      imagen: "",
-      ubicacion: "",
-      latitud: undefined,
-      longitud: undefined,
-      capacidad: "50",
-      id_categoria: "",
-    },
+    defaultValues,
   })
 
   // Log para verificar el estado del formulario
@@ -183,6 +192,7 @@ export default function CreateEventPage() {
   }
 
   async function onSubmit(data: EventFormValues) {
+    console.log('🟢 Valores del formulario al enviar:', data)
     console.log('🔍 onSubmit llamado con datos:', data)
     console.log('🔍 accessToken:', accessToken ? 'Presente' : 'Ausente')
     console.log('🔍 Estado completo de auth:', { isAuthenticated, user, accessToken })
@@ -226,29 +236,20 @@ export default function CreateEventPage() {
       
       // Preparar datos exactamente como los espera el back-end
       const eventoData: any = {
+        id_categoria: parseInt(data.id_categoria),
         titulo: data.titulo,
-        descripcion: data.descripcion || undefined,
-        fecha_inicio: data.fecha_inicio.toISOString().split('T')[0], // Solo fecha YYYY-MM-DD
-        fecha_fin: data.fecha_fin.toISOString().split('T')[0], // Solo fecha YYYY-MM-DD
-        hora_inicio: data.hora_inicio || undefined,
-        hora_fin: data.hora_fin || undefined,
+        descripcion: data.descripcion,
+        fecha_inicio: data.fecha_inicio.toISOString().split('T')[0],
+        fecha_fin: data.fecha_fin.toISOString().split('T')[0],
+        hora_inicio: data.hora_inicio,
+        hora_fin: data.hora_fin,
+        fecha_registro: new Date().toISOString().split('T')[0],
         ubicacion: data.ubicacion || undefined,
-        capacidad: parseInt(data.capacidad), // Convertir a integer como espera el back-end
-        id_categoria: parseInt(data.id_categoria), // Convertir a integer como espera el back-end
-        id_estado_evento: 1 // Borrador por defecto - requiere aprobación del admin
-      }
-
-      // Solo agregar imagen si es una URL válida y no está vacía
-      if (data.imagen && data.imagen.trim() !== "") {
-        eventoData.imagen = data.imagen.trim()
-      }
-
-      // Solo agregar coordenadas si tienen valores válidos
-      if (data.latitud !== undefined && data.latitud !== null && data.latitud !== 0) {
-        eventoData.latitud = Number(data.latitud)
-      }
-      if (data.longitud !== undefined && data.longitud !== null && data.longitud !== 0) {
-        eventoData.longitud = Number(data.longitud)
+        latitud: Number(data.latitud),
+        longitud: Number(data.longitud),
+        imagen: (!data.imagen || data.imagen.trim() === "") ? "https://via.placeholder.com/800x450?text=Evento" : data.imagen.trim(),
+        capacidad: parseInt(data.capacidad),
+        id_estado_evento: 1, // Borrador por defecto
       }
 
       console.log('📤 Enviando datos al API:', eventoData)
@@ -256,6 +257,7 @@ export default function CreateEventPage() {
 
       await api.eventos.create(eventoData, accessToken)
       console.log('✅ Evento creado exitosamente')
+      console.log('🖼️ IMAGEN ENVIADA AL BACKEND:', eventoData.imagen)
       toast.success("Evento creado exitosamente como borrador. Espera la aprobación del administrador.")
       router.push("/organizers/dashboard/events")
     } catch (error: any) {
@@ -340,9 +342,16 @@ export default function CreateEventPage() {
                       <FormItem>
                         <FormLabel>Descripción</FormLabel>
                         <FormControl>
-                          <Textarea placeholder="Describe tu evento..." className="min-h-32" {...field} />
+                          <Textarea
+                            placeholder="Describe tu evento..."
+                            className="min-h-32"
+                            {...field}
+                            value={field.value ?? ""}
+                            onChange={e => field.onChange(e.target.value ?? "")}
+                            maxLength={800}
+                          />
                         </FormControl>
-                        <FormDescription>Proporciona detalles sobre tu evento para atraer asistentes.</FormDescription>
+                        <FormDescription>Proporciona detalles sobre tu evento para atraer asistentes. Máximo 800 caracteres.</FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -507,13 +516,41 @@ export default function CreateEventPage() {
                         <FormControl>
                           <div className="relative">
                             <MapPin className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                            <Input placeholder="Ej. Teatro Municipal, Av. Principal 123" className="pl-8" {...field} />
+                            <Input
+                              placeholder="Ej. Teatro Municipal, Av. Principal 123"
+                              className="pl-8"
+                              {...field}
+                              onBlur={async (e) => {
+                                field.onBlur?.(e);
+                                const value = e.target.value;
+                                if (value) {
+                                  const coords = await geocodeAddress(value);
+                                  if (coords) {
+                                    form.setValue('latitud', coords.lat);
+                                    form.setValue('longitud', coords.lon);
+                                    toast.success('Ubicación encontrada y coordenadas actualizadas.');
+                                  } else {
+                                    toast.error('No se pudo encontrar la ubicación. Ajusta la dirección o selecciona manualmente en el mapa.');
+                                  }
+                                }
+                              }}
+                            />
                           </div>
                         </FormControl>
                         <FormDescription>Dirección completa donde se realizará el evento.</FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
+                  />
+
+                  {/* Mapa interactivo para seleccionar latitud y longitud */}
+                  <EventMapPicker
+                    latitud={form.watch('latitud') ?? null}
+                    longitud={form.watch('longitud') ?? null}
+                    onChange={(lat, lng) => {
+                      form.setValue('latitud', lat)
+                      form.setValue('longitud', lng)
+                    }}
                   />
 
                   <FormField
@@ -555,8 +592,10 @@ export default function CreateEventPage() {
                     <ImageUpload
                       onImageUpload={(imageUrl) => {
                         form.setValue('imagen', imageUrl)
+                        setIsUploadingImage(false)
                       }}
                       currentImage={form.watch("imagen")}
+                      setIsUploading={setIsUploadingImage}
                     />
                   </div>
                 </div>
@@ -567,11 +606,16 @@ export default function CreateEventPage() {
               <Button variant="outline" onClick={() => setActiveTab("details")}>
                 Anterior: Detalles
               </Button>
-              <Button onClick={form.handleSubmit(onSubmit, onError)} disabled={isLoading}>
+              <Button onClick={form.handleSubmit(onSubmit, onError)} disabled={isLoading || isUploadingImage}>
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Creando evento...
+                  </>
+                ) : isUploadingImage ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Subiendo imagen...
                   </>
                 ) : (
                   "Publicar evento"

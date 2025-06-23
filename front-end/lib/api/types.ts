@@ -13,6 +13,6 @@ export interface RegistroUsuarioPayload {
 
 export interface CreateOrganizadorPayload {
   nombre_organizacion: string;
-  descripcion?: string;
+  descripcion: string;
   documento_acreditacion_url?: string;
 } 

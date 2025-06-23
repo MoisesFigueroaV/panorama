@@ -48,11 +48,6 @@ export function OrganizerSidebar() {
       label: "Mensajes",
     },
     {
-      href: "/organizers/dashboard/profile",
-      icon: Users,
-      label: "Mi Perfil",
-    },
-    {
       href: "/organizers/dashboard/profile/public",
       icon: Globe,
       label: "Perfil Público",
