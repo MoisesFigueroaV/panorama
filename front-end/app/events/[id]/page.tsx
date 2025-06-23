@@ -7,7 +7,7 @@ import { Calendar, MapPin, Share2, Heart, ArrowLeft, ExternalLink, Loader2 } fro
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-// import EventMap from "@/components/event-map" // Deshabilitado temporalmente
+import dynamic from "next/dynamic"
 import { useEventoById, useEventosDestacados } from "@/lib/hooks/usePublicData"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
@@ -17,6 +17,8 @@ interface EventPageProps {
     id: string
   }>
 }
+
+const EventMap = dynamic(() => import("@/components/event-map-picker"), { ssr: false })
 
 export default function EventPage({ params }: EventPageProps) {
   const { id } = use(params)
@@ -64,6 +66,8 @@ export default function EventPage({ params }: EventPageProps) {
   const fechaFormateada = format(fechaInicio, "EEEE, d 'de' MMMM 'de' yyyy", { locale: es })
   const horaInicio = evento.hora_inicio || "09:00"
   const horaFin = evento.hora_fin || "18:00"
+
+  console.log('🖼️ [DETALLE] IMAGEN DEL EVENTO:', evento.imagen)
 
   return (
     <main className="min-h-screen pb-16">
@@ -120,7 +124,7 @@ export default function EventPage({ params }: EventPageProps) {
         </div>
         <div className="absolute inset-0 z-0">
           <Image 
-            src={evento.imagen || "/placeholder.svg"} 
+            src={evento.imagen && evento.imagen !== "" ? evento.imagen : "https://via.placeholder.com/800x450?text=Evento"} 
             alt={evento.titulo} 
             fill 
             className="object-cover" 
@@ -139,15 +143,16 @@ export default function EventPage({ params }: EventPageProps) {
                 <p className="text-muted-foreground">{evento.descripcion || 'Descripción no disponible'}</p>
               </div>
 
-              {/* Mapa deshabilitado temporalmente */}
-              {/*
               <div>
                 <h2 className="text-2xl font-bold mb-4">Ubicación</h2>
                 <div className="h-[400px] rounded-lg overflow-hidden border">
-                  <EventMap events={[evento]} />
+                  <EventMap 
+                    latitud={evento.latitud ?? null} 
+                    longitud={evento.longitud ?? null} 
+                    onChange={() => {}} // Solo visualización
+                  />
                 </div>
               </div>
-              */}
             </div>
           </div>
 

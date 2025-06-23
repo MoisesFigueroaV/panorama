@@ -97,21 +97,17 @@ export function AdminEventCard({ event, onStatusChange }: AdminEventCardProps) {
     }
   }
 
+  console.log('🖼️ [ADMIN] IMAGEN DEL EVENTO:', event.imagen)
+
   return (
     <Card className="overflow-hidden">
       <div className="aspect-video relative overflow-hidden">
-        {event.imagen ? (
-          <Image
-            src={event.imagen}
-            alt={event.titulo}
-            fill
-            className="object-cover"
-          />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center">
-            <Calendar className="h-12 w-12 text-gray-400" />
-          </div>
-        )}
+        <Image
+          src={event.imagen && event.imagen.startsWith('http') ? event.imagen : 'https://via.placeholder.com/800x450?text=Evento'}
+          alt={event.titulo}
+          fill
+          className="object-cover"
+        />
         <div className="absolute top-2 left-2 flex gap-1">
           {getStatusBadge(event.id_estado_evento, event.nombre_estado)}
           {getCategoryBadge(event.nombre_categoria)}

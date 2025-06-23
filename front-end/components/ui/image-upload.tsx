@@ -13,10 +13,11 @@ interface ImageUploadProps {
   onImageUpload: (imageUrl: string) => void
   currentImage?: string
   className?: string
+  setIsUploading?: (uploading: boolean) => void
 }
 
-export function ImageUpload({ onImageUpload, currentImage, className }: ImageUploadProps) {
-  const [isUploading, setIsUploading] = useState(false)
+export function ImageUpload({ onImageUpload, currentImage, className, setIsUploading }: ImageUploadProps) {
+  const [isUploading, setIsUploadingState] = useState(false)
   const [preview, setPreview] = useState<string | null>(currentImage || null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { accessToken } = useAuth()
@@ -45,18 +46,21 @@ export function ImageUpload({ onImageUpload, currentImage, className }: ImageUpl
     reader.readAsDataURL(file)
     
     // Subir imagen
-    setIsUploading(true)
+    setIsUploadingState(true)
+    if (typeof setIsUploading === 'function') setIsUploading(true)
     try {
       const result = await api.upload.uploadImage(file, accessToken!)
-      // Usar directamente la URL de Supabase
-      onImageUpload(result.imageUrl)
+      console.log('Resultado de subida de imagen:', result)
+      // Usar el campo correcto de la respuesta
+      onImageUpload(result.imageUrl || result.url || result.publicUrl)
       toast.success('Imagen subida exitosamente')
     } catch (error: any) {
       console.error('Error al subir imagen:', error)
       toast.error(error.message || 'Error al subir la imagen')
       setPreview(null)
     } finally {
-      setIsUploading(false)
+      setIsUploadingState(false)
+      if (typeof setIsUploading === 'function') setIsUploading(false)
     }
   }
 

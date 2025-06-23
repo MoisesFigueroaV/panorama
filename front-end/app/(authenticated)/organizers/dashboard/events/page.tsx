@@ -38,7 +38,7 @@ import { toast } from "sonner"
 interface Evento {
   id_evento: number
   titulo: string
-  descripcion?: string
+  descripcion: string
   fecha_inicio: string
   fecha_fin: string
   ubicacion?: string

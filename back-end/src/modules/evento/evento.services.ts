@@ -5,81 +5,86 @@ import { CustomError } from '../../utils/errors';
 import type { CreateEventoPayload, UpdateEventoPayload } from './evento.types';
 import { organizadorTable } from '../../db/schema/organizador.schema';
 import { categoriaEventoTable } from '../../db/schema/categoriaEvento.schema';
-import { estadoEventoTable } from '../../db/schema/estadoEvento.schema';
+import { estadoEventoTable } from '../../db/schema/estadoEvento.schema'
+import { getImageUrl } from '../../utils/upload';
+
 
 
 /**
  * Servicio para crear un nuevo evento.
  */
 export async function createEventoService(id_organizador: number, data: CreateEventoPayload) {
-  console.log('🔍 createEventoService llamado con:', { id_organizador, data });
-  
-  const fechaInicio = new Date(data.fecha_inicio);
-  const fechaFin = new Date(data.fecha_fin);
-
-  console.log('🔍 Fechas procesadas:', { 
-    fechaInicio: fechaInicio.toISOString(), 
-    fechaFin: fechaFin.toISOString() 
-  });
-
-  if (isNaN(fechaInicio.getTime()) || isNaN(fechaFin.getTime())) {
-    console.error('❌ Fechas inválidas:', { fechaInicio, fechaFin });
-    throw new CustomError('Las fechas no tienen un formato válido.', 400);
-  }
-  if (fechaInicio > fechaFin) {
-    console.error('❌ Fecha de inicio posterior a fecha de fin');
-    throw new CustomError('La fecha de inicio no puede ser posterior a la fecha de fin.', 400);
-  }
-  if (data.capacidad < 1) {
-    console.error('❌ Capacidad inválida:', data.capacidad);
-    throw new CustomError('La capacidad debe ser mayor o igual a 1.', 400);
-  }
-
-  const eventoData: any = {
-    titulo: data.titulo,
-    descripcion: data.descripcion ?? null,
-    fecha_inicio: fechaInicio.toISOString().split('T')[0],
-    fecha_fin: fechaFin.toISOString().split('T')[0],
-    hora_inicio: data.hora_inicio,
-    hora_fin: data.hora_fin,
-    imagen: data.imagen ?? null,
-    ubicacion: data.ubicacion ?? null,
-    capacidad: data.capacidad,
-    id_categoria: data.id_categoria,
-    id_organizador,
-    fecha_registro: new Date().toISOString().split('T')[0],
-    latitud: data.latitud !== undefined && data.latitud !== null && data.latitud !== '' ? Number(data.latitud) : null,
-    longitud: data.longitud !== undefined && data.longitud !== null && data.longitud !== '' ? Number(data.longitud) : null,
-  };
-
-  // Solo agregar id_estado_evento si se proporciona
-  if (data.id_estado_evento !== undefined && data.id_estado_evento !== null) {
-    eventoData.id_estado_evento = data.id_estado_evento;
-  }
-
-  console.log('📤 Datos a insertar en BD:', eventoData);
-
+  console.log('🟢 Entrando a createEventoService');
   try {
+    const fechaInicio = new Date(data.fecha_inicio);
+    const fechaFin = new Date(data.fecha_fin);
+
+    console.log('🔍 Fechas procesadas:', { 
+      fechaInicio: fechaInicio.toISOString(), 
+      fechaFin: fechaFin.toISOString() 
+    });
+
+    if (isNaN(fechaInicio.getTime()) || isNaN(fechaFin.getTime())) {
+      console.error('❌ Fechas inválidas:', { fechaInicio, fechaFin });
+      console.log('🔴 Retornando por fechas inválidas');
+      throw new CustomError('Las fechas no tienen un formato válido.', 400);
+    }
+    if (fechaInicio > fechaFin) {
+      console.error('❌ Fecha de inicio posterior a fecha de fin');
+      console.log('🔴 Retornando por fecha de inicio > fecha de fin');
+      throw new CustomError('La fecha de inicio no puede ser posterior a la fecha de fin.', 400);
+    }
+    if (data.capacidad < 1) {
+      console.error('❌ Capacidad inválida:', data.capacidad);
+      console.log('🔴 Retornando por capacidad inválida');
+      throw new CustomError('La capacidad debe ser mayor o igual a 1.', 400);
+    }
+
+    const eventoData: any = {
+      titulo: data.titulo,
+      descripcion: data.descripcion ?? null,
+      fecha_inicio: fechaInicio.toISOString().split('T')[0],
+      fecha_fin: fechaFin.toISOString().split('T')[0],
+      hora_inicio: data.hora_inicio,
+      hora_fin: data.hora_fin,
+      imagen: data.imagen,
+      ubicacion: data.ubicacion ?? null,
+      capacidad: data.capacidad,
+      id_categoria: data.id_categoria,
+      id_organizador,
+      fecha_registro: new Date().toISOString().split('T')[0],
+    };
+
+    // Solo agregar latitud y longitud si tienen valor numérico válido
+    if (data.latitud !== undefined && data.latitud !== null && data.latitud !== '' && !isNaN(Number(data.latitud))) {
+      eventoData.latitud = Number(data.latitud);
+    }
+    if (data.longitud !== undefined && data.longitud !== null && data.longitud !== '' && !isNaN(Number(data.longitud))) {
+      eventoData.longitud = Number(data.longitud);
+    }
+
+    // Solo agregar id_estado_evento si se proporciona
+    if (data.id_estado_evento !== undefined && data.id_estado_evento !== null) {
+      eventoData.id_estado_evento = data.id_estado_evento;
+    } else {
+      // Si no viene, asignar por defecto 1 (Borrador)
+      eventoData.id_estado_evento = 1;
+    }
+
+    // Log detallado de los datos y tipos antes del insert
+    console.log('📤 Datos a insertar en BD:', eventoData)
+    Object.entries(eventoData).forEach(([k, v]) => {
+      console.log(`  - ${k}:`, v, '| tipo:', typeof v)
+    })
+
     const [evento] = await db.insert(eventoTable).values(eventoData).returning();
     console.log('✅ Evento creado exitosamente:', evento);
 
     if (!evento) throw new CustomError('No se pudo crear el evento.', 500);
     return evento;
   } catch (error) {
-    console.error('❌ Error al insertar en BD:', error);
-    
-    // Si ya es un CustomError, re-lanzarlo
-    if (error instanceof CustomError) {
-      throw error;
-    }
-    
-    // Para errores de base de datos, crear un CustomError
-    if (error instanceof Error) {
-      throw new CustomError(`Error de base de datos: ${error.message}`, 500);
-    }
-    
-    // Para otros tipos de errores
-    throw new CustomError('Error interno del servidor al crear el evento', 500);
+    console.error('❌ Error en createEventoService:', error);
+    throw error;
   }
 }
 
@@ -175,6 +180,8 @@ export async function getEventoByIdService(eventoId: number) {
     
     return {
       ...eventoData,
+      // Transformar el campo imagen a URL completa usando getImageUrl
+      imagen: eventoData.imagen ? getImageUrl(eventoData.imagen) : null,
       latitud: eventoData.latitud !== null ? Number(eventoData.latitud) : null,
       longitud: eventoData.longitud !== null ? Number(eventoData.longitud) : null,
     };
@@ -239,6 +246,8 @@ export async function getAllEventosForAdminService() {
 
   return eventos.map(evento => ({
     ...evento,
+    // Transformar el campo imagen a URL completa usando getImageUrl
+    imagen: evento.imagen ? getImageUrl(evento.imagen) : null,
     latitud: evento.latitud !== null ? Number(evento.latitud) : null,
     longitud: evento.longitud !== null ? Number(evento.longitud) : null
   }));
@@ -404,6 +413,8 @@ export async function getEventosWithFiltersService(params: {
 
   const eventosProcessed = eventos.map(evento => ({
     ...evento,
+    // Transformar el campo imagen a URL completa usando getImageUrl
+    imagen: evento.imagen ? getImageUrl(evento.imagen) : null,
     latitud: evento.latitud !== null ? Number(evento.latitud) : null,
     longitud: evento.longitud !== null ? Number(evento.longitud) : null
   }));
@@ -519,6 +530,8 @@ export async function getOrganizerDashboardStatsService(id_organizador: number) 
  */
 export async function getEventosDestacadosService(limit: number = 6) {
   try {
+    const ID_ESTADO_PUBLICADO = 2; // Asumo que 2 es 'Publicado'.
+
     const eventos = await db
       .select({
         id_evento: eventoTable.id_evento,
@@ -544,6 +557,7 @@ export async function getEventosDestacadosService(limit: number = 6) {
       .from(eventoTable)
       .leftJoin(organizadorTable, eq(eventoTable.id_organizador, organizadorTable.id_organizador))
       .leftJoin(categoriaEventoTable, eq(eventoTable.id_categoria, categoriaEventoTable.id_categoria))
+      .where(eq(eventoTable.id_estado_evento, ID_ESTADO_PUBLICADO)) // Filtrar por estado publicado
       .orderBy(desc(eventoTable.fecha_registro)) // Más recientes primero
       .limit(limit);
 
@@ -551,6 +565,8 @@ export async function getEventosDestacadosService(limit: number = 6) {
 
     return eventos.map(evento => ({
       ...evento,
+      // Transformar el campo imagen a URL completa usando getImageUrl
+      imagen: evento.imagen ? getImageUrl(evento.imagen) : null,
       latitud: evento.latitud !== null ? Number(evento.latitud) : null,
       longitud: evento.longitud !== null ? Number(evento.longitud) : null,
       // Agregar campo para indicar si el evento ya pasó
@@ -589,6 +605,8 @@ export async function getCategoriasEventosService() {
  */
 export async function getEventosByCategoriaService(categoriaId: number, limit: number = 100) {
   try {
+    const ID_ESTADO_PUBLICADO = 2; // Asumo que 2 es 'Publicado'.
+
     const eventos = await db
       .select({
         id_evento: eventoTable.id_evento,
@@ -614,7 +632,10 @@ export async function getEventosByCategoriaService(categoriaId: number, limit: n
       .from(eventoTable)
       .leftJoin(organizadorTable, eq(eventoTable.id_organizador, organizadorTable.id_organizador))
       .leftJoin(categoriaEventoTable, eq(eventoTable.id_categoria, categoriaEventoTable.id_categoria))
-      .where(eq(eventoTable.id_categoria, categoriaId))
+      .where(and(
+        eq(eventoTable.id_categoria, categoriaId),
+        eq(eventoTable.id_estado_evento, ID_ESTADO_PUBLICADO)
+      ))
       .orderBy(desc(eventoTable.fecha_registro)) // Más recientes primero
       .limit(limit);
 
@@ -622,6 +643,8 @@ export async function getEventosByCategoriaService(categoriaId: number, limit: n
 
     return eventos.map(evento => ({
       ...evento,
+      // Transformar el campo imagen a URL completa usando getImageUrl
+      imagen: evento.imagen ? getImageUrl(evento.imagen) : null,
       latitud: evento.latitud !== null ? Number(evento.latitud) : null,
       longitud: evento.longitud !== null ? Number(evento.longitud) : null,
       // Agregar campo para indicar si el evento ya pasó
