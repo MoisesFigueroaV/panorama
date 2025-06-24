@@ -26,6 +26,8 @@ interface EventoReal {
   descripcion: string | null
   fecha_inicio: string
   fecha_fin: string
+  hora_inicio: string
+  hora_fin: string
   ubicacion: string | null
   imagen: string | null
   nombre_categoria: string | null
