@@ -24,6 +24,8 @@ interface EventoReal {
   descripcion: string | null
   fecha_inicio: string
   fecha_fin: string
+  hora_inicio: string
+  hora_fin: string
   ubicacion: string | null
   imagen: string | null
   nombre_categoria: string | null
@@ -96,8 +98,7 @@ export default function EventsPage() {
   useEffect(() => {
     if (categoryParam && categorias.length > 0) {
       const match = categorias.find((cat) => {
-        const config = getCategoryConfig(cat.nombre_categoria);
-        return config.id === categoryParam;
+        return String(cat.id_categoria) === categoryParam;
       });
       if (match && !selectedCategories.includes(match.nombre_categoria)) {
         setSelectedCategories([match.nombre_categoria]);
@@ -210,9 +211,15 @@ export default function EventsPage() {
   }
 
   const clearFilters = () => {
-    setSelectedCategories([])
-    setCurrentPage(1)
-  }
+    setSelectedCategories([]);
+    setSearchText('');
+    setEstadoEvento('');
+    setFechaDesde('');
+    setFechaHasta('');
+    setSortBy('');
+    setSortOrder('');
+    setCurrentPage(1);
+  };
 
   return (
     <main className="min-h-screen pb-16">
@@ -260,28 +267,27 @@ export default function EventsPage() {
 
                 <Separator />
 
-                {/* Categorías */}
+                {/* Categoría (Select en vez de checkboxes) */}
                 <div>
-                  <h3 className="font-medium mb-3">Categorías</h3>
-                  <div className="space-y-2">
-                    {categorias.map((categoria) => (
-                      <div key={categoria.id_categoria} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`category-${categoria.id_categoria}`}
-                          checked={selectedCategories.includes(categoria.nombre_categoria)}
-                          onCheckedChange={(checked) =>
-                            handleCategoryChange(categoria.nombre_categoria, checked === true)
-                          }
-                        />
-                        <label
-                          htmlFor={`category-${categoria.id_categoria}`}
-                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                        >
+                  <h3 className="font-medium mb-3">Categoría</h3>
+                  <Select
+                    value={selectedCategories[0] || ""}
+                    onValueChange={(value) => {
+                      setSelectedCategories(value ? [value] : []);
+                      setCurrentPage(1);
+                    }}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Selecciona una categoría" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categorias.map((categoria) => (
+                        <SelectItem key={categoria.id_categoria} value={categoria.nombre_categoria}>
                           {categoria.nombre_categoria}
-                        </label>
-                      </div>
-                    ))}
-                  </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <Separator />
