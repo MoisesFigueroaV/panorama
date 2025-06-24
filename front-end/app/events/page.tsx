@@ -526,7 +526,7 @@ export default function EventsPage() {
                         </div>
                         <p className="text-muted-foreground text-sm mb-4">{event.descripcion}</p>
                         <div className="flex justify-between items-center">
-<div></div>
+                        <div></div>
                           <Link href={`/events/${event.id_evento}`}>
                             <Button
                               variant="outline"
@@ -548,7 +548,7 @@ export default function EventsPage() {
             <div className="flex justify-center mt-12">
               <nav className="flex items-center gap-1">
                 <Button 
-                  variant="outline" 
+                  variant="outline"
                   size="icon" 
                   disabled={currentPage === 1}
                   onClick={() => setCurrentPage(currentPage - 1)}
