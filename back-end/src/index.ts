@@ -22,7 +22,6 @@ import {
   publicOrganizadorRoutes,
   publicOrganizadoresVerificadosRoutes
 } from './modules/organizador/organizador.routes';
-import { eventoRoutes } from './modules/evento/evento.routes';
 import { adminRoutes } from './modules/admin/admin.routes';
 import { eventoRoutes, publicEventoRoutes } from './modules/evento/evento.routes';
 import { uploadRoutes } from './modules/upload/upload.routes';
