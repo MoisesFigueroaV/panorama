@@ -13,6 +13,7 @@ import { getContentType } from './utils/content-type';
 // ====================================================================
 // IMPORTACIÓN DE TODOS LOS MÓDULOS DE RUTAS
 // ====================================================================
+
 import { rolUsuarioRoutes } from './modules/rolUsuario/rolUsuario.routes';
 import { usuarioRoutes, userProfileRoutes } from './modules/usuario/usuario.routes';
 import {
@@ -21,6 +22,7 @@ import {
   publicOrganizadorRoutes,
   publicOrganizadoresVerificadosRoutes
 } from './modules/organizador/organizador.routes';
+import { eventoRoutes } from './modules/evento/evento.routes';
 import { adminRoutes } from './modules/admin/admin.routes';
 import { eventoRoutes, publicEventoRoutes } from './modules/evento/evento.routes';
 import { uploadRoutes } from './modules/upload/upload.routes';
@@ -33,7 +35,7 @@ dotenv.config();
 // ====================================================================
 const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
 const apiVersion = 'v1';
-const port = parseInt(process.env.PORT || "3000"); 
+const port = parseInt(process.env.PORT || "3000");
 
 const app = new Elysia()
   // 1. Configuración de Swagger para la documentación de la API
@@ -42,10 +44,10 @@ const app = new Elysia()
     documentation: {
       info: {
         title: 'API de Eventos con Elysia y Dreizzer',
-        version: '0.1.0', 
+        version: '0.1.0',
         description: `Backend para la aplicación de gestión de eventos.\nUtiliza Bearer Tokens (JWT) para la autenticación en rutas protegidas.`,
       },
-      tags: [ 
+      tags: [
         { name: 'General', description: 'Endpoints de estado de la API' },
         { name: 'Autenticación', description: 'Endpoints para registro e inicio de sesión' },
         { name: 'Roles de Usuario', description: 'Gestión de roles de usuario' },
@@ -53,17 +55,18 @@ const app = new Elysia()
         { name: 'Organizadores', description: 'Gestión de perfiles de organizadores de eventos' },
         { name: 'Eventos', description: 'Gestión de eventos' },
         { name: 'Admin', description: 'Operaciones de administración (KPIs, gestión de usuarios, organizadores, etc.)' },
+        { name: 'Eventos', description: 'Gestión de eventos, incluyendo creación, actualización y consulta' },
       ],
-      servers: [ 
+      servers: [
         { url: `http://localhost:${port}`, description: 'Servidor Local (sin prefijo /api/v1)' },
         { url: `http://localhost:${port}/api/${apiVersion}`, description: 'Servidor Local con API v1' },
       ],
-      components: { 
+      components: {
         securitySchemes: {
-          bearerAuth: { 
+          bearerAuth: {
             type: 'http',
             scheme: 'bearer',
-            bearerFormat: 'JWT', 
+            bearerFormat: 'JWT',
             description: 'Autenticación con Token JWT. Ingresa el token como: Bearer {token}',
           }
         }
@@ -73,7 +76,7 @@ const app = new Elysia()
 
   // 2. Configuración de CORS para permitir peticiones desde el frontend
   .use(cors({
-    origin: frontendUrl, 
+    origin: frontendUrl,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
@@ -81,19 +84,19 @@ const app = new Elysia()
   }))
 
   // 3. Plugins de Elysia para manejo de errores y autenticación
-  .use(errorPlugin) 
-  .use(authMiddleware) 
+  .use(errorPlugin)
+  .use(authMiddleware)
 
   // 4. Ruta raíz para verificar que la API está funcionando
   .get('/', () => ({
-      message: '¡API de Eventos con Elysia y Dreizzer está operativa!',
-      documentation: {
-          swagger: '/api-docs',
-      },
-      api_version: apiVersion,
-      status: 'OK',
-      environment: process.env.NODE_ENV || 'development'
-    }), {
+    message: '¡API de Eventos con Elysia y Dreizzer está operativa!',
+    documentation: {
+      swagger: '/api-docs',
+    },
+    api_version: apiVersion,
+    status: 'OK',
+    environment: process.env.NODE_ENV || 'development'
+  }), {
     detail: {
       tags: ['General'],
       summary: "Verificar estado de la API",
@@ -103,43 +106,30 @@ const app = new Elysia()
   // ====================================================================
   // AGRUPACIÓN Y REGISTRO DE TODAS LAS RUTAS DE LA API
   // ====================================================================
-  .group(`/api/${apiVersion}`, (api) => 
+  .group(`/api/${apiVersion}`, (api) =>
     api
-      // Módulo de Roles
       .use(rolUsuarioRoutes)
-      
-      // Módulo de Usuario (Autenticación y Perfil)
       .use(usuarioRoutes)
       .use(userProfileRoutes)
-      
-      // Módulo de Organizador (Registro, Perfil y Vistas Públicas)
       .use(authOrganizadorRoutes)
       .use(organizadorUsuarioRoutes)
       .use(publicOrganizadorRoutes)
-      .use(publicOrganizadoresVerificadosRoutes)
-      
-      // Módulo de Eventos
-      .use(eventoRoutes)
-      .use(publicEventoRoutes)
       
       // Módulo de Administración Centralizado
       .use(adminRoutes)
-
-      // Módulo de Subida de Archivos
-      .use(uploadRoutes)
   )
 
   // Iniciar el servidor
-  .listen(port); 
+  .listen(port);
 
 // ====================================================================
 // "TERMINAL DECORADA" - MENSAJE DE INICIO DEL SERVIDOR
 // ====================================================================
 if (app.server) {
-  const protocol = (process.env.NODE_ENV === 'production' && !process.env.FORCE_HTTP_LOCAL) 
-    ? 'https' 
+  const protocol = (process.env.NODE_ENV === 'production' && !process.env.FORCE_HTTP_LOCAL)
+    ? 'https'
     : 'http';
-  
+
   let displayHostname = app.server.hostname;
   if (displayHostname === '0.0.0.0' || displayHostname === '::') {
     displayHostname = 'localhost';
@@ -162,14 +152,14 @@ if (app.server) {
   console.log(`\n  ${colors.yellow}Entorno:${colors.reset}       ${process.env.NODE_ENV || 'development'}`);
   console.log(`  ${colors.yellow}URL Local:${colors.reset}       ${localUrl}`);
   console.log(`  ${colors.yellow}Base de la API:${colors.reset}  ${apiBaseUrl}`);
-  
+
   console.log(`\n${colors.cyan}--------------------------------------------------------------${colors.reset}`);
   console.log(`  📖 ${colors.bold}Documentación API (Swagger UI):${colors.reset} ${swaggerUrl}`);
   console.log(`${colors.cyan}--------------------------------------------------------------${colors.reset}`);
-  
+
   console.log(`\n  🔗 ${colors.bold}Frontend (Next.js) esperado en:${colors.reset} ${frontendUrl}`);
   console.log(`     (Asegúrate de que CORS esté configurado para esta URL)`);
-  
+
   console.log(`\n${colors.green}${colors.bold}🦊 ¡Listo para recibir peticiones!${colors.reset}\n`);
 
 } else {

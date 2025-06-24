@@ -9,11 +9,15 @@ import { estadoEventoTable } from '../../db/schema/estadoEvento.schema'
 import { getImageUrl } from '../../utils/upload';
 
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 9b16e0e8aaf80a7553ef750cce933980284339e5
 /**
  * Servicio para crear un nuevo evento.
  */
 export async function createEventoService(id_organizador: number, data: CreateEventoPayload) {
+<<<<<<< HEAD
   console.log('🟢 Entrando a createEventoService');
   try {
     const fechaInicio = new Date(data.fecha_inicio);
@@ -86,6 +90,44 @@ export async function createEventoService(id_organizador: number, data: CreateEv
     console.error('❌ Error en createEventoService:', error);
     throw error;
   }
+=======
+  const fechaInicio = new Date(data.fecha_inicio);
+  const fechaFin = new Date(data.fecha_fin);
+
+  if (isNaN(fechaInicio.getTime()) || isNaN(fechaFin.getTime())) {
+    throw new CustomError('Las fechas no tienen un formato válido.', 400);
+  }
+  if (fechaInicio > fechaFin) {
+    throw new CustomError('La fecha de inicio no puede ser posterior a la fecha de fin.', 400);
+  }
+  if (data.capacidad < 1) {
+    throw new CustomError('La capacidad debe ser mayor o igual a 1.', 400);
+  }
+
+  const [evento] = await db.insert(eventoTable).values({
+    titulo: data.titulo,
+    descripcion: data.descripcion ?? null,
+    fecha_inicio: fechaInicio.toISOString().split('T')[0],
+    fecha_fin: fechaFin.toISOString().split('T')[0],
+    imagen: data.imagen ?? null,
+    ubicacion: data.ubicacion ?? null,
+    capacidad: data.capacidad,
+    id_categoria: data.id_categoria,
+    id_organizador,
+    id_estado_evento: data.id_estado_evento ?? null,
+    fecha_registro: new Date().toISOString().split('T')[0],
+    latitud: data.latitud !== undefined ? Number(data.latitud) : null,
+    longitud: data.longitud !== undefined ? Number(data.longitud) : null,
+
+    // 🔧 Para escalado futuro (no implementado actualmente):
+    // creado_en: new Date(),
+    // actualizado_en: new Date(),
+    // categorias: JSON.stringify(data.categorias ?? [])
+  }).returning();
+
+  if (!evento) throw new CustomError('No se pudo crear el evento.', 500);
+  return evento;
+>>>>>>> 9b16e0e8aaf80a7553ef750cce933980284339e5
 }
 
 /**
@@ -107,10 +149,15 @@ export async function updateEventoService(id_evento: number, id_organizador: num
     ...(data.id_estado_evento !== undefined && { id_estado_evento: data.id_estado_evento }),
     ...(data.fecha_inicio !== undefined && { fecha_inicio: new Date(data.fecha_inicio).toISOString().split('T')[0] }),
     ...(data.fecha_fin !== undefined && { fecha_fin: new Date(data.fecha_fin).toISOString().split('T')[0] }),
+<<<<<<< HEAD
     ...(data.hora_inicio !== undefined && { hora_inicio: data.hora_inicio }),
     ...(data.hora_fin !== undefined && { hora_fin: data.hora_fin }),
     ...(data.latitud !== undefined && { latitud: data.latitud != null ? Number(data.latitud) : null }),
     ...(data.longitud !== undefined && { longitud: data.longitud != null ? Number(data.longitud) : null }),
+=======
+    ...(data.latitud !== undefined && { latitud: data.latitud != null ? data.latitud.toString() : null }),
+    ...(data.longitud !== undefined && { longitud: data.longitud != null ? data.longitud.toString() : null }),
+>>>>>>> 9b16e0e8aaf80a7553ef750cce933980284339e5
     // 🔧 Para escalabilidad futura:
     // actualizado_en: new Date()
   };
@@ -140,6 +187,7 @@ export async function getEventosByOrganizadorService(id_organizador: number) {
 }
 
 /**
+<<<<<<< HEAD
  * Servicio para obtener un evento específico por ID
  */
 export async function getEventoByIdService(eventoId: number) {
@@ -189,12 +237,34 @@ export async function getEventoByIdService(eventoId: number) {
     console.error('Error al obtener evento por ID:', error);
     throw new CustomError('Error al obtener evento.', 500);
   }
+=======
+ * Servicio para obtener un evento por su ID
+ */
+export async function getEventoByIdService(id_evento: number) {
+  const [evento] = await db.select().from(eventoTable)
+    .where(eq(eventoTable.id_evento, id_evento));
+
+  if (!evento) {
+    throw new CustomError('Evento no encontrado', 404);
+  }
+
+  return {
+    ...evento,
+    // Conversión explícita de tipos para coordenadas
+    latitud: evento.latitud !== null ? Number(evento.latitud) : null,
+    longitud: evento.longitud !== null ? Number(evento.longitud) : null
+  };
+>>>>>>> 9b16e0e8aaf80a7553ef750cce933980284339e5
 }
 
 /**
  * Servicio para obtener un evento por su ID con verificación de organizador
  */
+<<<<<<< HEAD
 export async function getEventoByIdWithOrganizadorService(id_evento: number, id_organizador?: number) {
+=======
+export async function getEventoByIdService(id_evento: number, id_organizador?: number) {
+>>>>>>> 9b16e0e8aaf80a7553ef750cce933980284339e5
   const whereClause = id_organizador 
     ? and(eq(eventoTable.id_evento, id_evento), eq(eventoTable.id_organizador, id_organizador))
     : eq(eventoTable.id_evento, id_evento);
@@ -211,6 +281,7 @@ export async function getEventoByIdWithOrganizadorService(id_evento: number, id_
     latitud: evento.latitud !== null ? Number(evento.latitud) : null,
     longitud: evento.longitud !== null ? Number(evento.longitud) : null
   };
+<<<<<<< HEAD
 }
 
 /**
@@ -656,4 +727,6 @@ export async function getEventosByCategoriaService(categoriaId: number, limit: n
     console.error('Error al obtener eventos por categoría:', error);
     throw new CustomError('Error al obtener eventos por categoría.', 500);
   }
+=======
+>>>>>>> 9b16e0e8aaf80a7553ef750cce933980284339e5
 }

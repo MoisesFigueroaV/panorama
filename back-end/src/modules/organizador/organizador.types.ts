@@ -1,8 +1,7 @@
-// src/modules/organizador/organizador.types.ts
 import { t } from 'elysia';
 
-// Schema para el registro "todo en uno" de un organizador
 export const registroCompletoOrganizadorSchema = t.Object({
+<<<<<<< HEAD
   // Campos de usuario
   nombre_usuario: t.String({ minLength: 3, maxLength: 100 }),
   correo: t.String({ format: 'email' }),
@@ -21,13 +20,28 @@ export const registroCompletoOrganizadorSchema = t.Object({
   sitio_web: t.Optional(t.Nullable(t.String({ format: 'url' }))),
   redes_sociales: t.Optional(t.Nullable(t.String())), // JSON string con array de redes sociales
   documento_acreditacion_file: t.Optional(t.Any()), // Cambiado a Any para manejar FormData
+=======
+  nombre_usuario: t.String({ minLength: 3, maxLength: 100 }),
+  correo: t.String({ format: 'email' }),
+  contrasena: t.String({ minLength: 8 }),
+  sexo: t.Optional(t.String({ enum: ['M', 'F', 'O'] })),
+  fecha_nacimiento: t.Optional(t.String({ format: 'date' })),
+  nombre_organizacion: t.String({ minLength: 3, maxLength: 150 }),
+  descripcion: t.Optional(t.String()),
+  documento_acreditacion: t.Optional(t.String()),
+  ubicacion: t.Optional(t.String()),
+  anio_fundacion: t.Optional(t.Integer()),
+  sitio_web: t.Optional(t.String()),
+  imagen_portada: t.Optional(t.String()),
+  logo_organizacion: t.Optional(t.String())
+>>>>>>> 9b16e0e8aaf80a7553ef750cce933980284339e5
 });
 
 export type RegistroCompletoOrganizadorApiPayload = typeof registroCompletoOrganizadorSchema.static;
 
-// Schema para cuando un usuario ya autenticado crea su perfil de organizador
 export const createOrganizadorPerfilSchema = t.Object({
   nombre_organizacion: t.String({ minLength: 3, maxLength: 150 }),
+<<<<<<< HEAD
   tipo_organizacion: t.String({ maxLength: 50 }),
   rut_organizacion: t.String({ maxLength: 20 }),
   descripcion: t.Optional(t.Nullable(t.String())),
@@ -37,10 +51,20 @@ export const createOrganizadorPerfilSchema = t.Object({
   sitio_web: t.Optional(t.Nullable(t.String({ format: 'url' }))),
   redes_sociales: t.Optional(t.Nullable(t.String())), // JSON string
   documento_acreditacion_file: t.Optional(t.Any()), // Cambiado a Any
+=======
+  descripcion: t.Optional(t.String()),
+  documento_acreditacion: t.Optional(t.String()),
+  ubicacion: t.Optional(t.String()),
+  anio_fundacion: t.Optional(t.Integer()),
+  sitio_web: t.Optional(t.String()),
+  imagen_portada: t.Optional(t.String()),
+  logo_organizacion: t.Optional(t.String())
+>>>>>>> 9b16e0e8aaf80a7553ef750cce933980284339e5
 });
 
 export type CreateOrganizadorPerfilApiPayload = typeof createOrganizadorPerfilSchema.static;
 
+<<<<<<< HEAD
 // Schema para actualizar un perfil de organizador (por el propio organizador)
 export const updateOrganizadorPerfilSchema = t.Partial(t.Object({
   nombre_organizacion: t.String({ minLength: 3, maxLength: 150 }),
@@ -55,9 +79,11 @@ export const updateOrganizadorPerfilSchema = t.Partial(t.Object({
   documento_acreditacion_file: t.Optional(t.Any()), // Cambiado a Any
 }));
 
+=======
+export const updateOrganizadorPerfilSchema = t.Partial(createOrganizadorPerfilSchema);
+>>>>>>> 9b16e0e8aaf80a7553ef750cce933980284339e5
 export type UpdateOrganizadorPerfilApiPayload = typeof updateOrganizadorPerfilSchema.static;
 
-// Parámetros de ruta
 export const organizadorParamsSchema = t.Object({
-  id: t.Numeric({ minimum: 1, description: "ID del organizador" })
+  id: t.Numeric({ minimum: 1 })
 });

@@ -1,25 +1,25 @@
-// src/modules/organizador/organizador.services.ts
 import { db } from '../../db/drizzle';
 import {
-  organizadorTable,
-  type Organizador as DrizzleOrganizador,
-  type NewOrganizador as NewDrizzleOrganizador,
-  usuarioTable,
-  type NewUsuario as NewDrizzleUsuario,
-  historialEstadoAcreditacionTable,
-  type NewHistorialEstadoAcreditacion,
+  organizadorTable, type Organizador as DrizzleOrganizador, usuarioTable
 } from '../../db/schema';
+<<<<<<< HEAD
 import { eventoTable } from '../../db/schema/evento.schema';
 import { ROLES_IDS, ESTADOS_ACREDITACION_IDS } from '../../config/constants';
 import { eq, desc, count, and } from 'drizzle-orm';
 import { CustomError, handleErrorLog } from '../../utils/errors';
+=======
+import { ROLES_IDS } from '../../config/constants';
+import { eq } from 'drizzle-orm';
+import { CustomError } from '../../utils/errors';
+>>>>>>> 9b16e0e8aaf80a7553ef750cce933980284339e5
 import type {
-    RegistroCompletoOrganizadorApiPayload,
-    CreateOrganizadorPerfilApiPayload,
-    UpdateOrganizadorPerfilApiPayload,
+  RegistroCompletoOrganizadorApiPayload,
+  CreateOrganizadorPerfilApiPayload,
+  UpdateOrganizadorPerfilApiPayload
 } from './organizador.types';
 import type { AppSession } from '../../middleware/auth.middleware';
 
+<<<<<<< HEAD
 // Aquí irían las funciones REALES de subida de archivos a Supabase Storage
 async function uploadDocumentoAcreditacion(file: any): Promise<string> {
     console.warn(`SIMULANDO subida para: ${file.name || file.filename || 'archivo'}`);
@@ -125,80 +125,59 @@ export async function registrarUsuarioYCrearPerfilOrganizadorService(data: Regis
         handleErrorLog(error, 'servicio registrarUsuarioYCrearPerfilOrganizadorService');
         throw new CustomError('Error interno durante el registro del organizador.', 500);
     }
+=======
+// Registro completo: usuario + organizador
+export async function registrarUsuarioYCrearPerfilOrganizadorService(data: RegistroCompletoOrganizadorApiPayload): Promise<{ id_organizador: number }> {
+  const { correo, contrasena, nombre_usuario, sexo, fecha_nacimiento, ...organizadorData } = data;
+
+  const existingUser = await db.query.usuarioTable.findFirst({ where: eq(usuarioTable.correo, correo) });
+  if (existingUser) throw new CustomError('El correo ya está registrado.', 409);
+
+  const [newUser] = await db.insert(usuarioTable).values({
+    correo,
+    nombre_usuario,
+    contrasena,  // Aquí iría el hash
+    id_rol: ROLES_IDS.ORGANIZADOR,
+    sexo: sexo ?? null,
+    fecha_nacimiento: fecha_nacimiento ?? null
+  }).returning();
+
+  if (!newUser) throw new CustomError('Error creando el usuario.', 500);
+
+  const [newOrganizador] = await db.insert(organizadorTable).values({
+    id_usuario: newUser.id_usuario,
+    ...organizadorData
+  }).returning();
+
+  if (!newOrganizador) throw new CustomError('Error creando el perfil de organizador.', 500);
+  return { id_organizador: newOrganizador.id_organizador };
+>>>>>>> 9b16e0e8aaf80a7553ef750cce933980284339e5
 }
 
+// Crear perfil cuando el usuario ya está autenticado
 export async function crearPerfilOrganizadorService(userId: number, data: CreateOrganizadorPerfilApiPayload): Promise<{ id_organizador: number }> {
-    // ... (Tu lógica de crearPerfilOrganizadorService sin cambios)
-    // ...
-    return { id_organizador: 1 }; // Placeholder
+  const [newOrganizador] = await db.insert(organizadorTable).values({
+    id_usuario: userId,
+    ...data
+  }).returning();
+
+  if (!newOrganizador) throw new CustomError('Error creando el perfil.', 500);
+  return { id_organizador: newOrganizador.id_organizador };
 }
 
-export async function getOrganizadorByIdService(organizadorId: number): Promise<OrganizadorDetalladoResponse> {
-    const [organizadorData] = await db
-        .select({
-            organizador: organizadorTable,
-            usuario: usuarioTable,
-            ultimoEstado: historialEstadoAcreditacionTable
-        })
-        .from(organizadorTable)
-        .leftJoin(usuarioTable, eq(organizadorTable.id_usuario, usuarioTable.id_usuario))
-        .leftJoin(
-            historialEstadoAcreditacionTable,
-            eq(organizadorTable.id_organizador, historialEstadoAcreditacionTable.id_organizador)
-        )
-        .where(eq(organizadorTable.id_organizador, organizadorId))
-        .orderBy(desc(historialEstadoAcreditacionTable.fecha_cambio))
-        .limit(1);
-
-    if (!organizadorData) {
-        throw new CustomError(`Organizador con ID ${organizadorId} no encontrado.`, 404);
-    }
-
-    const { organizador, usuario, ultimoEstado } = organizadorData;
-    return {
-        ...organizador,
-        usuario: usuario ? {
-            id_usuario: usuario.id_usuario,
-            correo: usuario.correo,
-            nombre_usuario: usuario.nombre_usuario
-        } : undefined,
-        estadoAcreditacionActual: ultimoEstado || null
-    };
+export async function getOrganizadorByIdService(organizadorId: number): Promise<DrizzleOrganizador> {
+  const [organizador] = await db.select().from(organizadorTable).where(eq(organizadorTable.id_organizador, organizadorId));
+  if (!organizador) throw new CustomError('Organizador no encontrado.', 404);
+  return organizador;
 }
 
-export async function getOrganizadorByUserIdService(userId: number): Promise<OrganizadorDetalladoResponse> {
-    const [organizadorData] = await db
-        .select({
-            organizador: organizadorTable,
-            usuario: usuarioTable,
-            ultimoEstado: historialEstadoAcreditacionTable
-        })
-        .from(organizadorTable)
-        .leftJoin(usuarioTable, eq(organizadorTable.id_usuario, usuarioTable.id_usuario))
-        .leftJoin(
-            historialEstadoAcreditacionTable,
-            eq(organizadorTable.id_organizador, historialEstadoAcreditacionTable.id_organizador)
-        )
-        .where(eq(organizadorTable.id_usuario, userId))
-        .orderBy(desc(historialEstadoAcreditacionTable.fecha_cambio))
-        .limit(1);
-
-    if (!organizadorData) {
-        throw new CustomError(`Perfil de organizador para el usuario ID ${userId} no encontrado.`, 404);
-    }
-
-    const { organizador, usuario, ultimoEstado } = organizadorData;
-    return {
-        ...organizador,
-        usuario: usuario ? {
-            id_usuario: usuario.id_usuario,
-            correo: usuario.correo,
-            nombre_usuario: usuario.nombre_usuario
-        } : undefined,
-        estadoAcreditacionActual: ultimoEstado || null
-    };
+export async function getOrganizadorByUserIdService(userId: number): Promise<DrizzleOrganizador> {
+  const [organizador] = await db.select().from(organizadorTable).where(eq(organizadorTable.id_usuario, userId));
+  if (!organizador) throw new CustomError('No tienes un perfil de organizador.', 404);
+  return organizador;
 }
 
+<<<<<<< HEAD
 export async function updateOrganizadorPerfilService(organizadorId: number, data: UpdateOrganizadorPerfilApiPayload, session: NonNullable<AppSession>): Promise<OrganizadorDetalladoResponse> {
     // ... (Tu lógica de updateOrganizadorPerfilService sin cambios)
     // ...
@@ -353,3 +332,14 @@ export async function getOrganizadoresVerificadosService(limit: number = 3) {
         throw new CustomError('Error al obtener organizadores verificados.', 500);
     }
 }
+=======
+export async function updateOrganizadorPerfilService(organizadorId: number, data: UpdateOrganizadorPerfilApiPayload, session: NonNullable<AppSession>): Promise<DrizzleOrganizador> {
+  const [updated] = await db.update(organizadorTable)
+    .set(data)
+    .where(eq(organizadorTable.id_organizador, organizadorId))
+    .returning();
+
+  if (!updated) throw new CustomError('No se pudo actualizar el perfil.', 500);
+  return updated;
+}
+>>>>>>> 9b16e0e8aaf80a7553ef750cce933980284339e5

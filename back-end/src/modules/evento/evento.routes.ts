@@ -1,6 +1,10 @@
 import Elysia, { t } from 'elysia';
 import { authMiddleware, requireAuth } from '../../middleware/auth.middleware';
+<<<<<<< HEAD
 import { createEventoService, updateEventoService, getEventosByOrganizadorService , getEventoByIdService, getOrganizerDashboardStatsService, getEventosDestacadosService, getCategoriasEventosService, getEventosByCategoriaService } from './evento.services';
+=======
+import { createEventoService, updateEventoService, getEventosByOrganizadorService , getEventoByIdService} from './evento.services';
+>>>>>>> 9b16e0e8aaf80a7553ef750cce933980284339e5
 import { createEventoSchema, updateEventoSchema, eventoResponseSchema, eventosResponseSchema } from './evento.types';
 import { CustomError } from '../../utils/errors';
 import { getOrganizadorByUserIdService } from '../organizador/organizador.services';
@@ -37,6 +41,7 @@ export const eventoRoutes = new Elysia({ prefix: '/eventos', detail: { tags: ['E
   .post(
     '/',
     async (context) => {
+<<<<<<< HEAD
       try {
         console.log('🚀 POST /eventos - Petición recibida');
         console.log('🚀 Headers:', context.request.headers);
@@ -77,6 +82,19 @@ export const eventoRoutes = new Elysia({ prefix: '/eventos', detail: { tags: ['E
         console.error('❌ Error no manejado:', error);
         throw new CustomError('Error interno del servidor al crear el evento', 500);
       }
+=======
+      const currentSession = requireAuth()(context.session);
+
+      // Buscar el perfil de organizador del usuario autenticado
+      const organizador = await getOrganizadorByUserIdService(currentSession.subAsNumber);
+      if (!organizador) {
+        throw new CustomError('No tienes un perfil de organizador asociado.', 403);
+      }
+
+      const evento = await createEventoService(organizador.id_organizador, context.body);
+      context.set.status = 201;
+      return mapEventoToResponse(evento);
+>>>>>>> 9b16e0e8aaf80a7553ef750cce933980284339e5
     },
     {
       body: createEventoSchema,
@@ -110,10 +128,17 @@ export const eventoRoutes = new Elysia({ prefix: '/eventos', detail: { tags: ['E
   )
 
   /**
+<<<<<<< HEAD
    * Obtener estadísticas del dashboard del organizador
    */
   .get(
     '/dashboard-stats',
+=======
+   * Actualizar evento existente
+   */
+  .put(
+    '/:id_evento',
+>>>>>>> 9b16e0e8aaf80a7553ef750cce933980284339e5
     async (context) => {
       const currentSession = requireAuth()(context.session);
 
@@ -123,6 +148,7 @@ export const eventoRoutes = new Elysia({ prefix: '/eventos', detail: { tags: ['E
         throw new CustomError('No tienes un perfil de organizador asociado.', 403);
       }
 
+<<<<<<< HEAD
       // Obtener estadísticas del dashboard
       const stats = await getOrganizerDashboardStatsService(organizador.id_organizador);
       return stats;
@@ -243,3 +269,20 @@ export const publicEventoRoutes = new Elysia({
     detail: { summary: 'Obtener un evento específico por ID' }
   }
 );
+=======
+      // Verifica que el evento pertenezca a este organizador
+      const evento = await getEventoByIdService(Number(context.params.id_evento));
+      if (!evento || evento.id_organizador !== organizador.id_organizador) {
+        throw new CustomError('No tienes permiso para modificar este evento.', 403);
+      }
+
+      const eventoActualizado = await updateEventoService(Number(context.params.id_evento), organizador.id_organizador, context.body);
+      return mapEventoToResponse(eventoActualizado);
+    },
+    {
+      body: updateEventoSchema,
+      response: { 200: eventoResponseSchema, 400: eventoResponseSchema, 500: eventoResponseSchema },
+      detail: { summary: 'Actualizar mi evento', security: [{ bearerAuth: [] }] }
+    }
+  );
+>>>>>>> 9b16e0e8aaf80a7553ef750cce933980284339e5
