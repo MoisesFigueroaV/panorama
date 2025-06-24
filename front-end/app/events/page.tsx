@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent } from "@/components/ui/card"
 import EventCard from "@/components/event-card"
+import { getEventosFiltrados } from '@/lib/api/apiClient';
 import { api } from "@/lib/api"
 
 interface EventoReal {
@@ -37,7 +38,9 @@ interface Categoria {
 
 export default function EventsPage() {
   const searchParams = useSearchParams()
-  const categoryParam = searchParams.get("category")
+  const categoryParam = searchParams.get("categoria")
+  const estadoParam = searchParams.get("estado")
+  const searchParam = searchParams.get("search")
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [viewMode, setViewMode] = useState("grid")
   const [eventos, setEventos] = useState<EventoReal[]>([])
@@ -46,6 +49,13 @@ export default function EventsPage() {
   const [error, setError] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [eventsPerPage] = useState(9)
+  const [searchText, setSearchText] = useState('');
+  const [sortBy, setSortBy] = useState('');
+  const [sortOrder, setSortOrder] = useState('');
+  const [estadoEvento, setEstadoEvento] = useState('');
+  const [fechaDesde, setFechaDesde] = useState('');
+  const [fechaHasta, setFechaHasta] = useState('');
+  const [pagination, setPagination] = useState(null);
 
   // Mapeo de IDs de categoría a nombres para mostrar
   const getCategoryConfig = (nombre: string) => {
@@ -69,7 +79,34 @@ export default function EventsPage() {
     }
   };
 
-  // Mapeo inverso: de ID a nombre de categoría (usando useMemo para evitar recreaciones)
+  // 1. Cargar categorías
+  useEffect(() => {
+    const fetchCategorias = async () => {
+      try {
+        const categoriasResponse = await api.public.getCategorias();
+        setCategorias(categoriasResponse);
+      } catch (err: any) {
+        console.error('Error al obtener categorías:', err);
+      }
+    };
+    fetchCategorias();
+  }, []);
+
+  // 2. Aplicar filtro de categoría desde URL cuando las categorías ya están disponibles
+  useEffect(() => {
+    if (categoryParam && categorias.length > 0) {
+      const match = categorias.find((cat) => {
+        const config = getCategoryConfig(cat.nombre_categoria);
+        return config.id === categoryParam;
+      });
+      if (match && !selectedCategories.includes(match.nombre_categoria)) {
+        setSelectedCategories([match.nombre_categoria]);
+      }
+    }
+  }, [categorias, categoryParam]);
+
+
+  // Mapeo inverso: de ID a nombre de categoría
   const categoryIdToName = useMemo(() => {
     const mapping: Record<string, string> = {};
     categorias.forEach(cat => {
@@ -79,42 +116,63 @@ export default function EventsPage() {
     return mapping;
   }, [categorias]);
 
-  // Procesar parámetro de categoría de la URL
+  // Aplicar filtros desde URL
   useEffect(() => {
-    if (categoryParam && categoryIdToName[categoryParam]) {
-      setSelectedCategories([categoryIdToName[categoryParam]]);
-    }
-  }, [categoryParam, categoryIdToName]);
+    if (searchParam) setSearchText(searchParam);
+    if (estadoParam) setEstadoEvento(estadoParam);
+  }, [searchParam, estadoParam]);
 
   useEffect(() => {
     const fetchEventos = async () => {
       try {
-        setLoading(true)
-        setError(null)
-        
-        // Si hay categorías seleccionadas, obtener eventos por categoría
-        if (selectedCategories.length > 0) {
-          // Obtener el ID de la primera categoría seleccionada
-          const categoriaSeleccionada = categorias.find(cat => cat.nombre_categoria === selectedCategories[0])
-          if (categoriaSeleccionada) {
-            const eventosResponse = await api.public.getEventosByCategoria(categoriaSeleccionada.id_categoria, 100)
-            setEventos(eventosResponse)
-          }
-        } else {
-          // Obtener todos los eventos destacados
-          const eventosResponse = await api.public.getEventosDestacados(100)
-          setEventos(eventosResponse)
+        setLoading(true);
+    
+        const filtros: Record<string, any> = {
+          page: currentPage,
+          limit: eventsPerPage,
+          sortBy,
+          sortOrder,
+        };
+
+        // Buscar por título
+        if (searchText) {
+          filtros.search = searchText;
         }
-      } catch (err: any) {
-        console.error('Error al obtener eventos:', err)
-        setError(err.message || 'Error al cargar eventos')
+
+        // Filtrar por categoría (toma la primera categoría seleccionada, si existe)
+        if (selectedCategories.length > 0) {
+          const categoriaSeleccionada = categorias.find(cat => cat.nombre_categoria === selectedCategories[0]);
+          if (categoriaSeleccionada) {
+            filtros.categoria = categoriaSeleccionada.id_categoria;
+          }
+        }
+
+        // Filtrar por estado
+        if (estadoEvento) {
+          filtros.estado = estadoEvento;
+        }
+
+        // Filtrar por fecha de inicio y fin
+        if (fechaDesde) {
+          filtros.fechaDesde = fechaDesde;
+        }
+        if (fechaHasta) {
+          filtros.fechaHasta = fechaHasta;
+        }
+
+        const data = await getEventosFiltrados(filtros);
+        setEventos(data.eventos); // o data.items si cambiaste la respuesta
+        setPagination(data.pagination);
+      } catch (error) {
+        console.error("Error al filtrar eventos:", error);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
+
 
     fetchEventos()
-  }, [selectedCategories])
+  }, [selectedCategories, searchText, sortBy, sortOrder, estadoEvento, fechaDesde, fechaHasta, currentPage])
 
   // Cargar categorías al inicio
   useEffect(() => {
@@ -185,8 +243,23 @@ export default function EventsPage() {
                   Limpiar todos
                 </Button>
               </div>
-
               <div className="space-y-6">
+                {/* Buscar por título */}
+                <div>
+                  <h3 className="font-medium mb-3">Buscar</h3>
+                  <Input
+                    type="text"
+                    placeholder="Buscar por título"
+                    value={searchText}
+                    onChange={(e) => {
+                      setSearchText(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                  />
+                </div>
+
+                <Separator />
+
                 {/* Categorías */}
                 <div>
                   <h3 className="font-medium mb-3">Categorías</h3>
@@ -196,7 +269,9 @@ export default function EventsPage() {
                         <Checkbox
                           id={`category-${categoria.id_categoria}`}
                           checked={selectedCategories.includes(categoria.nombre_categoria)}
-                          onCheckedChange={(checked) => handleCategoryChange(categoria.nombre_categoria, checked === true)}
+                          onCheckedChange={(checked) =>
+                            handleCategoryChange(categoria.nombre_categoria, checked === true)
+                          }
                         />
                         <label
                           htmlFor={`category-${categoria.id_categoria}`}
@@ -211,141 +286,57 @@ export default function EventsPage() {
 
                 <Separator />
 
-                {/* Fecha - Comentado temporalmente */}
-                {/*
+                {/* Estado del evento */}
+                <div>
+                  <h3 className="font-medium mb-3">Estado del evento</h3>
+                  <Select
+                    value={estadoEvento}
+                    onValueChange={(value) => {
+                      setEstadoEvento(value);
+                      setCurrentPage(1);
+                    }}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Selecciona estado" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="activo">Activo</SelectItem>
+                      <SelectItem value="finalizado">Finalizado</SelectItem>
+                      <SelectItem value="cancelado">Cancelado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <Separator />
+
+                {/* Fechas */}
                 <div>
                   <h3 className="font-medium mb-3">Fecha</h3>
-                  <div className="space-y-2">
-                    {["Hoy", "Mañana", "Este fin de semana", "Esta semana", "Este mes", "Personalizada"].map((date) => (
-                      <div key={date} className="flex items-center space-x-2">
-                        <Checkbox id={`date-${date}`} />
-                        <label
-                          htmlFor={`date-${date}`}
-                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                        >
-                          {date}
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <Separator />
-                */}
-
-                {/* Ubicación - Comentado temporalmente */}
-                {/*
-                <div>
-                  <h3 className="font-medium mb-3">Ubicación</h3>
                   <div className="space-y-3">
-                    <Select>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Selecciona ciudad" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="santiago">Santiago</SelectItem>
-                        <SelectItem value="valparaiso">Valparaíso</SelectItem>
-                        <SelectItem value="concepcion">Concepción</SelectItem>
-                        <SelectItem value="la-serena">La Serena</SelectItem>
-                        <SelectItem value="antofagasta">Antofagasta</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <div className="flex items-center gap-2">
-                      <Input type="number" placeholder="Radio (km)" className="w-full" />
-                      <span className="text-sm text-muted-foreground">km</span>
+                    <div>
+                      <label className="text-sm font-medium">Desde</label>
+                      <Input
+                        type="date"
+                        value={fechaDesde}
+                        onChange={(e) => {
+                          setFechaDesde(e.target.value);
+                          setCurrentPage(1);
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Hasta</label>
+                      <Input
+                        type="date"
+                        value={fechaHasta}
+                        onChange={(e) => {
+                          setFechaHasta(e.target.value);
+                          setCurrentPage(1);
+                        }}
+                      />
                     </div>
                   </div>
                 </div>
-
-                <Separator />
-                */}
-
-                {/* Precio - Comentado temporalmente */}
-                {/*
-                <div>
-                  <h3 className="font-medium mb-3">Precio</h3>
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="price-free" />
-                      <label
-                        htmlFor="price-free"
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
-                        Gratis
-                      </label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="price-paid" />
-                      <label
-                        htmlFor="price-paid"
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
-                        De pago
-                      </label>
-                    </div>
-                  </div>
-                  <div className="mt-4">
-                    <div className="flex justify-between mb-2">
-                      <span className="text-sm text-muted-foreground">$0</span>
-                      <span className="text-sm text-muted-foreground">$100.000+</span>
-                    </div>
-                    <Slider defaultValue={[0, 75]} max={100} step={1} />
-                    <div className="flex justify-between mt-2">
-                      <div className="bg-muted rounded px-2 py-1 text-xs">$0</div>
-                      <div className="bg-muted rounded px-2 py-1 text-xs">$75.000</div>
-                    </div>
-                  </div>
-                </div>
-
-                <Separator />
-                */}
-
-                {/* Más filtros - Comentado temporalmente */}
-                {/*
-                <div>
-                  <h3 className="font-medium mb-3">Más filtros</h3>
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="filter-accessible" />
-                      <label
-                        htmlFor="filter-accessible"
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
-                        Accesible
-                      </label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="filter-family" />
-                      <label
-                        htmlFor="filter-family"
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
-                        Familiar
-                      </label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="filter-pet" />
-                      <label
-                        htmlFor="filter-pet"
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
-                        Admite mascotas
-                      </label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="filter-parking" />
-                      <label
-                        htmlFor="filter-parking"
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
-                        Estacionamiento
-                      </label>
-                    </div>
-                  </div>
-                </div>
-                */}
-
-                <Button className="w-full bg-primary text-white">Aplicar filtros</Button>
               </div>
             </div>
           </div>
@@ -355,6 +346,14 @@ export default function EventsPage() {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
               <div>
                 <h2 className="text-2xl font-bold text-primary">Todos los eventos</h2>
+                  {sortBy && sortOrder && (
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Ordenado por:{" "}
+                      {sortBy === "date" && (sortOrder === "asc" ? "Fecha (próximos)" : "Fecha (lejanos)")}
+                      {sortBy === "capacidad" && (sortOrder === "asc" ? "Capacidad (menor a mayor)" : "Capacidad (mayor a menor)")}
+                      {sortBy === "titulo" && (sortOrder === "asc" ? "Título (A-Z)" : "Título (Z-A)")}
+                    </p>
+                  )}
                 <p className="text-muted-foreground">
                   Mostrando {currentEvents.length} de {filteredEvents.length} eventos
                   {selectedCategories.length > 0 && ` en categoría${selectedCategories.length > 1 ? 's' : ''}: ${selectedCategories.join(', ')}`}
@@ -373,7 +372,16 @@ export default function EventsPage() {
                     </TabsTrigger>
                   </TabsList>
                 </Tabs>
-                <Select defaultValue="featured">
+                {/* Ordenamiento de eventos */}
+                <Select
+                  value={sortBy && sortOrder ? `${sortBy}-${sortOrder}` : ''}
+                  onValueChange={(value) => {
+                    const [by, order] = value.split('-');
+                    setSortBy(by);
+                    setSortOrder(order);
+                    setCurrentPage(1);
+                  }}
+                >
                   <SelectTrigger className="w-[180px]">
                     <div className="flex items-center gap-2">
                       <ArrowUpDown className="h-4 w-4" />
@@ -381,37 +389,67 @@ export default function EventsPage() {
                     </div>
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="featured">Destacados</SelectItem>
                     <SelectItem value="date-asc">Fecha (próximos)</SelectItem>
                     <SelectItem value="date-desc">Fecha (lejanos)</SelectItem>
-                    <SelectItem value="price-asc">Precio (menor a mayor)</SelectItem>
-                    <SelectItem value="price-desc">Precio (mayor a menor)</SelectItem>
-                    <SelectItem value="popular">Popularidad</SelectItem>
+                    <SelectItem value="capacidad-asc">Capacidad (menor a mayor)</SelectItem>
+                    <SelectItem value="capacidad-desc">Capacidad (mayor a menor)</SelectItem>
+                    <SelectItem value="titulo-asc">Título (A-Z)</SelectItem>
+                    <SelectItem value="titulo-desc">Título (Z-A)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
-
             {/* Active Filters */}
             <div className="flex flex-wrap gap-2 mb-6">
+              {/* Filtro de búsqueda */}
+              {searchText && (
+                <Badge variant="outline" className="bg-card flex items-center gap-1 px-3 py-1">
+                  Buscar: "{searchText}"
+                  <button onClick={() => setSearchText('')} className="ml-1 hover:text-primary">×</button>
+                </Badge>
+              )}
+
+              {/* Filtros de categoría */}
               {selectedCategories.map((category) => (
                 <Badge key={category} variant="outline" className="bg-card flex items-center gap-1 px-3 py-1">
                   {category}
-                  <button
-                    className="ml-1 hover:text-primary"
-                    onClick={() => setSelectedCategories((prev) => prev.filter((cat) => cat !== category))}
-                  >
-                    ×
-                  </button>
+                  <button onClick={() => setSelectedCategories(prev => prev.filter(cat => cat !== category))} className="ml-1 hover:text-primary">×</button>
                 </Badge>
               ))}
-              {selectedCategories.length > 0 && (
-                <Button variant="ghost" size="sm" className="text-primary h-7 px-2" onClick={clearFilters}>
+
+              {/* Filtro de estado */}
+              {estadoEvento && (
+                <Badge variant="outline" className="bg-card flex items-center gap-1 px-3 py-1">
+                  Estado: {estadoEvento}
+                  <button onClick={() => setEstadoEvento('')} className="ml-1 hover:text-primary">×</button>
+                </Badge>
+              )}
+
+              {/* Filtros de fechas */}
+              {fechaDesde && (
+                <Badge variant="outline" className="bg-card flex items-center gap-1 px-3 py-1">
+                  Desde: {fechaDesde}
+                  <button onClick={() => setFechaDesde('')} className="ml-1 hover:text-primary">×</button>
+                </Badge>
+              )}
+              {fechaHasta && (
+                <Badge variant="outline" className="bg-card flex items-center gap-1 px-3 py-1">
+                  Hasta: {fechaHasta}
+                  <button onClick={() => setFechaHasta('')} className="ml-1 hover:text-primary">×</button>
+                </Badge>
+              )}
+
+              {(searchText || selectedCategories.length || estadoEvento || fechaDesde || fechaHasta) && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-primary h-7 px-2"
+                  onClick={clearFilters}
+                >
                   Limpiar filtros
                 </Button>
               )}
             </div>
-
             {loading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -488,9 +526,7 @@ export default function EventsPage() {
                         </div>
                         <p className="text-muted-foreground text-sm mb-4">{event.descripcion}</p>
                         <div className="flex justify-between items-center">
-                          <Badge variant="outline" className="bg-primary/5 text-primary">
-                            Desde $10.000
-                          </Badge>
+<div></div>
                           <Link href={`/events/${event.id_evento}`}>
                             <Button
                               variant="outline"
