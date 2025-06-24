@@ -1,10 +1,6 @@
 // src/modules/organizador/organizador.routes.ts
-import Elysia, { t, type Static } from 'elysia';
-import {
-  authMiddleware,
-  requireAuth,
-} from '../../middleware/auth.middleware';
-import { CustomError } from '../../utils/errors';
+import Elysia, { t } from 'elysia';
+import { authMiddleware, requireAuth } from '../../middleware/auth.middleware';
 import {
   registrarUsuarioYCrearPerfilOrganizadorService,
   crearPerfilOrganizadorService,
@@ -19,7 +15,7 @@ import {
   registroCompletoOrganizadorSchema,
   createOrganizadorPerfilSchema,
   updateOrganizadorPerfilSchema,
-  organizadorParamsSchema,
+  organizadorParamsSchema
 } from './organizador.types';
 
 // Rutas para que los usuarios autenticados gestionen SU perfil de organizador

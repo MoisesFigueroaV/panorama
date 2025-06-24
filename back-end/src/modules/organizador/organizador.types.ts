@@ -1,7 +1,5 @@
-// src/modules/organizador/organizador.types.ts
 import { t } from 'elysia';
 
-// Schema para el registro "todo en uno" de un organizador
 export const registroCompletoOrganizadorSchema = t.Object({
   // Campos de usuario
   nombre_usuario: t.String({ minLength: 3, maxLength: 100 }),
@@ -25,7 +23,6 @@ export const registroCompletoOrganizadorSchema = t.Object({
 
 export type RegistroCompletoOrganizadorApiPayload = typeof registroCompletoOrganizadorSchema.static;
 
-// Schema para cuando un usuario ya autenticado crea su perfil de organizador
 export const createOrganizadorPerfilSchema = t.Object({
   nombre_organizacion: t.String({ minLength: 3, maxLength: 150 }),
   tipo_organizacion: t.String({ maxLength: 50 }),
@@ -57,7 +54,6 @@ export const updateOrganizadorPerfilSchema = t.Partial(t.Object({
 
 export type UpdateOrganizadorPerfilApiPayload = typeof updateOrganizadorPerfilSchema.static;
 
-// Parámetros de ruta
 export const organizadorParamsSchema = t.Object({
-  id: t.Numeric({ minimum: 1, description: "ID del organizador" })
+  id: t.Numeric({ minimum: 1 })
 });

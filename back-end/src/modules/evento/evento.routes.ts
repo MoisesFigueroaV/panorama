@@ -1,6 +1,6 @@
 import Elysia, { t } from 'elysia';
 import { authMiddleware, requireAuth } from '../../middleware/auth.middleware';
-import { createEventoService, updateEventoService, getEventosByOrganizadorService , getEventoByIdService, getOrganizerDashboardStatsService, getEventosDestacadosService, getCategoriasEventosService, getEventosByCategoriaService } from './evento.services';
+import { createEventoService, updateEventoService, getEventosByOrganizadorService , getEventoByIdService, getOrganizerDashboardStatsService, getEventosDestacadosService, getCategoriasEventosService, getEventosByCategoriaService, getEventosWithFiltersService } from './evento.services';
 import { createEventoSchema, updateEventoSchema, eventoResponseSchema, eventosResponseSchema } from './evento.types';
 import { CustomError } from '../../utils/errors';
 import { getOrganizadorByUserIdService } from '../organizador/organizador.services';
@@ -241,5 +241,36 @@ export const publicEventoRoutes = new Elysia({
       id: t.String(),
     }),
     detail: { summary: 'Obtener un evento específico por ID' }
+  }
+)
+
+.get(
+  '/filtrados',
+  async ({ query }) => {
+    return await getEventosWithFiltersService({
+      page: Number(query.page) || 1,
+      limit: Number(query.limit) || 10,
+      search: query.search?.toString(),
+      estado: query.estado ? Number(query.estado) : undefined,
+      categoria: query.categoria ? Number(query.categoria) : undefined,
+      fechaDesde: query.fechaDesde?.toString(),
+      fechaHasta: query.fechaHasta?.toString(),
+      sortBy: query.sortBy?.toString(),
+      sortOrder: query.sortOrder === 'asc' ? 'asc' : 'desc',
+    });
+  },
+  {
+    query: t.Object({
+      page: t.Optional(t.String()),
+      limit: t.Optional(t.String()),
+      search: t.Optional(t.String()),
+      estado: t.Optional(t.String()),
+      categoria: t.Optional(t.String()),
+      fechaDesde: t.Optional(t.String()),
+      fechaHasta: t.Optional(t.String()),
+      sortBy: t.Optional(t.String()),
+      sortOrder: t.Optional(t.String()),
+    }),
+    detail: { summary: 'Filtrar eventos públicos por múltiples criterios' }
   }
 );

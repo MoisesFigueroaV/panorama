@@ -9,7 +9,7 @@ export const organizadorTable = pgTable('organizador', {
     nombre_organizacion: varchar('nombre_organizacion', { length: 150 }).notNull(),
     descripcion: text('descripcion'), // Coincide con el SQL
     documento_acreditacion: varchar('documento_acreditacion', { length: 250 }),
-    acreditado: boolean('acreditado').default(false),
+    acreditado: boolean('acreditado').default(true),
     
     // Columnas que tu frontend usa y que ya deben estar en la DB
     ubicacion: varchar('ubicacion', { length: 250 }),
