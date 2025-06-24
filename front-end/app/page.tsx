@@ -25,6 +25,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 import { events } from "@/lib/mock-data"
+import MiniEventFilter from "@/components/mini-event-filter"
+
 
 // Importar todos los componentes necesarios
 import SiteHeader from "@/components/site-header"
@@ -145,83 +147,13 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Search Section */}
-        <section className="container py-8">
-          <div className="bg-white shadow-lg rounded-2xl -mt-24 relative z-30 p-6 border border-black/5">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Buscar eventos..." className="pl-10 bg-card border-gray-100" />
-              </div>
-              <Select>
-                <SelectTrigger className="border-gray-100 bg-card">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-accent" />
-                    <SelectValue placeholder="Ubicación" />
-                  </div>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="santiago">Santiago</SelectItem>
-                  <SelectItem value="valparaiso">Valparaíso</SelectItem>
-                  <SelectItem value="concepcion">Concepción</SelectItem>
-                  <SelectItem value="la-serena">La Serena</SelectItem>
-                  <SelectItem value="antofagasta">Antofagasta</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select>
-                <SelectTrigger className="border-gray-100 bg-card">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-accent" />
-                    <SelectValue placeholder="Fecha" />
-                  </div>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="today">Hoy</SelectItem>
-                  <SelectItem value="tomorrow">Mañana</SelectItem>
-                  <SelectItem value="this-weekend">Este fin de semana</SelectItem>
-                  <SelectItem value="this-week">Esta semana</SelectItem>
-                  <SelectItem value="this-month">Este mes</SelectItem>
-                  <SelectItem value="custom">Fecha personalizada</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select>
-                <SelectTrigger className="border-gray-100 bg-card">
-                  <div className="flex items-center gap-2">
-                    <Filter className="h-4 w-4 text-accent" />
-                    <SelectValue placeholder="Categoría" />
-                  </div>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="music">Música</SelectItem>
-                  <SelectItem value="sports">Deportes</SelectItem>
-                  <SelectItem value="food">Gastronomía</SelectItem>
-                  <SelectItem value="art">Arte y cultura</SelectItem>
-                  <SelectItem value="tech">Tecnología</SelectItem>
-                  <SelectItem value="outdoor">Aire libre</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Badge variant="outline" className="bg-card cursor-pointer hover:bg-muted border-gray-100 text-primary">
-                Conciertos
-              </Badge>
-              <Badge variant="outline" className="bg-card cursor-pointer hover:bg-muted border-gray-100 text-primary">
-                Festivales
-              </Badge>
-              <Badge variant="outline" className="bg-card cursor-pointer hover:bg-muted border-gray-100 text-primary">
-                Gratuitos
-              </Badge>
-              <Badge variant="outline" className="bg-card cursor-pointer hover:bg-muted border-gray-100 text-primary">
-                Familiar
-              </Badge>
-              <Badge variant="outline" className="bg-card cursor-pointer hover:bg-muted border-gray-100 text-primary">
-                Talleres
-              </Badge>
-              <Badge variant="outline" className="bg-card cursor-pointer hover:bg-muted border-gray-100 text-primary">
-                Exposiciones
-              </Badge>
-            </div>
+        {/* Filtros dinámicos resumidos */}
+        <section className="container py-12">
+          <div className="text-center mb-6">
+            <h2 className="text-3xl font-bold text-primary">Busca eventos a tu medida</h2>
+            <p className="text-muted-foreground">Filtra y descubre eventos según tus preferencias</p>
           </div>
+          <MiniEventFilter />
         </section>
 
         {/* Stats Section - Rediseñada con colores más coherentes */}
