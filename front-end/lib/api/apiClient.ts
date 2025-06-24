@@ -87,4 +87,13 @@ export const handleLogoutClient = () => {
   }
 };
 
+/**
+ * Obtener eventos públicos con filtros (categoría, estado, búsqueda, fechas, orden, etc.)
+ */
+export const getEventosFiltrados = async (params: Record<string, any>) => {
+  const queryString = new URLSearchParams(params).toString();
+  const response = await apiClient.get(`/eventos/filtrados?${queryString}`);
+  return response.data;
+};
+
 export default apiClient;
