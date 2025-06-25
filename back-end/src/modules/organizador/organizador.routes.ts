@@ -1,6 +1,7 @@
 // src/modules/organizador/organizador.routes.ts
 import Elysia, { t } from 'elysia';
 import { authMiddleware, requireAuth } from '../../middleware/auth.middleware';
+import { CustomError } from '../../utils/errors';
 import {
   registrarUsuarioYCrearPerfilOrganizadorService,
   crearPerfilOrganizadorService,
