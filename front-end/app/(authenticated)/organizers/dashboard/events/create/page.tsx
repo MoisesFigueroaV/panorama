@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
@@ -29,6 +29,7 @@ import { useOrganizerProfile } from "@/lib/hooks/useOrganizerProfile"
 import { AlertCircle } from "lucide-react"
 import { ImageUpload } from "@/components/ui/image-upload"
 import dynamic from 'next/dynamic'
+import { useCategorias } from "@/lib/hooks/usePublicData"
 
 const EventMapPicker = dynamic(() => import('@/components/event-map-picker'), { ssr: false })
 
@@ -41,7 +42,7 @@ const eventFormSchema = z.object({
   }),
   descripcion: z.string().max(800, {
     message: "La descripción no puede tener más de 800 caracteres",
-  }).default(""),
+  }),
   fecha_inicio: z.date({
     required_error: "Por favor selecciona una fecha de inicio",
   }),
@@ -98,16 +99,7 @@ export default function CreateEventPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [isUploadingImage, setIsUploadingImage] = useState(false)
   const router = useRouter()
-
-  // Logs de diagnóstico de autenticación
-  console.log('🔍 Estado de autenticación:', {
-    isAuthenticated,
-    isLoadingSession,
-    hasUser: !!user,
-    hasToken: !!accessToken,
-    user: user,
-    tokenLength: accessToken?.length || 0
-  })
+  const { categorias, loading } = useCategorias()
 
   const form = useForm<EventFormValues>({
     resolver: zodResolver(eventFormSchema),
@@ -370,9 +362,9 @@ export default function CreateEventPage() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {CATEGORIAS_EVENTO.map((categoria) => (
-                              <SelectItem key={categoria.id} value={categoria.id.toString()}>
-                                {categoria.nombre}
+                            {categorias.map((categoria) => (
+                              <SelectItem key={categoria.id_categoria} value={categoria.id_categoria.toString()}>
+                                {categoria.nombre_categoria}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -520,14 +512,15 @@ export default function CreateEventPage() {
                               placeholder="Ej. Teatro Municipal, Av. Principal 123"
                               className="pl-8"
                               {...field}
-                              onBlur={async (e) => {
-                                field.onBlur?.(e);
-                                const value = e.target.value;
+                              onBlur={async () => {
+                                field.onBlur();
+                                const value = field.value;
                                 if (value) {
                                   const coords = await geocodeAddress(value);
                                   if (coords) {
                                     form.setValue('latitud', coords.lat);
                                     form.setValue('longitud', coords.lon);
+                                    console.log('Coordenadas actualizadas:', coords.lat, coords.lon);
                                     toast.success('Ubicación encontrada y coordenadas actualizadas.');
                                   } else {
                                     toast.error('No se pudo encontrar la ubicación. Ajusta la dirección o selecciona manualmente en el mapa.');
@@ -547,6 +540,7 @@ export default function CreateEventPage() {
                   <EventMapPicker
                     latitud={form.watch('latitud') ?? null}
                     longitud={form.watch('longitud') ?? null}
+                    direccion={form.watch('ubicacion') || ''}
                     onChange={(lat, lng) => {
                       form.setValue('latitud', lat)
                       form.setValue('longitud', lng)

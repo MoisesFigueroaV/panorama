@@ -56,16 +56,16 @@ export default function CategoryCardWithCount({ id, name, categoriaId, icon }: C
   return (
     <Link
       href={`/events?category=${linkId}`}
-      className="category-card bg-white rounded-xl p-6 text-center shadow-sm hover:shadow-md transition-all duration-300 group relative overflow-hidden"
+      className="category-card bg-white rounded-xl p-8 min-w-[180px] min-h-[220px] text-center shadow-sm hover:shadow-md transition-all duration-300 group relative overflow-hidden flex flex-col items-center justify-center"
     >
       <div
-        className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 transition-all duration-300 group-hover:scale-110"
+        className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 transition-all duration-300 group-hover:scale-110"
         style={{ backgroundColor: colors.bg }}
       >
-        <div style={{ color: colors.text }}>{icon}</div>
+        <div style={{ color: colors.text, fontSize: 36 }}>{icon}</div>
       </div>
-      <h3 className="font-medium text-lg group-hover:text-primary transition-colors">{name}</h3>
-      <p className="text-muted-foreground text-sm">
+      <h3 className="font-semibold text-xl group-hover:text-primary transition-colors mb-2">{name}</h3>
+      <p className="text-muted-foreground text-base">
         {loading ? "..." : `${eventos.length} eventos`}
       </p>
       <div className="loading-bar"></div>

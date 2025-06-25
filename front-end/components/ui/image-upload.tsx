@@ -112,7 +112,7 @@ export function ImageUpload({ onImageUpload, currentImage, className, setIsUploa
       <Input
         ref={fileInputRef}
         type="file"
-        accept="image/*"
+        accept="image/*,image/avif,.avif"
         onChange={handleFileSelect}
         className="hidden"
       />
@@ -128,7 +128,7 @@ export function ImageUpload({ onImageUpload, currentImage, className, setIsUploa
       )}
 
       <p className="text-sm text-muted-foreground">
-        Formatos soportados: JPG, PNG, GIF. Máximo 5MB.
+        Formatos soportados: JPG, PNG, GIF, AVIF. Máximo 5MB.
       </p>
     </div>
   )
