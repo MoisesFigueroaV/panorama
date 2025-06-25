@@ -11,6 +11,7 @@ import dynamic from "next/dynamic"
 import { useEventoById, useEventosDestacados } from "@/lib/hooks/usePublicData"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
+import { toast } from "sonner"
 
 interface EventPageProps {
   params: Promise<{
@@ -69,6 +70,17 @@ export default function EventPage({ params }: EventPageProps) {
 
   console.log('🖼️ [DETALLE] IMAGEN DEL EVENTO:', evento.imagen)
 
+  // Handler para copiar la URL y mostrar alerta
+  const handleCopyUrl = async () => {
+    try {
+      const url = `${window.location.origin}/events/${id}`
+      await navigator.clipboard.writeText(url)
+      toast.success("¡Enlace copiado al portapapeles!")
+    } catch {
+      toast.error("No se pudo copiar el enlace")
+    }
+  }
+
   return (
     <main className="min-h-screen pb-16">
       {/* Hero Section */}
@@ -115,6 +127,7 @@ export default function EventPage({ params }: EventPageProps) {
                 size="lg"
                 variant="outline"
                 className="text-[#f9a05d] border-[#f9a05d] hover:bg-[#f9a05d]/10 font-medium"
+                onClick={handleCopyUrl}
               >
                 <Share2 className="h-4 w-4 mr-2" />
                 Compartir
@@ -201,7 +214,7 @@ export default function EventPage({ params }: EventPageProps) {
                   <Heart className="h-4 w-4 mr-2" />
                   Guardar evento
                 </Button>
-                <Button variant="outline" className="w-full">
+                <Button variant="outline" className="w-full" onClick={handleCopyUrl}>
                   <Share2 className="h-4 w-4 mr-2" />
                   Compartir
                 </Button>

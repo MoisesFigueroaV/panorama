@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { toast } from "sonner"
 
 interface EventCardProps {
   event: {
@@ -55,9 +56,21 @@ export default function EventCard({ event }: EventCardProps) {
 
   // Log para depuración
   console.log('🖼️ IMAGEN DEL EVENTO:', event.imagen)
+  
+  // Handler para copiar la URL y mostrar alerta
+  const handleCopyUrl = async () => {
+    try {
+      const url = `${window.location.origin}/events/${event.id_evento}`
+      await navigator.clipboard.writeText(url)
+      toast.success("¡Enlace copiado al portapapeles!")
+    } catch {
+      toast.error("No se pudo copiar el enlace")
+    }
+  }
+
   return (
     <>
-      <Card className="overflow-hidden h-full flex flex-col group hover:shadow-md transition-all duration-300 hover:-translate-y-1 border border-black/5">
+      <Card className="overflow-visible h-full flex flex-col group hover:shadow-md transition-all duration-300 hover:-translate-y-1 border border-black/5">
         <div className="relative h-48 overflow-hidden">
           <img
             src={event.imagen || ''}
@@ -103,7 +116,7 @@ export default function EventCard({ event }: EventCardProps) {
             </div>
           )}
           <div className="absolute top-2 right-2 flex gap-2">
-            <TooltipProvider>
+            {/* <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -119,7 +132,7 @@ export default function EventCard({ event }: EventCardProps) {
                   <p>Guardar evento</p>
                 </TooltipContent>
               </Tooltip>
-            </TooltipProvider>
+            </TooltipProvider> */}
 
             <TooltipProvider>
               <Tooltip>
@@ -128,12 +141,13 @@ export default function EventCard({ event }: EventCardProps) {
                     size="icon"
                     variant="secondary"
                     className="h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:scale-110 bg-highlight text-secondary"
+                    onClick={handleCopyUrl}
                   >
                     <Share2 className="h-4 w-4" />
                     <span className="sr-only">Compartir evento</span>
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>
+                <TooltipContent className="z-50">
                   <p>Compartir evento</p>
                 </TooltipContent>
               </Tooltip>
