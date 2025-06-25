@@ -67,7 +67,7 @@ export function getImageUrl(filePath: string): string {
     console.warn('Supabase no está configurado, devolviendo URL de placeholder para imagen.');
     return 'https://images.unsplash.com/photo-1549488344-cbb6c34cf08b?w=600&q=80';
   }
-  
+
   const { data } = supabase!.storage
     .from('eventos-media')
     // CAMBIO TEMPORAL: quitamos la carpeta Imagenes/
