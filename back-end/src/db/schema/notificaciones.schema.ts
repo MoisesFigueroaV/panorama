@@ -8,6 +8,7 @@ export const notificacionTable = pgTable('notificacion', {
   id_evento: integer('id_evento').references(() => eventoTable.id_evento),
   mensaje: text('mensaje').notNull(),
   fecha_envio: timestamp('fecha_envio').defaultNow().notNull(),
+  tipo: text('tipo').default('sistema').notNull()
 });
 export type Notificacion = typeof notificacionTable.$inferSelect;
 export type NewNotificacion = typeof notificacionTable.$inferInsert;

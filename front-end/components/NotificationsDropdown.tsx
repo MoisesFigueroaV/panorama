@@ -1,0 +1,100 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { Bell } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+
+import {
+  getNotificacionesPorUsuario,
+  marcarNotificacionComoLeida,
+} from '@/lib/api/notificaciones'
+
+interface NotificationsDropdownProps {
+  idUsuario: number
+}
+
+export default function NotificationsDropdown({ idUsuario }: NotificationsDropdownProps) {
+  const [notificaciones, setNotificaciones] = useState<any[]>([])
+  const [unreadCount, setUnreadCount] = useState<number>(0)
+
+  useEffect(() => {
+    if (!idUsuario) return
+    getNotificacionesPorUsuario(idUsuario).then((data) => {
+      setNotificaciones(data)
+      setUnreadCount(data.filter((n: any) => !n.leido).length)
+    })
+  }, [idUsuario])
+
+  async function marcarComoLeida(id: number) {
+    await marcarNotificacionComoLeida(id)
+    setNotificaciones((prev) =>
+      prev.map((n) => (n.id_notificacion === id ? { ...n, leido: true } : n))
+    )
+    setUnreadCount((prev) => Math.max(prev - 1, 0))
+  }
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="relative">
+          <Bell className="h-5 w-5" />
+          {unreadCount > 0 && (
+            <Badge variant="destructive" className="absolute -top-1 -right-1 h-5 w-5 p-0 text-xs flex justify-center items-center">
+              {unreadCount}
+            </Badge>
+          )}
+          <span className="sr-only">Ver notificaciones</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-80">
+        <DropdownMenuLabel>Notificaciones</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <div className="max-h-[300px] overflow-y-auto">
+          {notificaciones.length === 0 && (
+            <DropdownMenuItem disabled className="text-sm text-muted-foreground">Sin notificaciones</DropdownMenuItem>
+          )}
+          {notificaciones.slice(0, 5).map((n) => (
+            <DropdownMenuItem
+              key={n.id_notificacion}
+              onClick={() => marcarComoLeida(n.id_notificacion)}
+              className="flex flex-col items-start gap-1 p-4 cursor-pointer"
+            >
+              <div className="flex items-center gap-2">
+                <Bell className="h-4 w-4 text-primary" />
+                <span className="font-medium">{n.tipo === 'evento' ? 'Evento' : 'Sistema'} - {n.nombre_estado}</span>
+              </div>
+              <p className="text-sm text-muted-foreground">{n.mensaje}</p>
+              <span className="text-xs text-muted-foreground">{formatoTiempo(n.fecha_envio)}</span>
+            </DropdownMenuItem>
+          ))}
+        </div>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem className="justify-center text-primary cursor-pointer">
+          Ver todas las notificaciones
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
+function formatoTiempo(fechaISO: string) {
+  const fecha = new Date(fechaISO)
+  const ahora = new Date()
+  const diff = Math.floor((ahora.getTime() - fecha.getTime()) / 1000 / 60) // minutos
+
+  if (diff < 1) return 'Justo ahora'
+  if (diff < 60) return `Hace ${diff} min`
+  const horas = Math.floor(diff / 60)
+  if (horas < 24) return `Hace ${horas} h`
+  const dias = Math.floor(horas / 24)
+  return `Hace ${dias} día${dias !== 1 ? 's' : ''}`
+}
