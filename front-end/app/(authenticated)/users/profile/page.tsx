@@ -34,6 +34,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
+import NotificationsInbox from "@/components/NotificationsInbox"
+
 
 // Esquema de validación para el formulario de perfil personal
 const profileFormSchema = z.object({
@@ -848,44 +850,9 @@ export default function ProfilePage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {/* Placeholder para notificaciones */}
-                <div className="flex items-start gap-4 p-4 rounded-lg border">
-                  <div className="rounded-full bg-primary/10 p-2">
-                    <Bell className="h-4 w-4 text-primary" />
-                  </div>
-                  <div className="flex-1 space-y-1">
-                    <p className="text-sm font-medium">
-                      Título de la notificación
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Descripción de la notificación...
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Hace 2 horas
-                    </p>
-                  </div>
-                  <Button variant="ghost" size="sm">
-                    Marcar como leída
-                  </Button>
-                </div>
-
-                {/* Filtros de notificaciones */}
-                <div className="flex flex-wrap gap-2 mt-6">
-                  <Button variant="outline" size="sm" className="rounded-full">
-                    Todas
-                  </Button>
-                  <Button variant="ghost" size="sm" className="rounded-full">
-                    No leídas
-                  </Button>
-                  <Button variant="ghost" size="sm" className="rounded-full">
-                    Eventos
-                  </Button>
-                  <Button variant="ghost" size="sm" className="rounded-full">
-                    Sistema
-                  </Button>
-                </div>
-              </div>
+              {user?.id_usuario !== undefined && (
+                <NotificationsInbox idUsuario={user.id_usuario} />
+              )}
             </CardContent>
           </Card>
         </TabsContent>
