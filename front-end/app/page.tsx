@@ -16,6 +16,10 @@ import {
   Palette,
   Code,
   TreePine,
+  AlertCircle,
+  Briefcase,
+  Clapperboard,
+  Drama,
 } from "lucide-react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
@@ -26,13 +30,14 @@ import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 import { events } from "@/lib/mock-data"
 import MiniEventFilter from "@/components/mini-event-filter"
-
+import { useEffect, useState } from 'react'
+import dynamic from 'next/dynamic'
+import { apiClient } from '@/lib/api/apiClient'
 
 // Importar todos los componentes necesarios
 import SiteHeader from "@/components/site-header"
 import SiteFooter from "@/components/site-footer"
 import EventCard from "@/components/event-card"
-// import EventMap from "@/components/event-map" // Deshabilitado temporalmente
 import NewsletterForm from "@/components/newsletter-form"
 import CalendarView from "@/components/calendar-view"
 import PromotedEventsCarousel from "@/components/promoted-events-carousel"
@@ -43,11 +48,129 @@ import { DynamicHeader } from "@/components/dynamic-header"
 import { useEventosDestacados, useOrganizadoresVerificados, useCategorias, useEventosByCategoria } from "@/lib/hooks/usePublicData"
 import CategoryCardWithCount from "@/components/category-card-with-count"
 
+// Tipos
+interface Event {
+  id_evento: number;
+  titulo: string;
+  fecha_inicio: string;
+  fecha_fin: string;
+  hora_inicio: string;
+  hora_fin: string;
+  ubicacion: string | null;
+  imagen: string | null;
+  nombre_categoria: string | null;
+  descripcion: string | null;
+  latitud: number | null;
+  longitud: number | null;
+  nombre_organizacion: string;
+  logo_organizacion: string | null;
+  en_curso?: boolean;
+  capacidad: number;
+  ya_realizado: boolean;
+  fecha_registro: string;
+}
+
+// Cargar el mapa dinámicamente solo del lado del cliente
+const EventMap = dynamic(
+  () => import('@/components/event-map'),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="h-[400px] w-full bg-gray-100 animate-pulse flex items-center justify-center">
+        <p className="text-muted-foreground">Cargando mapa...</p>
+      </div>
+    )
+  }
+);
+
+function getImageUrl(imagen: string | null): string {
+  if (!imagen) return "/placeholder.svg";
+  if (imagen.startsWith("http")) return imagen;
+  // Ajusta la URL de Supabase según tu configuración real
+  return `https://<TU_SUPABASE_URL>/storage/v1/object/public/eventos-media/Imagenes/${imagen}`;
+}
+
 export default function Home() {
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const { eventos, loading: isLoadingEventos, error: errorEventos } = useEventosDestacados(30);
+  const [kpis, setKpis] = useState<{ eventosActivos: number, totalUsuarios: number, totalOrganizadores: number } | null>(null);
+  const [loadingKpis, setLoadingKpis] = useState(true);
+  
+  useEffect(() => {
+    // Limpiar ubicación guardada al cargar la página
+    localStorage.removeItem('userLocation');
+    
+    // Solicitar ubicación actual
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const newLocation = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          };
+          setUserLocation(newLocation);
+          localStorage.setItem('userLocation', JSON.stringify(newLocation));
+          setLocationError(null);
+        },
+        (error) => {
+          let userMessage = "No pudimos obtener tu ubicación. Mostrando eventos en Concepción.";
+          if (error && typeof error.code === "number") {
+            switch (error.code) {
+              case 1:
+                userMessage = "No diste permiso para acceder a tu ubicación. Mostrando eventos en Concepción.";
+                break;
+              case 2:
+                userMessage = "No se pudo determinar tu ubicación. Mostrando eventos en Concepción.";
+                break;
+              case 3:
+                userMessage = "La solicitud de ubicación tardó demasiado. Mostrando eventos en Concepción.";
+                break;
+            }
+          }
+          // Simular ubicación por defecto (Concepción) si falla la geolocalización
+          setUserLocation({ lat: -36.82, lng: -73.05 });
+          setLocationError(userMessage);
+        },
+        { enableHighAccuracy: true, maximumAge: 0 } // Forzar solicitud nueva cada vez
+      );
+    } else {
+      setLocationError("Tu navegador no soporta geolocalización. Mostrando eventos en Concepción.");
+    }
+  }, []); // Se ejecuta solo al montar el componente
+
+  useEffect(() => {
+    async function fetchKpis() {
+      try {
+        // Obtener el token de acceso desde el helper
+        const { getAccessToken } = await import('@/lib/api/apiClient');
+        const token = getAccessToken();
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        const res = await apiClient.get('/admin/dashboard/kpis', { headers });
+        const data = res.data;
+        setKpis({
+          eventosActivos: data.eventosActivos,
+          totalUsuarios: data.totalUsuarios,
+          totalOrganizadores: data.totalOrganizadores,
+        });
+      } catch (e) {
+        setKpis(null);
+      } finally {
+        setLoadingKpis(false);
+      }
+    }
+    fetchKpis();
+  }, []);
+
   // Obtener datos reales
-  const { eventos, loading: loadingEventos, error: errorEventos } = useEventosDestacados(6);
   const { organizadores, loading: loadingOrganizadores, error: errorOrganizadores } = useOrganizadoresVerificados(3);
-  const { categorias, loading: loadingCategorias, error: errorCategorias } = useCategorias();
+  const categoriasExtra = [
+    { id_categoria: 6, nombre_categoria: 'Teatro' },
+    { id_categoria: 7, nombre_categoria: 'Cine' },
+    { id_categoria: 8, nombre_categoria: 'Negocios' },
+  ];
+  const { categorias: categoriasBD, loading: loadingCategorias, error: errorCategorias } = useCategorias();
+  const categorias = [...categoriasBD, ...categoriasExtra.filter(cat => !categoriasBD.some(c => c.id_categoria === cat.id_categoria))];
 
   // Testimonios para mostrar
   const testimonials = [
@@ -64,7 +187,32 @@ export default function Home() {
       rating: 5,
     },
     // Más testimonios podrían agregarse aquí
-  ]
+  ];
+
+  (eventos || []).forEach((e: any) => console.log('Evento:', e.titulo, 'Capacidad:', e.capacidad, 'Imagen:', e.imagen, 'Ya realizado:', e.ya_realizado));
+
+  // Unificar lógica de destacados
+  const eventosDestacadosBase = (eventos || [])
+    .filter((event: any) => event.capacidad >= 1000 && event.imagen && !event.ya_realizado)
+    .sort((a: any, b: any) => new Date(b.fecha_registro).getTime() - new Date(a.fecha_registro).getTime());
+
+  const eventosCarrusel = eventosDestacadosBase.slice(0, 5).map(event => ({
+    id: String(event.id_evento),
+    title: event.titulo,
+    date: event.fecha_inicio,
+    time: event.hora_inicio,
+    location: event.ubicacion || '',
+    image: getImageUrl(event.imagen),
+    category: event.nombre_categoria || '',
+    description: event.descripcion || '',
+    eventId: event.id_evento,
+  }));
+
+  const eventosDestacadosFila = eventosDestacadosBase.slice(0, 3);
+
+  console.log('EVENTOS CARRUSEL:', eventosCarrusel);
+
+  console.log('EVENTOS DESTACADOS DEL BACKEND:', eventos);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -167,31 +315,28 @@ export default function Home() {
               <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
                 <Calendar className="h-8 w-8 text-primary" />
               </div>
-              <h3 className="text-4xl font-bold text-primary mb-1">250+</h3>
-              <p className="text-muted-foreground font-medium">Eventos mensuales</p>
+              <h3 className="text-4xl font-bold text-primary mb-1">{loadingKpis ? '...' : kpis?.eventosActivos ?? '0'}</h3>
+              <p className="text-muted-foreground font-medium">Eventos publicados</p>
             </div>
-
             <div className="bg-gradient-to-br from-accent/5 to-accent/10 rounded-xl border border-accent/20 p-6 text-center hover:shadow-md transition-all duration-300">
               <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
                 <Users className="h-8 w-8 text-accent" />
               </div>
-              <h3 className="text-4xl font-bold text-accent mb-1">10K+</h3>
-              <p className="text-muted-foreground font-medium">Usuarios activos</p>
+              <h3 className="text-4xl font-bold text-accent mb-1">{loadingKpis ? '...' : kpis?.totalUsuarios ?? '0'}</h3>
+              <p className="text-muted-foreground font-medium">Usuarios registrados</p>
             </div>
-
             <div className="bg-gradient-to-br from-highlight/5 to-highlight/10 rounded-xl border border-highlight/20 p-6 text-center hover:shadow-md transition-all duration-300">
               <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
                 <Building2 className="h-8 w-8 text-highlight" />
               </div>
-              <h3 className="text-4xl font-bold text-highlight mb-1">120+</h3>
+              <h3 className="text-4xl font-bold text-highlight mb-1">{loadingKpis ? '...' : kpis?.totalOrganizadores ?? '0'}</h3>
               <p className="text-muted-foreground font-medium">Organizaciones</p>
             </div>
-
             <div className="bg-gradient-to-br from-primary/5 to-accent/10 rounded-xl border border-accent/20 p-6 text-center hover:shadow-md transition-all duration-300">
               <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
                 <Globe className="h-8 w-8 text-accent" />
               </div>
-              <h3 className="text-4xl font-bold text-accent mb-1">15+</h3>
+              <h3 className="text-4xl font-bold text-accent mb-1">1</h3>
               <p className="text-muted-foreground font-medium">Ciudades</p>
             </div>
           </div>
@@ -203,34 +348,17 @@ export default function Home() {
             <Badge className="mb-2 bg-primary text-white">Lo más popular</Badge>
             <h2 className="text-3xl font-bold mb-2 text-primary">Eventos destacados</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Descubre los eventos más populares y promocionados de esta semana. No te pierdas estas experiencias
-              únicas.
+              Descubre los eventos más populares y promocionados de esta semana. No te pierdas estas experiencias únicas.
             </p>
           </div>
-          <PromotedEventsCarousel events={events.slice(0, 5)} />
-
-          {/* Eventos destacados en formato de tarjetas con indicador */}
-          <div className="mt-12">
-            <h3 className="text-xl font-bold mb-6 text-primary">Eventos que no te puedes perder</h3>
-            {loadingEventos ? (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-64 bg-gray-200 rounded-lg animate-pulse" />
-                ))}
-              </div>
-            ) : errorEventos ? (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">Error al cargar eventos: {errorEventos}</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {eventos.slice(0, 3).map((event) => (
-                  <EventCard key={event.id_evento} event={event} />
-                ))}
-              </div>
-            )}
+          {eventosCarrusel.length > 0 && (
+            <PromotedEventsCarousel events={eventosCarrusel} />
+          )}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8 mb-8">
+            {eventosDestacadosFila.map((event) => (
+              <EventCard key={event.id_evento} event={event} />
+            ))}
           </div>
-
           <div className="flex justify-center mt-8">
             <Link href="/events">
               <Button size="lg" className="bg-primary text-white gap-2">
@@ -242,62 +370,48 @@ export default function Home() {
         </section>
 
         {/* Explore by Categories */}
-        <section className="container py-12">
-          <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold mb-2 text-primary">Explora por categorías</h2>
-            <p className="text-muted-foreground">Encuentra eventos según tus intereses</p>
+        <section className="container py-8">
+          <h2 className="text-2xl font-bold mb-6 text-center text-primary">Explora por categoría</h2>
+          <div className="flex flex-wrap justify-center gap-4">
+            {categorias?.map((categoria) => {
+              const nombre = categoria.nombre_categoria || 'Sin nombre';
+              const lowerName = nombre.toLowerCase();
+              let id = 'other';
+              let icon = <Calendar className="h-6 w-6" />;
+              let color = '';
+              if (lowerName.includes('música') || lowerName.includes('musica')) {
+                id = 'music'; icon = <Music className="h-6 w-6" />; color = '#f47c6c';
+              } else if (lowerName.includes('deporte')) {
+                id = 'sports'; icon = <Trophy className="h-6 w-6" />; color = '#a3d7e0';
+              } else if (lowerName.includes('gastronomía') || lowerName.includes('gastronomia') || lowerName.includes('comida')) {
+                id = 'food'; icon = <Calendar className="h-6 w-6" />; color = '#f9a05d';
+              } else if (lowerName.includes('arte') || lowerName.includes('cultura')) {
+                id = 'art'; icon = <Palette className="h-6 w-6" />; color = '#f1c84b';
+              } else if (lowerName.includes('tecnología') || lowerName.includes('tecnologia')) {
+                id = 'tech'; icon = <Code className="h-6 w-6" />; color = '#6366f1';
+              } else if (lowerName.includes('aire libre') || lowerName.includes('outdoor')) {
+                id = 'outdoor'; icon = <TreePine className="h-6 w-6" />; color = '#22c55e';
+              } else if (lowerName.includes('educación') || lowerName.includes('educacion')) {
+                id = 'education'; icon = <Calendar className="h-6 w-6" />; color = '#ef4444';
+              } else if (lowerName.includes('teatro')) {
+                id = 'theater'; icon = <Drama className="h-6 w-6" />; color = '#a21caf';
+              } else if (lowerName.includes('cine')) {
+                id = 'cinema'; icon = <Clapperboard className="h-6 w-6" />; color = '#1e293b';
+              } else if (lowerName.includes('negocios')) {
+                id = 'business'; icon = <Briefcase className="h-6 w-6" />; color = '#334155';
+              }
+              return (
+                <CategoryCardWithCount
+                  key={categoria.id_categoria}
+                  id={id}
+                  name={nombre}
+                  categoriaId={categoria.id_categoria}
+                  icon={icon}
+                  color={color}
+                />
+              );
+            })}
           </div>
-          
-          {loadingCategorias ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 max-w-6xl mx-auto">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
-                <div key={i} className="h-32 bg-gray-200 rounded-lg animate-pulse" />
-              ))}
-            </div>
-          ) : errorCategorias ? (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground">Error al cargar categorías: {errorCategorias}</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 max-w-6xl mx-auto">
-              {categorias.map((categoria) => {
-                // Mapear categorías reales a iconos y colores
-                const getCategoryConfig = (nombre: string) => {
-                  const lowerName = nombre.toLowerCase();
-                  if (lowerName.includes('música') || lowerName.includes('musica')) {
-                    return { icon: <Music className="h-6 w-6" />, id: 'music' };
-                  } else if (lowerName.includes('deporte')) {
-                    return { icon: <Trophy className="h-6 w-6" />, id: 'sports' };
-                  } else if (lowerName.includes('gastronomía') || lowerName.includes('gastronomia') || lowerName.includes('comida')) {
-                    return { icon: <Calendar className="h-6 w-6" />, id: 'food' };
-                  } else if (lowerName.includes('arte') || lowerName.includes('cultura')) {
-                    return { icon: <Palette className="h-6 w-6" />, id: 'art' };
-                  } else if (lowerName.includes('tecnología') || lowerName.includes('tecnologia')) {
-                    return { icon: <Code className="h-6 w-6" />, id: 'tech' };
-                  } else if (lowerName.includes('aire libre') || lowerName.includes('outdoor')) {
-                    return { icon: <TreePine className="h-6 w-6" />, id: 'outdoor' };
-                  } else if (lowerName.includes('educación') || lowerName.includes('educacion')) {
-                    return { icon: <Calendar className="h-6 w-6" />, id: 'education' };
-                  } else {
-                    return { icon: <Calendar className="h-6 w-6" />, id: 'other' };
-                  }
-                };
-
-                const config = getCategoryConfig(categoria.nombre_categoria);
-                
-                return (
-                  <CategoryCardWithCount
-                    key={categoria.id_categoria}
-                    id={config.id}
-                    name={categoria.nombre_categoria}
-                    categoriaId={categoria.id_categoria}
-                    icon={config.icon}
-                    color=""
-                  />
-                );
-              })}
-            </div>
-          )}
         </section>
 
         {/* CTA Section */}
@@ -323,87 +437,52 @@ export default function Home() {
         </section>
 
         {/* Events Section */}
-        <section className="container py-12">
-          <Tabs defaultValue="list" className="w-full">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-              <div>
-                <h2 className="text-3xl font-bold mb-2 text-primary">Explora todos los eventos</h2>
-                <p className="text-muted-foreground">Encuentra el evento perfecto para ti</p>
-              </div>
-              <div className="flex flex-col md:flex-row gap-4 items-center">
-                <TabsList className="bg-muted">
-                  <TabsTrigger value="list" className="data-[state=active]:bg-primary data-[state=active]:text-white">
-                    Lista
-                  </TabsTrigger>
-                  <TabsTrigger value="map" className="data-[state=active]:bg-primary data-[state=active]:text-white">
-                    Mapa
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="calendar"
-                    className="data-[state=active]:bg-primary data-[state=active]:text-white"
-                  >
-                    Calendario
-                  </TabsTrigger>
-                </TabsList>
-                <Select defaultValue="featured">
-                  <SelectTrigger className="w-[180px] border-gray-100 bg-card">
-                    <SelectValue placeholder="Ordenar por" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="featured">Destacados</SelectItem>
-                    <SelectItem value="date-asc">Fecha (próximos)</SelectItem>
-                    <SelectItem value="date-desc">Fecha (lejanos)</SelectItem>
-                    <SelectItem value="popular">Popularidad</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <TabsContent value="list" className="space-y-8">
-              {loadingEventos ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {[1, 2, 3, 4, 5, 6].map((i) => (
-                    <div key={i} className="h-64 bg-gray-200 rounded-lg animate-pulse" />
-                  ))}
-                </div>
-              ) : errorEventos ? (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">Error al cargar eventos: {errorEventos}</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {eventos.map((event) => (
-                    <EventCard key={event.id_evento} event={event} />
-                  ))}
-                </div>
-              )}
-              <div className="flex justify-center">
-                <Link href="/events">
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    className="gap-2 border-primary text-primary hover:bg-primary hover:text-white"
-                  >
-                    Ver más eventos
-                    <ArrowRight className="h-4 w-4" />
-                  </Button>
-                </Link>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="map">
-              <div className="h-[600px] rounded-lg overflow-hidden border border-black/5 bg-muted flex items-center justify-center">
-                <div className="text-center">
-                  <p className="text-muted-foreground mb-2">Mapa temporalmente deshabilitado</p>
-                  <p className="text-sm text-muted-foreground">Próximamente disponible</p>
-                </div>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="calendar">
-              <CalendarView events={events} />
-            </TabsContent>
-          </Tabs>
+        <section className="container py-8">
+          <div className="mt-12">
+            <h3 className="text-xl font-bold mb-6 text-primary">Explorar todos los eventos</h3>
+            <Tabs defaultValue="list" className="w-full">
+              <TabsList className="mb-4">
+                <TabsTrigger value="list">Lista</TabsTrigger>
+                <TabsTrigger value="map">Mapa</TabsTrigger>
+              </TabsList>
+              <TabsContent value="list" className="space-y-8">
+                {isLoadingEventos ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {[1, 2, 3, 4, 5, 6].map((i) => (
+                      <div key={i} className="h-64 bg-gray-200 rounded-lg animate-pulse" />
+                    ))}
+                  </div>
+                ) : errorEventos ? (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">Error al cargar eventos: {errorEventos}</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {eventos?.map((event) => (
+                        <EventCard key={event.id_evento} event={event} />
+                      ))}
+                    </div>
+                    <div className="flex justify-center mt-6">
+                      <a href="/events" className="inline-block px-6 py-2 rounded bg-primary text-white font-semibold hover:bg-primary/90 transition">Ver más eventos</a>
+                    </div>
+                  </>
+                )}
+              </TabsContent>
+              <TabsContent value="map">
+                {locationError && (
+                  <div className="mb-4 p-4 bg-muted rounded-lg">
+                    <p className="text-muted-foreground">{locationError}</p>
+                  </div>
+                )}
+                <EventMap 
+                  center={userLocation || { lat: -36.82, lng: -73.05 }}
+                  userLocation={userLocation}
+                  events={eventos || []}
+                />
+              </TabsContent>
+            </Tabs>
+          </div>
         </section>
 
         {/* Featured Organizers */}
@@ -432,7 +511,7 @@ export default function Home() {
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            {testimonials.map((testimonial, index) => (
+            {testimonials.map((testimonial: any, index: number) => (
               <TestimonialCard
                 key={index}
                 quote={testimonial.quote}
@@ -452,7 +531,7 @@ export default function Home() {
         </section>
 
         {/* Mantenerse Informado - Con estilo de gradiente unificado */}
-        <section className="container py-16">
+        {/* <section className="container py-16">
           <div className="bg-gradient-to-r from-primary/10 via-accent/10 to-highlight/10 rounded-2xl p-8 md:p-12 border border-primary/10 shadow-sm">
             <div className="max-w-3xl mx-auto text-center">
               <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
@@ -470,7 +549,7 @@ export default function Home() {
               </p>
             </div>
           </div>
-        </section>
+        </section> */}
       </main>
       <SiteFooter />
     </div>

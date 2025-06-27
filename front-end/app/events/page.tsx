@@ -17,6 +17,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import EventCard from "@/components/event-card"
 import { getEventosFiltrados } from '@/lib/api/apiClient';
 import { api } from "@/lib/api"
+import EstadoEventoBadge from '@/components/estado-evento-badge'
 
 interface EventoReal {
   id_evento: number
@@ -31,6 +32,9 @@ interface EventoReal {
   nombre_categoria: string | null
   nombre_organizacion: string | null
   logo_organizacion: string | null
+  en_curso: boolean
+  proximo: boolean
+  ya_realizado: boolean
 }
 
 interface Categoria {
@@ -162,7 +166,24 @@ export default function EventsPage() {
         }
 
         const data = await getEventosFiltrados(filtros);
-        setEventos(data.eventos); // o data.items si cambiaste la respuesta
+        // Calcular estado del evento si no viene del backend
+        const hoy = new Date();
+        const eventosConEstado = (data.eventos || []).map((event: any) => {
+          const fechaInicio = new Date(event.fecha_inicio);
+          const fechaFin = new Date(event.fecha_fin);
+          return {
+            ...event,
+            hora_inicio: event.hora_inicio || '',
+            hora_fin: event.hora_fin || '',
+            capacidad: event.capacidad || 0,
+            latitud: event.latitud ?? null,
+            longitud: event.longitud ?? null,
+            en_curso: typeof event.en_curso === 'boolean' ? event.en_curso : (fechaInicio <= hoy && fechaFin >= hoy),
+            proximo: typeof event.proximo === 'boolean' ? event.proximo : (fechaInicio > hoy),
+            ya_realizado: typeof event.ya_realizado === 'boolean' ? event.ya_realizado : (fechaFin < hoy),
+          };
+        });
+        setEventos(eventosConEstado); // o data.items si cambiaste la respuesta
         setPagination(data.pagination);
       } catch (error) {
         console.error("Error al filtrar eventos:", error);
@@ -484,69 +505,68 @@ export default function EventsPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                {currentEvents.map((event) => (
-                  <Card key={event.id_evento} className="overflow-hidden">
-                    <div className="flex flex-col sm:flex-row">
-                      <div className="relative w-full sm:w-96 h-64 sm:h-64 flex-shrink-0">
-                        <Image
-                          src={event.imagen || "/placeholder.svg"}
-                          alt={event.titulo}
-                          fill
-                          className="object-cover"
-                        />
-                        <div className="absolute top-2 left-2">
-                          <Badge
-                            className={`category-badge-${
-                              event.nombre_categoria?.toLowerCase() === "música"
-                                ? "music"
-                                : event.nombre_categoria?.toLowerCase() === "deportes"
-                                  ? "sports"
-                                  : event.nombre_categoria?.toLowerCase() === "gastronomía"
-                                    ? "food"
-                                    : event.nombre_categoria?.toLowerCase() === "arte y cultura"
-                                      ? "art"
-                                      : event.nombre_categoria?.toLowerCase() === "tecnología"
-                                        ? "tech"
-                                        : "outdoor"
-                            }`}
-                          >
-                            {event.nombre_categoria}
-                          </Badge>
+                {currentEvents.map((event) => {
+                  let estado = '';
+                  let estadoColor = '';
+                  if (event.en_curso) {
+                    estado = 'En curso';
+                    estadoColor = 'bg-green-500 text-white';
+                  } else if (event.proximo) {
+                    estado = 'Próximo';
+                    estadoColor = 'bg-blue-500 text-white';
+                  } else if (event.ya_realizado) {
+                    estado = 'Finalizado';
+                    estadoColor = 'bg-gray-500 text-white';
+                  }
+                  return (
+                    <Card key={event.id_evento} className="overflow-hidden">
+                      <div className="flex flex-col sm:flex-row">
+                        <div className="relative w-full sm:w-96 h-64 sm:h-64 flex-shrink-0">
+                          <Image
+                            src={event.imagen || "/placeholder.svg"}
+                            alt={event.titulo}
+                            fill
+                            className="object-cover"
+                          />
+                          <div className="absolute top-2 left-2 flex flex-col gap-2">
+                            <Badge className="mb-1">{event.nombre_categoria}</Badge>
+                            <EstadoEventoBadge en_curso={event.en_curso} proximo={event.proximo} ya_realizado={event.ya_realizado} />
+                          </div>
                         </div>
-                      </div>
-                      <CardContent className="p-4 flex-grow">
-                        <Link href={`/events/${event.id_evento}`}>
-                          <h3 className="text-xl font-semibold mb-2 hover:text-primary transition-colors">
-                            {event.titulo}
-                          </h3>
-                        </Link>
-                        <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                          <Calendar className="h-4 w-4 flex-shrink-0 text-primary" />
-                          <span className="text-sm">
-                            {event.fecha_inicio} • {event.fecha_fin}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 text-muted-foreground mb-3">
-                          <MapPin className="h-4 w-4 flex-shrink-0 text-primary" />
-                          <span className="text-sm">{event.ubicacion}</span>
-                        </div>
-                        <p className="text-muted-foreground text-sm mb-4">{event.descripcion}</p>
-                        <div className="flex justify-between items-center">
-                        <div></div>
+                        <CardContent className="p-4 flex-grow">
                           <Link href={`/events/${event.id_evento}`}>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="border-primary text-primary hover:bg-primary/10"
-                            >
-                              Ver detalles
-                            </Button>
+                            <h3 className="text-xl font-semibold mb-2 hover:text-primary transition-colors">
+                              {event.titulo}
+                            </h3>
                           </Link>
-                        </div>
-                      </CardContent>
-                    </div>
-                  </Card>
-                ))}
+                          <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                            <Calendar className="h-4 w-4 flex-shrink-0 text-primary" />
+                            <span className="text-sm">
+                              {event.fecha_inicio} • {event.fecha_fin}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 text-muted-foreground mb-3">
+                            <MapPin className="h-4 w-4 flex-shrink-0 text-primary" />
+                            <span className="text-sm">{event.ubicacion}</span>
+                          </div>
+                          <p className="text-muted-foreground text-sm mb-4 line-clamp-3">{event.descripcion}</p>
+                          <div className="flex justify-between items-center">
+                            <div></div>
+                            <Link href={`/events/${event.id_evento}`}>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="border-primary text-primary hover:bg-primary/10"
+                              >
+                                Ver detalles
+                              </Button>
+                            </Link>
+                          </div>
+                        </CardContent>
+                      </div>
+                    </Card>
+                  );
+                })}
               </div>
             )}
 

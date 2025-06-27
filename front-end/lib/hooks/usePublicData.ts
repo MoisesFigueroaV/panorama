@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 
-interface EventoDestacado {
+export interface EventoDestacado {
   id_evento: number;
   titulo: string;
   descripcion: string | null;
@@ -18,6 +18,8 @@ interface EventoDestacado {
   ya_realizado: boolean;
   proximo: boolean;
   en_curso: boolean;
+  latitud: number | null;
+  longitud: number | null;
 }
 
 interface OrganizadorVerificado {

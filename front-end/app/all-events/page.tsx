@@ -10,6 +10,12 @@ import { Separator } from "@/components/ui/separator"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent } from "@/components/ui/card"
 import { events, type EventData } from "@/lib/mock-data"
+import dynamic from "next/dynamic"
+import { useState, useEffect } from "react"
+import { apiClient, getEventosFiltrados } from "@/lib/api/apiClient"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+
+const EventMap = dynamic(() => import("@/components/event-map"), { ssr: false })
 
 export default function AllEventsPage() {
   // Duplicar eventos para tener más contenido para mostrar
@@ -18,6 +24,28 @@ export default function AllEventsPage() {
     ...events.map((event: EventData) => ({ ...event, id: `dup-${event.id}` })),
     ...events.map((event: EventData) => ({ ...event, id: `trip-${event.id}` })),
   ].slice(0, 12)
+
+  const [tab, setTab] = useState("lista");
+  const [eventos, setEventos] = useState<any[]>([]);
+  const [loadingEventos, setLoadingEventos] = useState(true);
+  const [errorEventos, setErrorEventos] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchEventos = async () => {
+      try {
+        setLoadingEventos(true);
+        setErrorEventos(null);
+        // Obtener todos los eventos activos (publicados)
+        const data = await getEventosFiltrados({ estado: 2, limit: 100 });
+        setEventos(data.eventos || []);
+      } catch (err: any) {
+        setErrorEventos(err.message || 'Error al obtener eventos');
+      } finally {
+        setLoadingEventos(false);
+      }
+    };
+    fetchEventos();
+  }, []);
 
   return (
     <main className="min-h-screen pb-16">
@@ -211,53 +239,24 @@ export default function AllEventsPage() {
             </div>
           </div>
 
-          {/* Events List */}
+          {/* Events List y Tabs */}
           <div className="flex-grow">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
               <div>
                 <h2 className="text-2xl font-bold text-primary">Todos los eventos</h2>
                 <p className="text-muted-foreground">Mostrando {allEvents.length} eventos</p>
               </div>
-              <div className="flex items-center gap-3">
-                <Select defaultValue="featured">
-                  <SelectTrigger className="w-[180px]">
-                    <div className="flex items-center gap-2">
-                      <SlidersHorizontal className="h-4 w-4" />
-                      <SelectValue placeholder="Ordenar por" />
-                    </div>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="featured">Destacados</SelectItem>
-                    <SelectItem value="date-asc">Fecha (próximos)</SelectItem>
-                    <SelectItem value="date-desc">Fecha (lejanos)</SelectItem>
-                    <SelectItem value="price-asc">Precio (menor a mayor)</SelectItem>
-                    <SelectItem value="price-desc">Precio (mayor a menor)</SelectItem>
-                    <SelectItem value="popular">Popularidad</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <Tabs value={tab} onValueChange={setTab} className="w-full md:w-auto">
+                <TabsList>
+                  <TabsTrigger value="lista">Lista</TabsTrigger>
+                  <TabsTrigger value="mapa">Mapa</TabsTrigger>
+                  <TabsTrigger value="calendario">Calendario</TabsTrigger>
+                </TabsList>
+              </Tabs>
             </div>
 
-            {/* Active Filters */}
-            <div className="flex flex-wrap gap-2 mb-6">
-              <Badge variant="outline" className="bg-card flex items-center gap-1 px-3 py-1">
-                Música
-                <button className="ml-1 hover:text-primary">×</button>
-              </Badge>
-              <Badge variant="outline" className="bg-card flex items-center gap-1 px-3 py-1">
-                Este fin de semana
-                <button className="ml-1 hover:text-primary">×</button>
-              </Badge>
-              <Badge variant="outline" className="bg-card flex items-center gap-1 px-3 py-1">
-                Santiago
-                <button className="ml-1 hover:text-primary">×</button>
-              </Badge>
-              <Button variant="ghost" size="sm" className="text-primary h-7 px-2">
-                Limpiar filtros
-              </Button>
-            </div>
-
-            {/* Events List */}
+            <Tabs value={tab} onValueChange={setTab} className="w-full">
+              <TabsContent value="lista">
             <div className="space-y-6">
               {allEvents.map((event) => (
                 <Card key={event.id} className="overflow-hidden hover:shadow-md transition-shadow">
@@ -339,6 +338,35 @@ export default function AllEventsPage() {
                 </Card>
               ))}
             </div>
+              </TabsContent>
+              <TabsContent value="mapa">
+                <div className="mb-8">
+                  {loadingEventos ? (
+                    <div className="h-96 flex items-center justify-center">Cargando mapa...</div>
+                  ) : errorEventos ? (
+                    <div className="text-center py-8">
+                      <p className="text-muted-foreground">Error al cargar eventos: {errorEventos}</p>
+                    </div>
+                  ) : (
+                    <EventMap events={eventos.map(e => ({
+                      id_evento: e.id_evento,
+                      titulo: e.titulo,
+                      fecha_inicio: e.fecha_inicio,
+                      hora_inicio: e.hora_inicio,
+                      ubicacion: e.ubicacion,
+                      imagen: e.imagen,
+                      nombre_categoria: e.nombre_categoria,
+                      descripcion: e.descripcion,
+                      latitud: e.latitud ?? null,
+                      longitud: e.longitud ?? null,
+                    }))} />
+                  )}
+                </div>
+              </TabsContent>
+              <TabsContent value="calendario">
+                <div className="h-96 flex items-center justify-center text-muted-foreground">(Próximamente: vista de calendario)</div>
+              </TabsContent>
+            </Tabs>
 
             {/* Pagination */}
             <div className="flex justify-center mt-12">
