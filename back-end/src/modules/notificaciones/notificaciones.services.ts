@@ -22,16 +22,14 @@ export async function crearNotificacion(data: Omit<NewNotificacion, 'fecha_envio
 export async function obtenerNotificacionesPorUsuario(id_usuario: number) {
   const notificaciones = await db.execute(sql`
     SELECT
-    n.id_notificacion,
-    n.id_usuario,
-    n.id_evento,
-    n.mensaje,
-    n.fecha_envio,
-    n.tipo,
-    h.id_estado_notificacion,
-    e.nombre_estado,
-    h.id_estado_notificacion,
-    e.nombre_estado
+      n.id_notificacion,
+      n.id_usuario,
+      n.id_evento,
+      n.mensaje,
+      n.fecha_envio,
+      n.tipo,
+      h.id_estado_notificacion AS id_estado_notificacion,
+      e.nombre_estado AS nombre_estado
     FROM notificacion n
     LEFT JOIN LATERAL (
       SELECT h.id_estado_notificacion, h.fecha_cambio
@@ -47,7 +45,6 @@ export async function obtenerNotificacionesPorUsuario(id_usuario: number) {
 
   return notificaciones;
 }
-
 
 export async function eliminarNotificacion(id_notificacion: number) {
   const result = await db.delete(notificacionTable)

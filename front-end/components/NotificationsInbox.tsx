@@ -16,7 +16,9 @@ export default function NotificationsInbox({ idUsuario }: NotificationsInboxProp
 
   useEffect(() => {
     if (!idUsuario) return
-    getNotificacionesPorUsuario(idUsuario).then(data => setNotificaciones(data))
+    getNotificacionesPorUsuario(idUsuario).then(data => {
+      setNotificaciones(data.notificaciones || [])
+    })
   }, [idUsuario])
 
   const notificacionesFiltradas = useMemo(() => {

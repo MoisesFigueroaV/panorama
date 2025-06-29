@@ -25,6 +25,7 @@ import {
 import { adminRoutes } from './modules/admin/admin.routes';
 import { eventoRoutes, publicEventoRoutes } from './modules/evento/evento.routes';
 import { uploadRoutes } from './modules/upload/upload.routes';
+import { notificaciones } from './modules/notificaciones/notificaciones.routes';
 
 // Cargar variables de entorno
 dotenv.config();
@@ -124,6 +125,9 @@ const app = new Elysia()
 
       // Módulo de Subida de Archivos
       .use(uploadRoutes)
+
+      // Módulo de Notificaciones
+      .use(notificaciones)
   )
 
   // Iniciar el servidor

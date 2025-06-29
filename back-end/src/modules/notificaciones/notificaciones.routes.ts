@@ -14,19 +14,27 @@ notificaciones.get(
   '/usuario/:id_usuario',
   async ({ params }) => {
     const id = Number(params.id_usuario);
+    console.log('📥 ID recibido:', id);
+
     if (isNaN(id)) {
+      console.warn('⚠️ ID inválido:', params.id_usuario);
       throw new CustomError('ID de usuario inválido', 400);
     }
 
-  const notificacionesDb = await obtenerNotificacionesPorUsuario(id) as unknown as NotificacionConEstado[];
-
+    try {
+      const notificacionesDb = await obtenerNotificacionesPorUsuario(id) as unknown as NotificacionConEstado[];
+      console.log('🔔 Notificaciones obtenidas:', notificacionesDb.length);
 
     const notificaciones = notificacionesDb.map(n => ({
       ...n,
       fecha_envio: n.fecha_envio instanceof Date ? n.fecha_envio.toISOString() : n.fecha_envio
     }));
 
-    return { notificaciones };
+      return { notificaciones };
+    } catch (error) {
+      console.error('❌ Error al obtener notificaciones:', error);
+      throw new CustomError('Error interno al consultar notificaciones', 500);
+    }
   },
   {
     params: t.Object({ id_usuario: t.String() }),
