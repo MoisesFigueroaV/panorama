@@ -1,6 +1,6 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 
-export async function saveImage(file: File, filename?: string): Promise<string> {
+export async function saveImage(file: File, filename?: string, folder: string = 'Imagenes'): Promise<string> {
   try {
     if (!isSupabaseConfigured()) {
       // Versión temporal: devolver una URL de placeholder
@@ -16,12 +16,12 @@ export async function saveImage(file: File, filename?: string): Promise<string> 
     const finalFilename = filename || `${timestamp}_${originalName}`
     
     console.log('📁 Nombre del archivo:', finalFilename)
-    console.log('📂 Ruta completa: Imagenes/' + finalFilename)
+    console.log('📂 Ruta completa:', `${folder}/${finalFilename}`)
     
-    // Subir archivo a Supabase Storage en el bucket 'eventos-media' dentro de la carpeta 'Imagenes'
+    // Subir archivo a Supabase Storage en el bucket 'eventos-media' dentro de la carpeta correspondiente
     const { data, error } = await supabase!.storage
       .from('eventos-media')
-      .upload(`Imagenes/${finalFilename}`, file, {
+      .upload(`${folder}/${finalFilename}`, file, {
         cacheControl: '3600',
         upsert: false
       })
@@ -37,7 +37,7 @@ export async function saveImage(file: File, filename?: string): Promise<string> 
     // Obtener URL pública de la imagen
     const { data: urlData } = supabase!.storage
       .from('eventos-media')
-      .getPublicUrl(`Imagenes/${finalFilename}`)
+      .getPublicUrl(`${folder}/${finalFilename}`)
 
     console.log('🔗 URL pública generada:', urlData.publicUrl)
     return urlData.publicUrl

@@ -18,7 +18,29 @@ export const uploadRoutes = new Elysia({ prefix: '/upload', detail: { tags: ['Up
         
         // Luego procesar el FormData
         const formData = await context.request.formData();
-        const file = formData.get('image') as File;
+        console.log('FormData keys:', Array.from(formData.keys()));
+        const fileEntry = formData.get('file') || formData.get('image');
+        let file: File | null = null;
+        if (fileEntry && typeof fileEntry === 'object' && 'type' in fileEntry) {
+          file = fileEntry as File;
+        }
+        let folder = formData.get('folder');
+        if (typeof folder !== 'string') {
+          folder = folder?.toString?.() || '';
+        }
+        console.log('Valor de folder recibido:', folder, typeof folder);
+        if (folder === 'portada') {
+          folder = 'Portada';
+        } else if (folder === 'logo') {
+          folder = 'Logo';
+        } else {
+          context.set.status = 400;
+          return {
+            success: false,
+            error: 'El campo folder es obligatorio y debe ser "portada" o "logo".'
+          };
+        }
+        console.log('Valor de folder después de validar:', folder);
         
         if (!file) {
           context.set.status = 400;
@@ -48,7 +70,7 @@ export const uploadRoutes = new Elysia({ prefix: '/upload', detail: { tags: ['Up
         }
         
         console.log('🚀 Iniciando upload de imagen...');
-        const imageUrl = await saveImage(file);
+        const imageUrl = await saveImage(file, undefined, folder);
         
         console.log('✅ Upload completado exitosamente');
         return {

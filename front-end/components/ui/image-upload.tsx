@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from 'react'
+import React, { useState, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ImagePlus, X, Upload } from 'lucide-react'
@@ -9,14 +9,21 @@ import { api } from '@/lib/api'
 import { useAuth } from '@/context/AuthContext'
 import { toast } from 'sonner'
 
-interface ImageUploadProps {
+export interface ImageUploadProps {
   onImageUpload: (imageUrl: string) => void
   currentImage?: string
   className?: string
   setIsUploading?: (uploading: boolean) => void
+  folder: string
 }
 
-export function ImageUpload({ onImageUpload, currentImage, className, setIsUploading }: ImageUploadProps) {
+export const ImageUpload: React.FC<ImageUploadProps> = ({
+  onImageUpload,
+  currentImage,
+  className,
+  setIsUploading,
+  folder
+}) => {
   const [isUploading, setIsUploadingState] = useState(false)
   const [preview, setPreview] = useState<string | null>(currentImage || null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -25,33 +32,10 @@ export function ImageUpload({ onImageUpload, currentImage, className, setIsUploa
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
-
-    // Validaciones
-    if (!file.type.startsWith('image/')) {
-      toast.error('El archivo debe ser una imagen')
-      return
-    }
-
-    const maxSize = 5 * 1024 * 1024 // 5MB
-    if (file.size > maxSize) {
-      toast.error('La imagen no puede ser mayor a 5MB')
-      return
-    }
-
-    // Crear preview
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      setPreview(e.target?.result as string)
-    }
-    reader.readAsDataURL(file)
-    
-    // Subir imagen
     setIsUploadingState(true)
     if (typeof setIsUploading === 'function') setIsUploading(true)
     try {
-      const result = await api.upload.uploadImage(file, accessToken!)
-      console.log('Resultado de subida de imagen:', result)
-      // Usar el campo correcto de la respuesta
+      const result = await api.upload.uploadImage(file, accessToken!, folder)
       onImageUpload(result.imageUrl || result.url || result.publicUrl)
       toast.success('Imagen subida exitosamente')
     } catch (error: any) {

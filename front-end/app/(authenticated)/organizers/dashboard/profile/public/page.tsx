@@ -16,6 +16,7 @@ import Link from "next/link"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useAuth } from "@/context/AuthContext"
 import { api } from "@/lib/api"
+import { ImageUpload } from "@/components/ui/image-upload"
 
 // Esquema de validación para el formulario de perfil público
 const publicProfileSchema = z.object({
@@ -273,31 +274,21 @@ export default function PublicProfilePage() {
           <CardContent className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="cover-image">Imagen de portada</Label>
-              <div className="relative h-32 w-full overflow-hidden rounded-md border">
-                <img src={coverImage || "/placeholder.svg"} alt="Portada" className="w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                  <Button variant="secondary" size="sm" className="gap-2">
-                    <Upload className="h-4 w-4" />
-                    Cambiar portada
-                  </Button>
-                </div>
-              </div>
+              <ImageUpload
+                folder="portada"
+                onImageUpload={setCoverImage}
+                currentImage={coverImage}
+              />
               <p className="text-xs text-muted-foreground">Recomendado: 1920x320px. Máximo 2MB.</p>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="logo-image">Logo o avatar</Label>
-              <div className="flex items-center justify-center">
-                <div className="relative w-32 h-32 rounded-xl overflow-hidden border">
-                  <img src={logoImage || "/placeholder.svg"} alt="Logo" className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                    <Button variant="secondary" size="sm" className="gap-2">
-                      <Upload className="h-4 w-4" />
-                      Cambiar logo
-                    </Button>
-                  </div>
-                </div>
-              </div>
+              <ImageUpload
+                folder="logo"
+                onImageUpload={setLogoImage}
+                currentImage={logoImage}
+              />
               <p className="text-xs text-muted-foreground">Recomendado: 400x400px. Máximo 1MB.</p>
             </div>
           </CardContent>
