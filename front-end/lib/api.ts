@@ -335,9 +335,10 @@ export const api = {
     },
     upload: {
       // Subir imagen
-      uploadImage: async (file: File, token: string) => {
+      uploadImage: async (file: File, token: string, folder: string) => {
         const formData = new FormData();
-        formData.append('image', file);
+        formData.append('file', file);
+        formData.append('folder', folder);
         
         const response = await fetch(`${API_BASE}/api/v1/upload/image`, {
           method: 'POST',
@@ -348,8 +349,8 @@ export const api = {
         });
         
         if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.error || 'Error al subir imagen');
+          const errorText = await response.text();
+          throw new Error(errorText || 'Error al subir imagen');
         }
         
         return response.json();

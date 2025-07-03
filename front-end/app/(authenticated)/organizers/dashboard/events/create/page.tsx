@@ -584,6 +584,7 @@ export default function CreateEventPage() {
                     </p>
 
                     <ImageUpload
+                      folder="portada"
                       onImageUpload={(imageUrl) => {
                         form.setValue('imagen', imageUrl)
                         setIsUploadingImage(false)
