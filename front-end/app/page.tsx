@@ -114,23 +114,8 @@ export default function Home() {
           setLocationError(null);
         },
         (error) => {
-          let userMessage = "No pudimos obtener tu ubicación. Mostrando eventos en Concepción.";
-          if (error && typeof error.code === "number") {
-            switch (error.code) {
-              case 1:
-                userMessage = "No diste permiso para acceder a tu ubicación. Mostrando eventos en Concepción.";
-                break;
-              case 2:
-                userMessage = "No se pudo determinar tu ubicación. Mostrando eventos en Concepción.";
-                break;
-              case 3:
-                userMessage = "La solicitud de ubicación tardó demasiado. Mostrando eventos en Concepción.";
-                break;
-            }
-          }
-          // Simular ubicación por defecto (Concepción) si falla la geolocalización
-          setUserLocation({ lat: -36.82, lng: -73.05 });
-          setLocationError(userMessage);
+          console.error("Error getting location:", error);
+          setLocationError("No pudimos obtener tu ubicación. Mostrando eventos en Concepción.");
         },
         { enableHighAccuracy: true, maximumAge: 0 } // Forzar solicitud nueva cada vez
       );
@@ -142,11 +127,7 @@ export default function Home() {
   useEffect(() => {
     async function fetchKpis() {
       try {
-        // Obtener el token de acceso desde el helper
-        const { getAccessToken } = await import('@/lib/api/apiClient');
-        const token = getAccessToken();
-        const headers = token ? { Authorization: `Bearer ${token}` } : {};
-        const res = await apiClient.get('/admin/dashboard/kpis', { headers });
+        const res = await apiClient.get('/admin/dashboard/kpis');
         const data = res.data;
         setKpis({
           eventosActivos: data.eventosActivos,
