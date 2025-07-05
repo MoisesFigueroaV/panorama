@@ -111,10 +111,12 @@ export default function EventPage({ params }: EventPageProps) {
               </div>
             </div>
             <div className="flex flex-col sm:flex-row gap-4">
+              {/* 
               <Button size="lg" className="bg-white text-primary hover:bg-white/90">
                 <ExternalLink className="h-4 w-4 mr-2" />
                 Comprar entradas
               </Button>
+              */}
               <Button
                 size="lg"
                 variant="outline"
@@ -206,10 +208,12 @@ export default function EventPage({ params }: EventPageProps) {
               <Separator className="my-6" />
 
               <div className="space-y-4">
+                {/* 
                 <Button className="w-full">
                   <ExternalLink className="h-4 w-4 mr-2" />
                   Comprar entradas
                 </Button>
+                */}
                 <Button variant="outline" className="w-full">
                   <Heart className="h-4 w-4 mr-2" />
                   Guardar evento
