@@ -4,7 +4,7 @@ import { notificacionesResponseSchema } from './notificaciones.types';
 import { CustomError } from '../../utils/errors';
 import { db } from '../../db/drizzle';
 import { notificacionTable } from '../../db/schema/notificaciones.schema';
-import { eq } from 'drizzle-orm';
+import { eq, desc} from 'drizzle-orm';
 import { historialEstadoNotificacionTable } from '../../db/schema/historial_estado_notificacion.schema';
 import { NotificacionConEstado } from './notificaciones.types'
 
@@ -25,9 +25,18 @@ notificaciones.get(
       const notificacionesDb = await obtenerNotificacionesPorUsuario(id) as unknown as NotificacionConEstado[];
       console.log('🔔 Notificaciones obtenidas:', notificacionesDb.length);
 
+    function toISOStringSafe(value: unknown): string {
+      const date = new Date(value as string);
+      return isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString();
+    }
+
     const notificaciones = notificacionesDb.map(n => ({
-      ...n,
-      fecha_envio: n.fecha_envio instanceof Date ? n.fecha_envio.toISOString() : n.fecha_envio
+      id_notificacion: n.id_notificacion,
+      id_usuario: n.id_usuario,
+      mensaje: n.mensaje,
+      tipo: n.tipo,
+      fecha_envio: toISOStringSafe(n.fecha_envio),
+      nombre_estado: n.nombre_estado ?? 'Desconocido',
     }));
 
       return { notificaciones };
@@ -47,12 +56,24 @@ notificaciones.put('/marcar-leida/:id', async ({ params }) => {
   const id = Number(params.id);
   if (isNaN(id)) throw new CustomError('ID inválido', 400);
 
+  // Verificar último estado
+  const [ultimo] = await db.select()
+    .from(historialEstadoNotificacionTable)
+    .where(eq(historialEstadoNotificacionTable.id_notificacion, id))
+    .orderBy(desc(historialEstadoNotificacionTable.fecha_cambio))
+    .limit(1);
+
+  if (ultimo?.id_estado_notificacion === 2) {
+    return { message: 'Ya estaba marcada como leída' };
+  }
+
   await db.insert(historialEstadoNotificacionTable).values({
     id_notificacion: id,
-    id_estado_notificacion: 2, // ID del estado "leída"
+    id_estado_notificacion: 2,
     fecha_cambio: new Date(),
   });
 
   return { message: 'Notificación marcada como leída' };
 });
+
 
