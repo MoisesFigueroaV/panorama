@@ -35,6 +35,9 @@ interface EventoReal {
   en_curso: boolean
   proximo: boolean
   ya_realizado: boolean
+  capacidad: number
+  latitud: number | null
+  longitud: number | null
 }
 
 interface Categoria {

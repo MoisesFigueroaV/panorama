@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { toast } from "@/components/ui/use-toast"
+import NotificationsDropdown from "@/components/NotificationsDropdown"
 
 export default function SiteHeader() {
   const { user, logout } = useAuth()

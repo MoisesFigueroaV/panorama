@@ -106,6 +106,17 @@ export default function EventPage({ params }: EventPageProps) {
 
   console.log('🖼️ [DETALLE] IMAGEN DEL EVENTO:', evento.imagen)
 
+  // Handler para copiar la URL y mostrar alerta
+  const handleCopyUrl = async () => {
+    try {
+      const url = `${window.location.origin}/events/${id}`
+      await navigator.clipboard.writeText(url)
+      toast.success("¡Enlace copiado al portapapeles!")
+    } catch {
+      toast.error("No se pudo copiar el enlace")
+    }
+  }
+
   return (
     <main className="min-h-screen pb-16">
       {/* Hero Section */}

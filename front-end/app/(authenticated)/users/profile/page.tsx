@@ -296,55 +296,13 @@ export default function ProfilePage() {
 
         <div className="flex items-center gap-2">
           {/* Botón de notificaciones */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="relative">
-                <Bell className="h-5 w-5" />
-                {unreadNotifications > 0 && (
-                  <Badge 
-                    variant="destructive" 
-                    className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
-                  >
-                    {unreadNotifications}
-                  </Badge>
-                )}
-                <span className="sr-only">Ver notificaciones</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-80">
-              <DropdownMenuLabel>Notificaciones</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <div className="max-h-[300px] overflow-y-auto">
-                {/* Placeholder para notificaciones */}
-                <DropdownMenuItem className="flex flex-col items-start gap-1 p-4 cursor-pointer">
-                  <div className="flex items-center gap-2">
-                    <Bell className="h-4 w-4 text-primary" />
-                    <span className="font-medium">Nuevo evento</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Se ha creado un nuevo evento que coincide con tus intereses
-                  </p>
-                  <span className="text-xs text-muted-foreground">Hace 2 horas</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="flex flex-col items-start gap-1 p-4 cursor-pointer">
-                  <div className="flex items-center gap-2">
-                    <Bell className="h-4 w-4 text-primary" />
-                    <span className="font-medium">Recordatorio</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Tu evento guardado comienza en 24 horas
-                  </p>
-                  <span className="text-xs text-muted-foreground">Hace 5 horas</span>
-                </DropdownMenuItem>
-              </div>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="justify-center text-primary cursor-pointer">
-                Ver todas las notificaciones
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
+          {user && user.rol?.nombre_rol && (
+            <NotificationsDropdown
+              idUsuario={user.id_usuario}
+              rolUsuario={user.rol.nombre_rol.trim() as 'Administrador' | 'Organizador' | 'Usuario'}
+            />
+          )}
+          
           {/* Menú de usuario */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
