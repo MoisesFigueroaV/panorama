@@ -36,9 +36,11 @@ export default function EventCard({ event }: EventCardProps) {
           )}
           <div className="flex items-center gap-2 text-muted-foreground mb-1">
             <Calendar className="h-4 w-4" />
-            <span className="text-sm">
-              {format(new Date(event.fecha_inicio), "dd/MM/yyyy", { locale: es })}
-            </span>
+          <span className="text-sm">
+            {event.fecha_inicio && !isNaN(new Date(event.fecha_inicio).getTime())
+              ? format(new Date(event.fecha_inicio), "dd/MM/yyyy", { locale: es })
+              : "Fecha no disponible"}
+          </span>
           </div>
           <div className="flex items-center gap-2 text-muted-foreground">
             <MapPin className="h-4 w-4" />
