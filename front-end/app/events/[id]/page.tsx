@@ -146,6 +146,7 @@ export default function EventPage({ params }: EventPageProps) {
                 size="lg"
                 variant="outline"
                 className="text-[#f9a05d] border-[#f9a05d] hover:bg-[#f9a05d]/10 font-medium"
+                onClick={handleSaveToggle}
               >
                 <Heart className="h-4 w-4 mr-2" />
                 Guardar evento
@@ -154,6 +155,7 @@ export default function EventPage({ params }: EventPageProps) {
                 size="lg"
                 variant="outline"
                 className="text-[#f9a05d] border-[#f9a05d] hover:bg-[#f9a05d]/10 font-medium"
+                onClick={handleShare}
               >
                 <Share2 className="h-4 w-4 mr-2" />
                 Compartir
