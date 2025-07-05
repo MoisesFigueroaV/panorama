@@ -11,6 +11,10 @@ import dynamic from "next/dynamic"
 import { useEventoById, useEventosDestacados } from "@/lib/hooks/usePublicData"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
+import { useAuth } from "@/context/AuthContext"
+import { useSavedEvents } from "@/context/SavedEventsContext"
+import { useRouter } from "next/navigation"
+import { toast } from 'sonner';
 
 interface EventPageProps {
   params: Promise<{
@@ -26,6 +30,39 @@ export default function EventPage({ params }: EventPageProps) {
   const { evento, loading, error } = useEventoById(eventoId)
   const { eventos: eventosRelacionados } = useEventosDestacados(3)
 
+  const { isAuthenticated } = useAuth()
+  const router = useRouter()
+  const { addSavedEvent, removeSavedEvent, isEventSaved } = useSavedEvents()
+  const isSaved = isAuthenticated && evento ? isEventSaved(evento.id_evento) : false;
+
+  const handleShare = async () => {
+    const currentUrl = window.location.href;
+    try {
+      await navigator.clipboard.writeText(currentUrl);
+      toast.success("¡Enlace del evento copiado al portapapeles!");
+    } catch (err) {
+      toast.error("No se pudo copiar el enlace.");
+      console.error('Error al copiar la URL:', err);
+    }
+  };
+
+  const handleSaveToggle = () => {
+    if (!isAuthenticated) {
+      toast.info("Debes iniciar sesión para guardar eventos.");
+      router.push('/login');
+      return;
+    }
+    
+    if (evento) {
+      if (isSaved) {
+        removeSavedEvent(evento.id_evento);
+      } else {
+        addSavedEvent(evento);
+      }
+    }
+  };
+
+  
   if (loading) {
     return (
       <main className="min-h-screen pb-16">
@@ -99,10 +136,12 @@ export default function EventPage({ params }: EventPageProps) {
               </div>
             </div>
             <div className="flex flex-col sm:flex-row gap-4">
+              {/*
               <Button size="lg" className="bg-white text-primary hover:bg-white/90">
                 <ExternalLink className="h-4 w-4 mr-2" />
                 Comprar entradas
               </Button>
+              */} 
               <Button
                 size="lg"
                 variant="outline"
@@ -193,15 +232,15 @@ export default function EventPage({ params }: EventPageProps) {
               <Separator className="my-6" />
 
               <div className="space-y-4">
-                <Button className="w-full">
+                {/*<Button className="w-full">
                   <ExternalLink className="h-4 w-4 mr-2" />
                   Comprar entradas
-                </Button>
-                <Button variant="outline" className="w-full">
+                </Button>*/}
+                <Button variant="outline" className="w-full" onClick={handleSaveToggle}>
                   <Heart className="h-4 w-4 mr-2" />
-                  Guardar evento
+                  {isSaved ? 'Guardado' : 'Guardar evento'}
                 </Button>
-                <Button variant="outline" className="w-full">
+                <Button variant="outline" className="w-full" onClick={handleShare}>
                   <Share2 className="h-4 w-4 mr-2" />
                   Compartir
                 </Button>
