@@ -37,7 +37,7 @@ import { Badge } from "@/components/ui/badge"
 import NotificationsInbox from "@/components/NotificationsInbox"
 import { useSavedEvents } from "@/context/SavedEventsContext"
 import Image from "next/image"
-
+import NotificationsDropdown from "@/components/NotificationsDropdown"
 
 // Esquema de validación para el formulario de perfil personal
 const profileFormSchema = z.object({
