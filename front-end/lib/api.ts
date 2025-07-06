@@ -1,19 +1,69 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
+// Helper para guardar cambios pendientes en localStorage
+function savePendingChange(entity: string, data: any) {
+  if (typeof window === 'undefined') return;
+  const key = `pending_${entity}`;
+  const current = JSON.parse(localStorage.getItem(key) || '[]');
+  current.push(data);
+  localStorage.setItem(key, JSON.stringify(current));
+}
+
+// Helper para guardar edición o borrado pendiente en localStorage
+function savePendingEditOrDelete(entity: string, data: any, action: string) {
+  if (typeof window === 'undefined') return;
+  const key = `pending_${entity}`;
+  const current = JSON.parse(localStorage.getItem(key) || '[]');
+  current.push({ ...data, action });
+  localStorage.setItem(key, JSON.stringify(current));
+}
+
+// Helper para saber si estamos en modo local
+import { shouldUseLocalData } from '@/lib/hooks/useLocalData';
+
 export const api = {
     users: {
       getAll: () => fetch(`${API_BASE}/users`).then(res => res.json()),
       getById: (id: number) => fetch(`${API_BASE}/users/${id}`).then(res => res.json()),
-      create: (userData: any) => 
-        fetch(`${API_BASE}/users`, {
+      create: (userData: any) => {
+        if (shouldUseLocalData()) {
+          savePendingChange('users', userData);
+          return Promise.resolve({ ...userData, local: true });
+        }
+        return fetch(`${API_BASE}/users`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(userData)
-        }).then(res => res.json())
+        }).then(res => res.json());
+      },
+      update: (id: number, userData: any) => {
+        if (shouldUseLocalData()) {
+          savePendingEditOrDelete('users', { id, ...userData }, 'update');
+          return Promise.resolve({ ...userData, id, local: true });
+        }
+        return fetch(`${API_BASE}/users/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(userData)
+        }).then(res => res.json());
+      },
+      delete: (id: number) => {
+        if (shouldUseLocalData()) {
+          savePendingEditOrDelete('users', { id }, 'delete');
+          return Promise.resolve({ id, local: true });
+        }
+        return fetch(`${API_BASE}/users/${id}`, {
+          method: 'DELETE'
+        }).then(res => res.json());
+      }
     },
     eventos: {
       // Crear evento
       create: async (data: any, token: string) => {
+        if (shouldUseLocalData()) {
+          savePendingChange('events', data);
+          return Promise.resolve({ ...data, local: true });
+        }
         console.log('🚀 API: Enviando petición POST /eventos');
         console.log('🚀 API: Datos:', data);
         
@@ -190,6 +240,21 @@ export const api = {
           throw new Error(error.error || 'Error al obtener estadísticas del dashboard');
         }
         
+        return response.json();
+      },
+
+      // Eliminar evento
+      delete: async (idEvento: number, token: string) => {
+        const response = await fetch(`${API_BASE}/api/v1/eventos/${idEvento}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Error al eliminar el evento');
+        }
         return response.json();
       }
     },

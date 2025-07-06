@@ -6,7 +6,9 @@
     "dev": "next dev -p 3001",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "sync-mocks": "node scripts/sync-supabase-to-mocks.js",
+    "test-sync": "node scripts/test-sync.js"
   },
   "dependencies": {
     "@emotion/is-prop-valid": "latest",

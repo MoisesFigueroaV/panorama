@@ -47,6 +47,7 @@ import FeaturedOrganizers from "@/components/featured-organizers"
 import { DynamicHeader } from "@/components/dynamic-header"
 import { useEventosDestacados, useOrganizadoresVerificados, useCategorias, useEventosByCategoria } from "@/lib/hooks/usePublicData"
 import CategoryCardWithCount from "@/components/category-card-with-count"
+import { DataModeToggleCompact } from "@/components/ui/data-mode-toggle"
 
 // Tipos
 interface Event {
@@ -86,7 +87,8 @@ const EventMap = dynamic(
 function getImageUrl(imagen: string | null): string {
   if (!imagen) return "/placeholder.svg";
   if (imagen.startsWith("http")) return imagen;
-  // Ajusta la URL de Supabase según tu configuración real
+  if (imagen.startsWith("/")) return imagen; // Permitir rutas locales
+  // Solo para rutas relativas de Supabase Storage
   return `https://<TU_SUPABASE_URL>/storage/v1/object/public/eventos-media/Imagenes/${imagen}`;
 }
 
@@ -114,8 +116,22 @@ export default function Home() {
           setLocationError(null);
         },
         (error) => {
-          console.error("Error getting location:", error);
-          setLocationError("No pudimos obtener tu ubicación. Mostrando eventos en Concepción.");
+          let mensaje = "No pudimos obtener tu ubicación. Mostrando eventos en Concepción.";
+          if (error && error.code !== undefined) {
+            switch (error.code) {
+              case 1:
+                mensaje = "Permiso de ubicación denegado. Mostrando eventos en Concepción.";
+                break;
+              case 2:
+                mensaje = "Ubicación no disponible. Mostrando eventos en Concepción.";
+                break;
+              case 3:
+                mensaje = "La solicitud de ubicación expiró. Mostrando eventos en Concepción.";
+                break;
+            }
+          }
+          console.error("Error obteniendo ubicación:", error?.message || error);
+          setLocationError(mensaje);
         },
         { enableHighAccuracy: true, maximumAge: 0 } // Forzar solicitud nueva cada vez
       );
@@ -337,8 +353,8 @@ export default function Home() {
           )}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8 mb-8">
             {eventosDestacadosFila.map((event) => (
-              <EventCard key={event.id_evento} event={event} />
-            ))}
+                  <EventCard key={event.id_evento} event={event} />
+                ))}
           </div>
           <div className="flex justify-center mt-8">
             <Link href="/events">
@@ -356,23 +372,23 @@ export default function Home() {
           <div className="flex flex-wrap justify-center gap-4">
             {categorias?.map((categoria) => {
               const nombre = categoria.nombre_categoria || 'Sin nombre';
-              const lowerName = nombre.toLowerCase();
+                  const lowerName = nombre.toLowerCase();
               let id = 'other';
               let icon = <Calendar className="h-6 w-6" />;
               let color = '';
-              if (lowerName.includes('música') || lowerName.includes('musica')) {
+                  if (lowerName.includes('música') || lowerName.includes('musica')) {
                 id = 'music'; icon = <Music className="h-6 w-6" />; color = '#f47c6c';
-              } else if (lowerName.includes('deporte')) {
+                  } else if (lowerName.includes('deporte')) {
                 id = 'sports'; icon = <Trophy className="h-6 w-6" />; color = '#a3d7e0';
-              } else if (lowerName.includes('gastronomía') || lowerName.includes('gastronomia') || lowerName.includes('comida')) {
+                  } else if (lowerName.includes('gastronomía') || lowerName.includes('gastronomia') || lowerName.includes('comida')) {
                 id = 'food'; icon = <Calendar className="h-6 w-6" />; color = '#f9a05d';
-              } else if (lowerName.includes('arte') || lowerName.includes('cultura')) {
+                  } else if (lowerName.includes('arte') || lowerName.includes('cultura')) {
                 id = 'art'; icon = <Palette className="h-6 w-6" />; color = '#f1c84b';
-              } else if (lowerName.includes('tecnología') || lowerName.includes('tecnologia')) {
+                  } else if (lowerName.includes('tecnología') || lowerName.includes('tecnologia')) {
                 id = 'tech'; icon = <Code className="h-6 w-6" />; color = '#6366f1';
-              } else if (lowerName.includes('aire libre') || lowerName.includes('outdoor')) {
+                  } else if (lowerName.includes('aire libre') || lowerName.includes('outdoor')) {
                 id = 'outdoor'; icon = <TreePine className="h-6 w-6" />; color = '#22c55e';
-              } else if (lowerName.includes('educación') || lowerName.includes('educacion')) {
+                  } else if (lowerName.includes('educación') || lowerName.includes('educacion')) {
                 id = 'education'; icon = <Calendar className="h-6 w-6" />; color = '#ef4444';
               } else if (lowerName.includes('teatro')) {
                 id = 'theater'; icon = <Drama className="h-6 w-6" />; color = '#a21caf';
@@ -381,18 +397,18 @@ export default function Home() {
               } else if (lowerName.includes('negocios')) {
                 id = 'business'; icon = <Briefcase className="h-6 w-6" />; color = '#334155';
               }
-              return (
-                <CategoryCardWithCount
-                  key={categoria.id_categoria}
+                return (
+                  <CategoryCardWithCount
+                    key={categoria.id_categoria}
                   id={id}
                   name={nombre}
-                  categoriaId={categoria.id_categoria}
+                    categoriaId={categoria.id_categoria}
                   icon={icon}
                   color={color}
-                />
-              );
-            })}
-          </div>
+                  />
+                );
+              })}
+            </div>
         </section>
 
         {/* CTA Section */}
@@ -421,48 +437,48 @@ export default function Home() {
         <section className="container py-8">
           <div className="mt-12">
             <h3 className="text-xl font-bold mb-6 text-primary">Explorar todos los eventos</h3>
-            <Tabs defaultValue="list" className="w-full">
+          <Tabs defaultValue="list" className="w-full">
               <TabsList className="mb-4">
                 <TabsTrigger value="list">Lista</TabsTrigger>
                 <TabsTrigger value="map">Mapa</TabsTrigger>
-              </TabsList>
-              <TabsContent value="list" className="space-y-8">
+                </TabsList>
+            <TabsContent value="list" className="space-y-8">
                 {isLoadingEventos ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {[1, 2, 3, 4, 5, 6].map((i) => (
-                      <div key={i} className="h-64 bg-gray-200 rounded-lg animate-pulse" />
-                    ))}
-                  </div>
-                ) : errorEventos ? (
-                  <div className="text-center py-8">
-                    <p className="text-muted-foreground">Error al cargar eventos: {errorEventos}</p>
-                  </div>
-                ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <div key={i} className="h-64 bg-gray-200 rounded-lg animate-pulse" />
+                  ))}
+                </div>
+              ) : errorEventos ? (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">Error al cargar eventos: {errorEventos}</p>
+                </div>
+              ) : (
                   <>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {eventos?.map((event) => (
-                        <EventCard key={event.id_evento} event={event} />
-                      ))}
-                    </div>
+                    <EventCard key={event.id_evento} event={event} />
+                  ))}
+                </div>
                     <div className="flex justify-center mt-6">
                       <a href="/events" className="inline-block px-6 py-2 rounded bg-primary text-white font-semibold hover:bg-primary/90 transition">Ver más eventos</a>
-                    </div>
+              </div>
                   </>
                 )}
-              </TabsContent>
-              <TabsContent value="map">
+            </TabsContent>
+            <TabsContent value="map">
                 {locationError && (
                   <div className="mb-4 p-4 bg-muted rounded-lg">
                     <p className="text-muted-foreground">{locationError}</p>
-                  </div>
+                </div>
                 )}
                 <EventMap 
                   center={userLocation || { lat: -36.82, lng: -73.05 }}
                   userLocation={userLocation}
                   events={eventos || []}
                 />
-              </TabsContent>
-            </Tabs>
+            </TabsContent>
+          </Tabs>
           </div>
         </section>
 

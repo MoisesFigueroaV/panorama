@@ -9,7 +9,7 @@ import EstadoEventoBadge from './estado-evento-badge'
 
 interface EventCardProps {
   event: EventoDestacado;
-}
+  }
 
 export default function EventCard({ event }: EventCardProps) {
   return (
@@ -45,7 +45,7 @@ export default function EventCard({ event }: EventCardProps) {
             <span className="text-sm">{event.ubicacion || 'Ubicación por confirmar'}</span>
           </div>
         </div>
-      </div>
-    </Link>
+            </div>
+          </Link>
   )
 }

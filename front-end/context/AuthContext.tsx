@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react'
 import { apiClient, setAccessToken, setRefreshToken, getAccessToken, clearAuthTokens } from '@/lib/api/apiClient'
 import { useRouter, usePathname } from 'next/navigation'
 import { deleteCookie, getCookie } from 'cookies-next'
+import { shouldUseLocalData } from '@/lib/hooks/useLocalData';
 
 // Definir tipos para el payload y la respuesta del usuario
 interface UsuarioAuth {
@@ -14,7 +15,7 @@ interface UsuarioAuth {
   rol?: { id_rol: number; nombre_rol: string } | null;
   foto_perfil?: string | null;
   biografia?: string | null;
-  intereses?: string[];
+  intereses?: string[] | null;
   telefono?: string | null;
   ubicacion?: string | null;
 }
@@ -41,6 +42,27 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
+
+async function localLogin(email: string, password: string) {
+  // Buscar en pending_users de localStorage
+  let users: any[] = [];
+  if (typeof window !== 'undefined') {
+    users = JSON.parse(localStorage.getItem('pending_users') || '[]');
+  }
+  // Importar usuarios del mock
+  const { default: mockUsers } = await import('@/mocks/usuarios.json');
+  // Primero buscar en pending_users (que sí tienen contraseña)
+  const userPending = users.find(u => (u.correo === email) && u.contrasena === password);
+  if (userPending) {
+    return { ...userPending, local: true };
+  }
+  // Luego buscar en el mock (que NO tiene contraseña, solo permite login por correo conocido y password vacío o 'demo')
+  const userMock = mockUsers.find((u: any) => u.correo === email);
+  if (userMock && (password === '' || password === 'demo')) {
+    return { ...userMock, local: true };
+  }
+  throw new Error('Usuario o contraseña incorrectos (modo local)');
+}
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<UsuarioAuth | null>(null);
@@ -161,30 +183,54 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const login = async (credentials: LoginUsuarioPayload) => {
     try {
       console.log('Iniciando login con:', credentials.correo);
-      const { data: response } = await apiClient.post<{ accessToken: string; refreshToken: string; usuario: UsuarioAuth }>('/auth/login', credentials);
-      console.log('Respuesta del login:', response);
-      
-      setAccessToken(response.accessToken);
-      setRefreshToken(response.refreshToken);
-      setUser(response.usuario);
-      setLocalAccessToken(response.accessToken);
-
-      console.log('Usuario después del login:', response.usuario);
-      console.log('Rol del usuario:', response.usuario.rol);
-
-      // Redirección específica por rol
-      if (response.usuario.rol?.id_rol === 1) {
-        console.log('Redirigiendo a /admin');
-        router.push('/admin');
-      } else if (response.usuario.rol?.id_rol === 2) {
-        console.log('Redirigiendo a /organizers/dashboard');
-        router.push('/organizers/dashboard');
-      } else if (response.usuario.rol?.id_rol === 3) {
-        console.log('Redirigiendo a /users/profile');
-        router.push('/users/profile');
+      if (shouldUseLocalData()) {
+        setIsLoadingSession(true);
+        try {
+          const user = await localLogin(credentials.correo, credentials.contrasena);
+          setUser(user);
+          setLocalAccessToken('local-token'); // Simulate access token
+          // Redirección específica por rol
+          if (user.rol?.id_rol === 1) {
+            router.push('/admin');
+          } else if (user.rol?.id_rol === 2) {
+            router.push('/organizers/dashboard');
+          } else if (user.rol?.id_rol === 3) {
+            router.push('/users/profile');
+          } else {
+            router.push('/');
+          }
+        } catch (err) {
+          setUser(null);
+          throw err;
+        } finally {
+          setIsLoadingSession(false);
+        }
       } else {
-        console.log('No se encontró rol válido, redirigiendo a /');
-        router.push('/');
+        const { data: response } = await apiClient.post<{ accessToken: string; refreshToken: string; usuario: UsuarioAuth }>('/auth/login', credentials);
+        console.log('Respuesta del login:', response);
+        
+        setAccessToken(response.accessToken);
+        setRefreshToken(response.refreshToken);
+        setUser(response.usuario);
+        setLocalAccessToken(response.accessToken);
+
+        console.log('Usuario después del login:', response.usuario);
+        console.log('Rol del usuario:', response.usuario.rol);
+
+        // Redirección específica por rol
+        if (response.usuario.rol?.id_rol === 1) {
+          console.log('Redirigiendo a /admin');
+          router.push('/admin');
+        } else if (response.usuario.rol?.id_rol === 2) {
+          console.log('Redirigiendo a /organizers/dashboard');
+          router.push('/organizers/dashboard');
+        } else if (response.usuario.rol?.id_rol === 3) {
+          console.log('Redirigiendo a /users/profile');
+          router.push('/users/profile');
+        } else {
+          console.log('No se encontró rol válido, redirigiendo a /');
+          router.push('/');
+        }
       }
     } catch (error) {
       console.error("Error en login (AuthContext):", error);

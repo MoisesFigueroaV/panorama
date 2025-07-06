@@ -90,83 +90,83 @@ export default function PromotedEventsCarousel({ events }: PromotedEventsCarouse
           >
             <Link href={`/events/${event.id}`} className="block h-full w-full">
               <div className="relative w-full h-[400px] md:h-[500px] cursor-pointer">
-                <Image src={event.image || "/placeholder.svg"} alt={event.title} fill className="object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
-                <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8 text-white">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Badge
-                      className={`category-badge-${
-                        event.category.toLowerCase() === "música"
-                          ? "music"
-                          : event.category.toLowerCase() === "deportes"
-                            ? "sports"
-                            : event.category.toLowerCase() === "gastronomía"
-                              ? "food"
-                              : event.category.toLowerCase() === "arte y cultura"
-                                ? "art"
-                                : event.category.toLowerCase() === "tecnología"
-                                  ? "tech"
-                                  : "outdoor"
-                      }`}
-                    >
-                      {event.category}
-                    </Badge>
-                    <div className="flex items-center gap-1 ml-2">
-                      <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
-                      <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
-                      <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
-                      <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
-                      <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
-                    </div>
+              <Image src={event.image || "/placeholder.svg"} alt={event.title} fill className="object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
+              <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8 text-white">
+                <div className="flex items-center gap-2 mb-2">
+                  <Badge
+                    className={`category-badge-${
+                      event.category.toLowerCase() === "música"
+                        ? "music"
+                        : event.category.toLowerCase() === "deportes"
+                          ? "sports"
+                          : event.category.toLowerCase() === "gastronomía"
+                            ? "food"
+                            : event.category.toLowerCase() === "arte y cultura"
+                              ? "art"
+                              : event.category.toLowerCase() === "tecnología"
+                                ? "tech"
+                                : "outdoor"
+                    }`}
+                  >
+                    {event.category}
+                  </Badge>
+                  <div className="flex items-center gap-1 ml-2">
+                    <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                    <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                    <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                    <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                    <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
                   </div>
-                  <h2 className="text-2xl md:text-3xl font-bold mb-2">{event.title}</h2>
-                  <p className="text-white/80 mb-4 max-w-2xl line-clamp-2">{event.description}</p>
-                  <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center mb-4">
-                    <div className="flex items-center gap-2">
-                      <div className="bg-white/20 p-2 rounded-full">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="lucide lucide-calendar"
-                        >
-                          <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
-                          <line x1="16" x2="16" y1="2" y2="6" />
-                          <line x1="8" x2="8" y1="2" y2="6" />
-                          <line x1="3" x2="21" y1="10" y2="10" />
-                        </svg>
-                      </div>
-                      <span>
-                        {event.date} • {event.time}
-                      </span>
+                </div>
+                <h2 className="text-2xl md:text-3xl font-bold mb-2">{event.title}</h2>
+                <p className="text-white/80 mb-4 max-w-2xl line-clamp-2">{event.description}</p>
+                <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center mb-4">
+                  <div className="flex items-center gap-2">
+                    <div className="bg-white/20 p-2 rounded-full">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="lucide lucide-calendar"
+                      >
+                        <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
+                        <line x1="16" x2="16" y1="2" y2="6" />
+                        <line x1="8" x2="8" y1="2" y2="6" />
+                        <line x1="3" x2="21" y1="10" y2="10" />
+                      </svg>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="bg-white/20 p-2 rounded-full">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="lucide lucide-map-pin"
-                        >
-                          <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
-                          <circle cx="12" cy="10" r="3" />
-                        </svg>
-                      </div>
-                      <span>{event.location}</span>
-                    </div>
+                    <span>
+                      {event.date} • {event.time}
+                    </span>
                   </div>
+                  <div className="flex items-center gap-2">
+                    <div className="bg-white/20 p-2 rounded-full">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="lucide lucide-map-pin"
+                      >
+                        <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                        <circle cx="12" cy="10" r="3" />
+                      </svg>
+                    </div>
+                    <span>{event.location}</span>
+                  </div>
+                </div>
                 </div>
               </div>
             </Link>

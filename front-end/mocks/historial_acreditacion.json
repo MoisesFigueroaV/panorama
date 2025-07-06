@@ -1,0 +1,65 @@
+[
+  {
+    "id_organizador": 3,
+    "id_estado_acreditacion": 2,
+    "fecha_cambio": "2025-06-14",
+    "id_admin_responsable": 1,
+    "notas_cambio": ""
+  },
+  {
+    "id_organizador": 6,
+    "id_estado_acreditacion": 1,
+    "fecha_cambio": "2025-06-18",
+    "id_admin_responsable": null,
+    "notas_cambio": null
+  },
+  {
+    "id_organizador": 6,
+    "id_estado_acreditacion": 2,
+    "fecha_cambio": "2025-06-18",
+    "id_admin_responsable": 1,
+    "notas_cambio": ""
+  },
+  {
+    "id_organizador": 7,
+    "id_estado_acreditacion": 1,
+    "fecha_cambio": "2025-06-18",
+    "id_admin_responsable": null,
+    "notas_cambio": null
+  },
+  {
+    "id_organizador": 7,
+    "id_estado_acreditacion": 2,
+    "fecha_cambio": "2025-06-18",
+    "id_admin_responsable": 1,
+    "notas_cambio": ""
+  },
+  {
+    "id_organizador": 8,
+    "id_estado_acreditacion": 2,
+    "fecha_cambio": "2025-06-24",
+    "id_admin_responsable": 1,
+    "notas_cambio": ""
+  },
+  {
+    "id_organizador": 1,
+    "id_estado_acreditacion": 2,
+    "fecha_cambio": "2025-06-25",
+    "id_admin_responsable": 1,
+    "notas_cambio": ""
+  },
+  {
+    "id_organizador": 5,
+    "id_estado_acreditacion": 2,
+    "fecha_cambio": "2025-06-25",
+    "id_admin_responsable": 1,
+    "notas_cambio": ""
+  },
+  {
+    "id_organizador": 4,
+    "id_estado_acreditacion": 2,
+    "fecha_cambio": "2025-07-01",
+    "id_admin_responsable": 1,
+    "notas_cambio": ""
+  }
+]

@@ -1,0 +1,32 @@
+[
+  {
+    "id_notificacion": 24,
+    "id_estado_notificacion": 2,
+    "fecha_cambio": "2025-07-05"
+  },
+  {
+    "id_notificacion": 35,
+    "id_estado_notificacion": 2,
+    "fecha_cambio": "2025-07-05"
+  },
+  {
+    "id_notificacion": 36,
+    "id_estado_notificacion": 2,
+    "fecha_cambio": "2025-07-05"
+  },
+  {
+    "id_notificacion": 39,
+    "id_estado_notificacion": 2,
+    "fecha_cambio": "2025-07-05"
+  },
+  {
+    "id_notificacion": 49,
+    "id_estado_notificacion": 2,
+    "fecha_cambio": "2025-07-05"
+  },
+  {
+    "id_notificacion": 45,
+    "id_estado_notificacion": 2,
+    "fecha_cambio": "2025-07-05"
+  }
+]

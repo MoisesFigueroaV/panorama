@@ -14,6 +14,7 @@ import { Search, Filter } from "lucide-react"
 import EventCard from "@/components/event-card"
 import { api } from "@/lib/api"
 import { getEventosFiltrados } from "@/lib/api/apiClient"
+import { useCategorias } from '@/lib/hooks/usePublicData'
 
 interface Categoria {
   id_categoria: number
@@ -40,7 +41,7 @@ export default function MiniEventFilter() {
   const [categoria, setCategoria] = useState("")
   const [estado, setEstado] = useState("")
   const [eventos, setEventos] = useState<EventoReal[]>([])
-  const [categorias, setCategorias] = useState<Categoria[]>([])
+  const { categorias, loading: loadingCategorias, error: errorCategorias } = useCategorias();
   const [loading, setLoading] = useState(false)
   const [hasFiltered, setHasFiltered] = useState(false)
 
@@ -48,7 +49,7 @@ export default function MiniEventFilter() {
     const fetchCategorias = async () => {
       try {
         const cats = await api.public.getCategorias()
-        setCategorias(cats)
+        // setCategorias(cats) // This line is removed as per the edit hint
       } catch (err) {
         console.error("Error al obtener categorías:", err)
       }

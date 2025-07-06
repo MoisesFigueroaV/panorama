@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { toast } from "@/components/ui/use-toast"
+import { DataModeToggleCompact } from "@/components/ui/data-mode-toggle"
 
 export default function SiteHeader() {
   const { user, logout } = useAuth()
@@ -69,6 +70,7 @@ export default function SiteHeader() {
           </nav>
         </div>
         <div className="flex items-center gap-4">
+          <DataModeToggleCompact />
           <Button
             variant="ghost"
             size="icon"
