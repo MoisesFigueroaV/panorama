@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { toast } from "@/components/ui/use-toast"
 import { Separator } from "@/components/ui/separator"
-import { ArrowLeft, Camera, Lock, LogOut, Bell, Bookmark, Home } from "lucide-react"
+import { ArrowLeft, Camera, Lock, LogOut, Bell, Bookmark, Home, Trash2 } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/context/AuthContext"
 import { apiClient } from "@/lib/api/apiClient"
@@ -35,7 +35,9 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
 import NotificationsInbox from "@/components/NotificationsInbox"
-
+import { useSavedEvents } from "@/context/SavedEventsContext"
+import Image from "next/image"
+import NotificationsDropdown from "@/components/NotificationsDropdown"
 
 // Esquema de validación para el formulario de perfil personal
 const profileFormSchema = z.object({
@@ -120,6 +122,7 @@ const defaultNotificationValues: NotificationsFormValues = {
 
 export default function ProfilePage() {
   const { user, logout } = useAuth()
+  const { savedEvents, removeSavedEvent } = useSavedEvents()
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [avatar, setAvatar] = useState<string>(user?.foto_perfil || "/placeholder.svg?height=128&width=128")
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
@@ -293,55 +296,13 @@ export default function ProfilePage() {
 
         <div className="flex items-center gap-2">
           {/* Botón de notificaciones */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="relative">
-                <Bell className="h-5 w-5" />
-                {unreadNotifications > 0 && (
-                  <Badge 
-                    variant="destructive" 
-                    className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
-                  >
-                    {unreadNotifications}
-                  </Badge>
-                )}
-                <span className="sr-only">Ver notificaciones</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-80">
-              <DropdownMenuLabel>Notificaciones</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <div className="max-h-[300px] overflow-y-auto">
-                {/* Placeholder para notificaciones */}
-                <DropdownMenuItem className="flex flex-col items-start gap-1 p-4 cursor-pointer">
-                  <div className="flex items-center gap-2">
-                    <Bell className="h-4 w-4 text-primary" />
-                    <span className="font-medium">Nuevo evento</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Se ha creado un nuevo evento que coincide con tus intereses
-                  </p>
-                  <span className="text-xs text-muted-foreground">Hace 2 horas</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="flex flex-col items-start gap-1 p-4 cursor-pointer">
-                  <div className="flex items-center gap-2">
-                    <Bell className="h-4 w-4 text-primary" />
-                    <span className="font-medium">Recordatorio</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Tu evento guardado comienza en 24 horas
-                  </p>
-                  <span className="text-xs text-muted-foreground">Hace 5 horas</span>
-                </DropdownMenuItem>
-              </div>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="justify-center text-primary cursor-pointer">
-                Ver todas las notificaciones
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
+          {user && user.rol?.nombre_rol && (
+            <NotificationsDropdown
+              idUsuario={user.id_usuario}
+              rolUsuario={user.rol.nombre_rol.trim() as 'Administrador' | 'Organizador' | 'Usuario'}
+            />
+          )}
+          
           {/* Menú de usuario */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -803,36 +764,53 @@ export default function ProfilePage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Bookmark className="h-5 w-5" />
-                Eventos Guardados
+                Mis Eventos Guardados
               </CardTitle>
               <CardDescription>
                 Tus eventos favoritos y guardados para ver más tarde.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {/* Placeholder para eventos guardados */}
-                <div className="rounded-lg border p-4">
-                  <div className="aspect-video relative mb-4 bg-muted rounded-md">
-                    <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                      Imagen del evento
+              {savedEvents.length > 0 ? (
+                <div className="space-y-4">
+                  {savedEvents.map((event) => (
+                    <div key={event.id_evento} className="flex items-center gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                      <Image 
+                        src={event.imagen || "/placeholder.svg"} 
+                        alt={event.titulo} 
+                        width={100} 
+                        height={100} 
+                        className="w-24 h-24 object-cover rounded-md"
+                      />
+                      <div className="flex-1">
+                        <Link href={`/events/${event.id_evento}`}>
+                          <h3 className="font-semibold hover:text-primary">{event.titulo}</h3>
+                        </Link>
+                        <p className="text-sm text-muted-foreground">{new Date(event.fecha_inicio).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                        <p className="text-sm text-muted-foreground">{event.ubicacion}</p>
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="text-muted-foreground hover:text-destructive"
+                        onClick={() => removeSavedEvent(event.id_evento)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        <span className="sr-only">Eliminar de guardados</span>
+                      </Button>
                     </div>
-                  </div>
-                  <h3 className="font-semibold mb-2">Nombre del Evento</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Breve descripción del evento...
-                  </p>
-                  <div className="flex justify-between items-center">
-                    <div className="text-sm text-muted-foreground">
-                      Fecha del evento
-                    </div>
-                    <Button variant="outline" size="sm">
-                      Ver detalles
-                    </Button>
-                  </div>
+                  ))}
                 </div>
-                {/* Puedes duplicar este placeholder para más eventos */}
-              </div>
+              ) : (
+                <div className="text-center py-12 text-muted-foreground">
+                  <Bookmark className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p className="font-medium">No tienes eventos guardados.</p>
+                  <p className="text-sm">Haz clic en el icono del corazón en cualquier evento para guardarlo aquí.</p>
+                  <Link href="/events" className="mt-4 inline-block">
+                    <Button>Explorar eventos</Button>
+                  </Link>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

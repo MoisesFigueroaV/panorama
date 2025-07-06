@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useAuth } from "@/context/AuthContext"
 import { useRouter } from "next/navigation"
+import NotificationsDropdown from "@/components/NotificationsDropdown"
 
 interface PublicHeaderProps {
   userRole?: number
@@ -22,7 +23,7 @@ interface PublicHeaderProps {
 
 export function PublicHeader({ userRole }: PublicHeaderProps) {
   const [isOpen, setIsOpen] = useState(false)
-  const { logout } = useAuth()
+  const { user, logout } = useAuth()
   const router = useRouter()
 
   const handleSignOut = async () => {
@@ -46,10 +47,12 @@ export function PublicHeader({ userRole }: PublicHeaderProps) {
 
     return (
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" className="text-secondary-foreground hover:text-primary hover:bg-secondary-foreground/10">
-          <Bell className="h-5 w-5" />
-          <span className="sr-only">Notificaciones</span>
-        </Button>
+        {user && user.rol?.nombre_rol && (
+          <NotificationsDropdown
+            idUsuario={user.id_usuario}
+            rolUsuario={user.rol.nombre_rol.trim() as "Administrador" | "Organizador" | "Usuario"}
+          />
+        )}
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

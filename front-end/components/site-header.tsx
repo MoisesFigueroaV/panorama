@@ -17,7 +17,11 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { toast } from "@/components/ui/use-toast"
+<<<<<<< HEAD
 import { DataModeToggleCompact } from "@/components/ui/data-mode-toggle"
+=======
+import NotificationsDropdown from "@/components/NotificationsDropdown"
+>>>>>>> production
 
 export default function SiteHeader() {
   const { user, logout } = useAuth()
