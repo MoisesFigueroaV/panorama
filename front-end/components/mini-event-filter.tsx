@@ -14,48 +14,30 @@ import { Search, Filter } from "lucide-react"
 import EventCard from "@/components/event-card"
 import { api } from "@/lib/api"
 import { getEventosFiltrados } from "@/lib/api/apiClient"
-import { useCategorias } from '@/lib/hooks/usePublicData'
+import { useCategorias, useEventosDestacados } from '@/lib/hooks/usePublicData'
+import { shouldUseLocalData } from '@/lib/hooks/useLocalData'
 
 interface Categoria {
   id_categoria: number
   nombre_categoria: string
 }
 
-interface EventoReal {
-  id_evento: number
-  titulo: string
-  descripcion: string | null
-  fecha_inicio: string
-  fecha_fin: string
-  hora_inicio: string
-  hora_fin: string
-  ubicacion: string | null
-  imagen: string | null
-  nombre_categoria: string | null
-  nombre_organizacion: string | null
-  logo_organizacion: string | null
-}
+// Usar el tipo EventoDestacado que ya está definido en usePublicData
+import type { EventoDestacado } from '@/lib/hooks/usePublicData'
 
 export default function MiniEventFilter() {
   const [searchText, setSearchText] = useState("")
   const [categoria, setCategoria] = useState("")
   const [estado, setEstado] = useState("")
-  const [eventos, setEventos] = useState<EventoReal[]>([])
+  const [eventos, setEventos] = useState<EventoDestacado[]>([])
   const { categorias, loading: loadingCategorias, error: errorCategorias } = useCategorias();
+  const { eventos: todosEventos } = useEventosDestacados(100); // Obtener todos los eventos para filtrar localmente
   const [loading, setLoading] = useState(false)
   const [hasFiltered, setHasFiltered] = useState(false)
+  const isLocalMode = shouldUseLocalData();
 
-  useEffect(() => {
-    const fetchCategorias = async () => {
-      try {
-        const cats = await api.public.getCategorias()
-        // setCategorias(cats) // This line is removed as per the edit hint
-      } catch (err) {
-        console.error("Error al obtener categorías:", err)
-      }
-    }
-    fetchCategorias()
-  }, [])
+  // Removemos este useEffect ya que useCategorias ya maneja la obtención de categorías
+  // con fallback automático a datos locales
 
   useEffect(() => {
     if (!searchText && !categoria && !estado) {
@@ -69,16 +51,61 @@ export default function MiniEventFilter() {
         setLoading(true)
         setHasFiltered(true)
 
-        const filtros: Record<string, any> = {
-          search: searchText,
-          limit: 10,
+        if (isLocalMode && todosEventos) {
+          // Filtrar localmente usando los datos ya cargados
+          console.log('🔍 Filtrando eventos localmente...')
+          let eventosFiltrados = [...todosEventos]
+
+          // Filtro por búsqueda
+          if (searchText) {
+            eventosFiltrados = eventosFiltrados.filter(evento =>
+              evento.titulo.toLowerCase().includes(searchText.toLowerCase()) ||
+              evento.descripcion?.toLowerCase().includes(searchText.toLowerCase())
+            )
+          }
+
+          // Filtro por categoría
+          if (categoria) {
+            eventosFiltrados = eventosFiltrados.filter(evento => {
+              // Buscar la categoría por ID en el array de categorías
+              const categoriaSeleccionada = categorias.find(cat => cat.id_categoria.toString() === categoria)
+              return evento.nombre_categoria === categoriaSeleccionada?.nombre_categoria
+            })
+            console.log('🔍 Filtrado por categoría:', categoria, 'eventos encontrados:', eventosFiltrados.length)
+          }
+
+          // Filtro por estado (simplificado para modo local)
+          if (estado) {
+            const ahora = new Date()
+            eventosFiltrados = eventosFiltrados.filter(evento => {
+              const fechaEvento = new Date(evento.fecha_inicio)
+              switch (estado) {
+                case 'activo':
+                  return fechaEvento > ahora
+                case 'finalizado':
+                  return fechaEvento < ahora
+                case 'cancelado':
+                  return false // No tenemos estado cancelado en mocks
+                default:
+                  return true
+              }
+            })
+          }
+
+          setEventos(eventosFiltrados.slice(0, 3))
+        } else {
+          // Usar API remota
+          const filtros: Record<string, any> = {
+            search: searchText,
+            limit: 10,
+          }
+
+          if (categoria) filtros.categoria = categoria
+          if (estado) filtros.estado = estado
+
+          const data = await getEventosFiltrados(filtros)
+          setEventos((data.eventos || []).slice(0, 3))
         }
-
-        if (categoria) filtros.categoria = categoria
-        if (estado) filtros.estado = estado
-
-        const data = await getEventosFiltrados(filtros)
-        setEventos((data.eventos || []).slice(0, 3))
       } catch (err) {
         console.error("Error al filtrar eventos:", err)
       } finally {
@@ -87,7 +114,7 @@ export default function MiniEventFilter() {
     }
 
     fetchEventos()
-  }, [searchText, categoria, estado])
+  }, [searchText, categoria, estado, isLocalMode, todosEventos])
 
   const construirUrlEventos = () => {
     const params = new URLSearchParams()

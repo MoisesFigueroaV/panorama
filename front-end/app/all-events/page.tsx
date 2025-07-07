@@ -15,6 +15,8 @@ import { events, type EventData } from "@/lib/mock-data"
 import dynamic from "next/dynamic"
 import { useState, useEffect } from "react"
 import { apiClient, getEventosFiltrados } from "@/lib/api/apiClient"
+import { useEventosDestacados } from '@/lib/hooks/usePublicData'
+import { shouldUseLocalData } from '@/lib/hooks/useLocalData'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 
 export default function AllEventsPage() {
@@ -30,15 +32,24 @@ export default function AllEventsPage() {
   const [eventos, setEventos] = useState<any[]>([]);
   const [loadingEventos, setLoadingEventos] = useState(true);
   const [errorEventos, setErrorEventos] = useState<string | null>(null);
+  const { eventos: todosEventos } = useEventosDestacados(1000);
+  const isLocalMode = shouldUseLocalData();
 
   useEffect(() => {
     const fetchEventos = async () => {
       try {
         setLoadingEventos(true);
         setErrorEventos(null);
-        // Obtener todos los eventos activos (publicados)
-        const data = await getEventosFiltrados({ estado: 2, limit: 100 });
-        setEventos(data.eventos || []);
+        
+        if (isLocalMode && todosEventos) {
+          // Usar datos locales
+          console.log('🔍 Cargando eventos desde datos locales...');
+          setEventos(todosEventos);
+        } else {
+          // Usar API remota
+          const data = await getEventosFiltrados({ estado: 2, limit: 100 });
+          setEventos(data.eventos || []);
+        }
       } catch (err: any) {
         setErrorEventos(err.message || 'Error al obtener eventos');
       } finally {
@@ -46,7 +57,7 @@ export default function AllEventsPage() {
       }
     };
     fetchEventos();
-  }, []);
+  }, [isLocalMode, todosEventos]);
 
   return (
     <main className="min-h-screen pb-16">

@@ -19,6 +19,13 @@ interface EventCardProps {
   }
 
 export default function EventCard({ event }: EventCardProps) {
+  console.log('🔍 EventCard recibió evento:', {
+    titulo: event.titulo,
+    en_curso: event.en_curso,
+    proximo: event.proximo,
+    ya_realizado: event.ya_realizado
+  });
+  
   const { isAuthenticated } = useAuth();
   const router = useRouter();           
   const { addSavedEvent, removeSavedEvent, isEventSaved } = useSavedEvents()

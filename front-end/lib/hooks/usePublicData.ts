@@ -42,7 +42,7 @@ interface Categoria {
 }
 
 export function useEventosDestacados(limit?: number) {
-  const [eventos, setEventos] = useState<EventoDestacado[]>([]);
+  const [eventos, setEventos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { isLocalMode } = useDataMode();
@@ -56,7 +56,33 @@ export function useEventosDestacados(limit?: number) {
         if (isLocalMode) {
           console.log('[useEventosDestacados] Cargando datos desde JSON local');
           const { default: eventosMock } = await import('@/mocks/eventos.json');
-          setEventos(eventosMock.slice(0, limit || eventosMock.length));
+          // Transformar los datos para que sean compatibles con EventoDestacado
+          const hoy = new Date();
+          const eventosTransformados = eventosMock.map((evento: any) => {
+            const fechaInicio = new Date(evento.fecha_inicio);
+            const fechaFin = new Date(evento.fecha_fin);
+            
+            return {
+              ...evento,
+              nombre_categoria: evento.categoria_evento?.nombre_categoria || null,
+              nombre_organizacion: evento.organizador?.nombre_organizacion || null,
+              logo_organizacion: evento.organizador?.logo_organizacion || null,
+              en_curso: fechaInicio <= hoy && fechaFin >= hoy,
+              proximo: fechaInicio > hoy,
+              ya_realizado: fechaFin < hoy,
+            };
+          }) as EventoDestacado[];
+          
+          // Log para verificar que los estados se calculen correctamente
+          console.log('🔍 Estados calculados en useEventosDestacados:', eventosTransformados.slice(0, 3).map(e => ({
+            titulo: e.titulo,
+            fecha_inicio: e.fecha_inicio,
+            fecha_fin: e.fecha_fin,
+            en_curso: e.en_curso,
+            proximo: e.proximo,
+            ya_realizado: e.ya_realizado
+          })));
+          setEventos(eventosTransformados.slice(0, limit || eventosTransformados.length) as any);
         } else {
           console.log('[useEventosDestacados] Cargando datos desde Supabase');
           try {
@@ -199,14 +225,40 @@ export function useEventoById(eventoId: number) {
   const [evento, setEvento] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { isLocalMode } = useDataMode();
 
   useEffect(() => {
     const fetchEvento = async () => {
       try {
         setLoading(true);
         setError(null);
-        const response = await api.public.getEventoById(eventoId);
-        setEvento(response);
+        
+        if (isLocalMode) {
+          console.log('[useEventoById] Cargando evento desde JSON local');
+          const { default: eventosMock } = await import('@/mocks/eventos.json');
+          const eventoEncontrado = eventosMock.find((e: any) => e.id_evento === eventoId);
+          if (eventoEncontrado) {
+            setEvento(eventoEncontrado);
+          } else {
+            setError('Evento no encontrado');
+          }
+        } else {
+          console.log('[useEventoById] Cargando evento desde API remota');
+          try {
+            const response = await api.public.getEventoById(eventoId);
+            setEvento(response);
+          } catch (remoteError) {
+            console.warn('⚠️ Error al cargar evento remoto, fallback a local:', remoteError);
+            // Fallback a datos locales si falla la conexión remota
+            const { default: eventosMock } = await import('@/mocks/eventos.json');
+            const eventoEncontrado = eventosMock.find((e: any) => e.id_evento === eventoId);
+            if (eventoEncontrado) {
+              setEvento(eventoEncontrado);
+            } else {
+              setError('Evento no encontrado');
+            }
+          }
+        }
       } catch (err: any) {
         console.error('Error al obtener evento:', err);
         setError(err.message || 'Error al cargar evento');
@@ -218,7 +270,7 @@ export function useEventoById(eventoId: number) {
     if (eventoId) {
       fetchEvento();
     }
-  }, [eventoId]);
+  }, [eventoId, isLocalMode]);
 
   return { evento, loading, error };
 } 

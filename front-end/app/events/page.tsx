@@ -18,6 +18,8 @@ import EventCard from "@/components/event-card"
 import { getEventosFiltrados } from '@/lib/api/apiClient';
 import { api } from "@/lib/api"
 import EstadoEventoBadge from '@/components/estado-evento-badge'
+import { useCategorias, useEventosDestacados } from '@/lib/hooks/usePublicData'
+import { shouldUseLocalData } from '@/lib/hooks/useLocalData'
 
 interface EventoReal {
   id_evento: number
@@ -53,8 +55,10 @@ export default function EventsPage() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [viewMode, setViewMode] = useState("grid")
   const [eventos, setEventos] = useState<EventoReal[]>([])
-  const [categorias, setCategorias] = useState<Categoria[]>([])
+  const { categorias, loading: loadingCategorias, error: errorCategorias } = useCategorias();
+  const { eventos: todosEventos } = useEventosDestacados(1000); // Obtener todos los eventos para filtrar localmente
   const [loading, setLoading] = useState(true)
+  const isLocalMode = shouldUseLocalData();
   const [error, setError] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [eventsPerPage] = useState(9)
@@ -64,7 +68,7 @@ export default function EventsPage() {
   const [estadoEvento, setEstadoEvento] = useState('');
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
-  const [pagination, setPagination] = useState(null);
+  const [pagination, setPagination] = useState<any>(null);
 
   // Mapeo de IDs de categoría a nombres para mostrar
   const getCategoryConfig = (nombre: string) => {
@@ -88,18 +92,7 @@ export default function EventsPage() {
     }
   };
 
-  // 1. Cargar categorías
-  useEffect(() => {
-    const fetchCategorias = async () => {
-      try {
-        const categoriasResponse = await api.public.getCategorias();
-        setCategorias(categoriasResponse);
-      } catch (err: any) {
-        console.error('Error al obtener categorías:', err);
-      }
-    };
-    fetchCategorias();
-  }, []);
+  // Las categorías se cargan automáticamente con el hook useCategorias
 
   // 2. Aplicar filtro de categoría desde URL cuando las categorías ya están disponibles
   useEffect(() => {
@@ -134,60 +127,172 @@ export default function EventsPage() {
     const fetchEventos = async () => {
       try {
         setLoading(true);
-    
-        const filtros: Record<string, any> = {
-          page: currentPage,
-          limit: eventsPerPage,
-          sortBy,
-          sortOrder,
-        };
 
-        // Buscar por título
-        if (searchText) {
-          filtros.search = searchText;
-        }
+        if (isLocalMode && todosEventos) {
+          // Filtrar localmente usando los datos ya cargados
+          console.log('🔍 Filtrando eventos localmente en página de eventos...');
+          let eventosFiltrados = [...todosEventos];
 
-        // Filtrar por categoría (toma la primera categoría seleccionada, si existe)
-        if (selectedCategories.length > 0) {
-          const categoriaSeleccionada = categorias.find(cat => cat.nombre_categoria === selectedCategories[0]);
-          if (categoriaSeleccionada) {
-            filtros.categoria = categoriaSeleccionada.id_categoria;
+          // Filtro por búsqueda
+          if (searchText) {
+            eventosFiltrados = eventosFiltrados.filter(evento =>
+              evento.titulo.toLowerCase().includes(searchText.toLowerCase()) ||
+              evento.descripcion?.toLowerCase().includes(searchText.toLowerCase())
+            );
           }
-        }
 
-        // Filtrar por estado
-        if (estadoEvento) {
-          filtros.estado = estadoEvento;
-        }
+          // Filtro por categoría
+          if (selectedCategories.length > 0) {
+            eventosFiltrados = eventosFiltrados.filter(evento => {
+              const categoriaSeleccionada = categorias.find(cat => cat.nombre_categoria === selectedCategories[0]);
+              return evento.nombre_categoria === categoriaSeleccionada?.nombre_categoria;
+            });
+          }
 
-        // Filtrar por fecha de inicio y fin
-        if (fechaDesde) {
-          filtros.fechaDesde = fechaDesde;
-        }
-        if (fechaHasta) {
-          filtros.fechaHasta = fechaHasta;
-        }
+          // Filtro por estado
+          if (estadoEvento) {
+            const ahora = new Date();
+            eventosFiltrados = eventosFiltrados.filter(evento => {
+              const fechaEvento = new Date(evento.fecha_inicio);
+              switch (estadoEvento) {
+                case 'activo':
+                  return fechaEvento > ahora;
+                case 'finalizado':
+                  return fechaEvento < ahora;
+                case 'cancelado':
+                  return false; // No tenemos estado cancelado en mocks
+                default:
+                  return true;
+              }
+            });
+          }
 
-        const data = await getEventosFiltrados(filtros);
-        // Calcular estado del evento si no viene del backend
-        const hoy = new Date();
-        const eventosConEstado = (data.eventos || []).map((event: any) => {
-          const fechaInicio = new Date(event.fecha_inicio);
-          const fechaFin = new Date(event.fecha_fin);
-          return {
-            ...event,
-            hora_inicio: event.hora_inicio || '',
-            hora_fin: event.hora_fin || '',
-            capacidad: event.capacidad || 0,
-            latitud: event.latitud ?? null,
-            longitud: event.longitud ?? null,
-            en_curso: typeof event.en_curso === 'boolean' ? event.en_curso : (fechaInicio <= hoy && fechaFin >= hoy),
-            proximo: typeof event.proximo === 'boolean' ? event.proximo : (fechaInicio > hoy),
-            ya_realizado: typeof event.ya_realizado === 'boolean' ? event.ya_realizado : (fechaFin < hoy),
+          // Filtro por fecha
+          if (fechaDesde) {
+            const fechaDesdeDate = new Date(fechaDesde);
+            eventosFiltrados = eventosFiltrados.filter(evento => 
+              new Date(evento.fecha_inicio) >= fechaDesdeDate
+            );
+          }
+
+          if (fechaHasta) {
+            const fechaHastaDate = new Date(fechaHasta);
+            eventosFiltrados = eventosFiltrados.filter(evento => 
+              new Date(evento.fecha_inicio) <= fechaHastaDate
+            );
+          }
+
+          // Ordenamiento
+          if (sortBy && sortOrder) {
+            eventosFiltrados.sort((a, b) => {
+              let aValue: any, bValue: any;
+              
+              switch (sortBy) {
+                case 'date':
+                  aValue = new Date(a.fecha_inicio);
+                  bValue = new Date(b.fecha_inicio);
+                  break;
+                case 'capacidad':
+                  aValue = a.capacidad || 0;
+                  bValue = b.capacidad || 0;
+                  break;
+                case 'titulo':
+                  aValue = a.titulo.toLowerCase();
+                  bValue = b.titulo.toLowerCase();
+                  break;
+                default:
+                  return 0;
+              }
+
+              if (sortOrder === 'asc') {
+                return aValue > bValue ? 1 : -1;
+              } else {
+                return aValue < bValue ? 1 : -1;
+              }
+            });
+          }
+
+          // Calcular estado del evento
+          const hoy = new Date();
+          const eventosConEstado = eventosFiltrados.map((evento: any) => {
+            const fechaInicio = new Date(evento.fecha_inicio);
+            const fechaFin = new Date(evento.fecha_fin);
+            const en_curso = typeof evento.en_curso === 'boolean' ? evento.en_curso : (fechaInicio <= hoy && fechaFin >= hoy);
+            const proximo = typeof evento.proximo === 'boolean' ? evento.proximo : (fechaInicio > hoy);
+            const ya_realizado = typeof evento.ya_realizado === 'boolean' ? evento.ya_realizado : (fechaFin < hoy);
+            
+                      console.log('🔍 Estado del evento:', evento.titulo, {
+            fechaInicio: evento.fecha_inicio,
+            fechaFin: evento.fecha_fin,
+            fechaInicioObj: fechaInicio,
+            fechaFinObj: fechaFin,
+            hoy: hoy,
+            en_curso,
+            proximo,
+            ya_realizado
+          });
+            
+            return {
+              ...evento,
+              hora_inicio: evento.hora_inicio || '',
+              hora_fin: evento.hora_fin || '',
+              capacidad: evento.capacidad || 0,
+              latitud: evento.latitud ?? null,
+              longitud: evento.longitud ?? null,
+              en_curso,
+              proximo,
+              ya_realizado,
+            };
+          });
+
+          setEventos(eventosConEstado);
+          setPagination({
+            currentPage,
+            totalPages: Math.ceil(eventosConEstado.length / eventsPerPage),
+            totalItems: eventosConEstado.length,
+            hasNextPage: currentPage < Math.ceil(eventosConEstado.length / eventsPerPage),
+            hasPrevPage: currentPage > 1
+          });
+        } else {
+          // Usar API remota
+          const filtros: Record<string, any> = {
+            page: currentPage,
+            limit: eventsPerPage,
+            sortBy,
+            sortOrder,
           };
-        });
-        setEventos(eventosConEstado); // o data.items si cambiaste la respuesta
-        setPagination(data.pagination);
+
+          if (searchText) filtros.search = searchText;
+          if (selectedCategories.length > 0) {
+            const categoriaSeleccionada = categorias.find(cat => cat.nombre_categoria === selectedCategories[0]);
+            if (categoriaSeleccionada) {
+              filtros.categoria = categoriaSeleccionada.id_categoria;
+            }
+          }
+          if (estadoEvento) filtros.estado = estadoEvento;
+          if (fechaDesde) filtros.fechaDesde = fechaDesde;
+          if (fechaHasta) filtros.fechaHasta = fechaHasta;
+
+          const data = await getEventosFiltrados(filtros);
+          const hoy = new Date();
+          const eventosConEstado = (data.eventos || []).map((event: any) => {
+            const fechaInicio = new Date(event.fecha_inicio);
+            const fechaFin = new Date(event.fecha_fin);
+            return {
+              ...event,
+              hora_inicio: event.hora_inicio || '',
+              hora_fin: event.hora_fin || '',
+              capacidad: event.capacidad || 0,
+              latitud: event.latitud ?? null,
+              longitud: event.longitud ?? null,
+              en_curso: typeof event.en_curso === 'boolean' ? event.en_curso : (fechaInicio <= hoy && fechaFin >= hoy),
+              proximo: typeof event.proximo === 'boolean' ? event.proximo : (fechaInicio > hoy),
+              ya_realizado: typeof event.ya_realizado === 'boolean' ? event.ya_realizado : (fechaFin < hoy),
+            };
+          });
+          setEventos(eventosConEstado);
+          setPagination(data.pagination);
+        }
       } catch (error) {
         console.error("Error al filtrar eventos:", error);
       } finally {
@@ -195,35 +300,16 @@ export default function EventsPage() {
       }
     };
 
+    fetchEventos();
+  }, [selectedCategories, searchText, sortBy, sortOrder, estadoEvento, fechaDesde, fechaHasta, currentPage, isLocalMode, todosEventos, categorias]);
 
-    fetchEventos()
-  }, [selectedCategories, searchText, sortBy, sortOrder, estadoEvento, fechaDesde, fechaHasta, currentPage])
+  // Las categorías se cargan automáticamente con el hook useCategorias
 
-  // Cargar categorías al inicio
-  useEffect(() => {
-    const fetchCategorias = async () => {
-      try {
-        const categoriasResponse = await api.public.getCategorias()
-        setCategorias(categoriasResponse)
-      } catch (err: any) {
-        console.error('Error al obtener categorías:', err)
-      }
-    }
-
-    fetchCategorias()
-  }, [])
-
-  // Filtrar eventos por categoría si hay alguna seleccionada
-  const filteredEvents =
-    selectedCategories.length > 0 
-      ? eventos.filter((event) => selectedCategories.includes(event.nombre_categoria || ""))
-      : eventos
-
-  // Calcular paginación
+  // Calcular paginación directamente desde eventos ya filtrados
   const indexOfLastEvent = currentPage * eventsPerPage
   const indexOfFirstEvent = indexOfLastEvent - eventsPerPage
-  const currentEvents = filteredEvents.slice(indexOfFirstEvent, indexOfLastEvent)
-  const totalPages = Math.ceil(filteredEvents.length / eventsPerPage)
+  const currentEvents = eventos.slice(indexOfFirstEvent, indexOfLastEvent)
+  const totalPages = Math.ceil(eventos.length / eventsPerPage)
 
   const handleCategoryChange = (category: string, checked: boolean) => {
     if (checked) {
@@ -385,7 +471,7 @@ export default function EventsPage() {
                     </p>
                   )}
                 <p className="text-muted-foreground">
-                  Mostrando {currentEvents.length} de {filteredEvents.length} eventos
+                  Mostrando {currentEvents.length} de {eventos.length} eventos
                   {selectedCategories.length > 0 && ` en categoría${selectedCategories.length > 1 ? 's' : ''}: ${selectedCategories.join(', ')}`}
                 </p>
               </div>
@@ -496,7 +582,7 @@ export default function EventsPage() {
                   Reintentar
                 </Button>
               </div>
-            ) : filteredEvents.length === 0 ? (
+            ) : eventos.length === 0 ? (
               <div className="text-center py-12">
                 <p className="text-muted-foreground">No se encontraron eventos con los filtros seleccionados.</p>
               </div>
