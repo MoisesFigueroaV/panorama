@@ -1,3 +1,5 @@
+"use client"
+
 import { Search, Calendar, MapPin, SlidersHorizontal, ArrowLeft, ArrowRight, Heart, Share2 } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
@@ -15,9 +17,8 @@ import { useState, useEffect } from "react"
 import { apiClient, getEventosFiltrados } from "@/lib/api/apiClient"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 
-const EventMap = dynamic(() => import("@/components/event-map"), { ssr: false })
-
 export default function AllEventsPage() {
+  const EventMap = dynamic(() => import("@/components/event-map"), { ssr: false })
   // Duplicar eventos para tener más contenido para mostrar
   const allEvents = [
     ...events,

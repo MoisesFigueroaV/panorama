@@ -341,5 +341,29 @@
     "mensaje": "Se ha recibido una sugerencia de mejora en el formulario de creación de eventos.",
     "fecha_envio": "2025-07-02",
     "tipo": "social"
+  },
+  {
+    "id": 1,
+    "id_usuario": 63,
+    "mensaje": "Bienvenido a Panorama! Tu cuenta ha sido verificada exitosamente.",
+    "fecha": "2025-07-06T21:08:52.368Z",
+    "leida": false,
+    "tipo": "bienvenida"
+  },
+  {
+    "id": 2,
+    "id_usuario": 63,
+    "mensaje": "Tienes un nuevo evento pendiente de revisión.",
+    "fecha": "2025-07-06T20:08:52.368Z",
+    "leida": false,
+    "tipo": "evento"
+  },
+  {
+    "id": 3,
+    "id_usuario": 63,
+    "mensaje": "Tu evento 'Conferencia de Tecnología' ha sido aprobado.",
+    "fecha": "2025-07-06T19:08:52.368Z",
+    "leida": true,
+    "tipo": "aprobacion"
   }
 ]

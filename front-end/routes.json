@@ -1,0 +1,5 @@
+{
+  "/notificaciones/usuario/:id": "/notificaciones?id_usuario=:id",
+  "/api/v1/eventos/dashboard-stats": "/dashboard-stats",
+  "/admin/dashboard/kpis": "/dashboard-kpis"
+} 

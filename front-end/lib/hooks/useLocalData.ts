@@ -52,6 +52,30 @@ export function shouldUseLocalData(): boolean {
   return useLocalDataMode;
 }
 
+// Hook para inicializar datos locales
+export function useLocalDataInitializer() {
+  const { isLocalMode } = useDataMode();
+
+  useEffect(() => {
+    const initializeLocalData = async () => {
+      if (isLocalMode && typeof window !== 'undefined') {
+        try {
+          console.log('🚀 Inicializando datos locales...');
+          const { localDataManager } = await import('@/lib/localStorage/localDataManager');
+          await localDataManager.initializeWithMocks();
+          console.log('✅ Datos locales inicializados correctamente');
+        } catch (error) {
+          console.error('❌ Error inicializando datos locales:', error);
+        }
+      }
+    };
+
+    initializeLocalData();
+  }, [isLocalMode]);
+
+  return { isLocalMode };
+}
+
 // Hook para cargar datos con fallback automático
 export function useDataWithFallback<T>(
   fetchLocal: () => Promise<T>,
@@ -196,6 +220,40 @@ export function useSyncPendingOnReconnect() {
         }
       });
       localStorage.removeItem('pending_events');
+      // Sincronizar organizadores
+      const pendingOrgs = JSON.parse(localStorage.getItem('pending_organizadores') || '[]');
+      pendingOrgs.forEach(async (item: any) => {
+        try {
+          if (item.action === 'update') {
+            await api.organizadores.update(item.id, item);
+          } else if (item.action === 'delete') {
+            await api.organizadores.delete(item.id);
+          } else {
+            await api.organizadores.create(item);
+          }
+          console.log('✔️ Sincronizado pendiente (organizadores):', item);
+        } catch (err) {
+          console.error('❌ Error al sincronizar pendiente (organizadores):', item, err);
+        }
+      });
+      localStorage.removeItem('pending_organizadores');
+      // Sincronizar notificaciones
+      const pendingNotifs = JSON.parse(localStorage.getItem('pending_notificaciones') || '[]');
+      pendingNotifs.forEach(async (item: any) => {
+        try {
+          if (item.action === 'update') {
+            await api.notificaciones.update(item.id, item);
+          } else if (item.action === 'delete') {
+            await api.notificaciones.delete(item.id);
+          } else {
+            await api.notificaciones.create(item);
+          }
+          console.log('✔️ Sincronizado pendiente (notificaciones):', item);
+        } catch (err) {
+          console.error('❌ Error al sincronizar pendiente (notificaciones):', item, err);
+        }
+      });
+      localStorage.removeItem('pending_notificaciones');
     }
     setWasLocal(shouldUseLocalData());
   }, [shouldUseLocalData()]);

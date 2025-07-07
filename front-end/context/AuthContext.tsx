@@ -56,10 +56,22 @@ async function localLogin(email: string, password: string) {
   if (userPending) {
     return { ...userPending, local: true };
   }
-  // Luego buscar en el mock (que NO tiene contraseña, solo permite login por correo conocido y password vacío o 'demo')
+  // Luego buscar en el mock (que NO tiene contraseña, permite login con cualquier password si el correo existe)
   const userMock = mockUsers.find((u: any) => u.correo === email);
-  if (userMock && (password === '' || password === 'demo')) {
-    return { ...userMock, local: true };
+  if (userMock) {
+    // Si solo tiene id_rol, construir el objeto rol y asegurar intereses como array o null
+    let userWithRol: UsuarioAuth = {
+      ...userMock,
+      intereses: Array.isArray(userMock.intereses) ? userMock.intereses : (userMock.intereses ? [userMock.intereses] : null)
+    };
+    if (userMock.id_rol && !('rol' in userMock)) {
+      let nombre_rol = 'Usuario';
+      if (userMock.id_rol === 1) nombre_rol = 'Administrador';
+      if (userMock.id_rol === 2) nombre_rol = 'Organizador';
+      if (userMock.id_rol === 3) nombre_rol = 'Usuario';
+      userWithRol.rol = { id_rol: userMock.id_rol, nombre_rol };
+    }
+    return userWithRol;
   }
   throw new Error('Usuario o contraseña incorrectos (modo local)');
 }

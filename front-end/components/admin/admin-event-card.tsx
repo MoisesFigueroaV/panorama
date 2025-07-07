@@ -103,7 +103,7 @@ export function AdminEventCard({ event, onStatusChange }: AdminEventCardProps) {
     <Card className="overflow-hidden">
       <div className="aspect-video relative overflow-hidden">
         <Image
-          src={event.imagen && event.imagen.startsWith('http') ? event.imagen : 'https://via.placeholder.com/800x450?text=Evento'}
+          src={event.imagen && event.imagen.startsWith('http') ? event.imagen : '/placeholder.svg'}
           alt={event.titulo}
           fill
           className="object-cover"

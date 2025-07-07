@@ -30,6 +30,7 @@ import { AlertCircle } from "lucide-react"
 import { ImageUpload } from "@/components/ui/image-upload"
 import dynamic from 'next/dynamic'
 import { useCategorias } from "@/lib/hooks/usePublicData"
+import { formatDateForDB } from '@/lib/utils/date-utils'
 
 const EventMapPicker = dynamic(() => import('@/components/event-map-picker'), { ssr: false })
 
@@ -73,7 +74,7 @@ const defaultValues: EventFormValues = {
   ubicacion: "",
   capacidad: "1",
   id_categoria: "1",
-  imagen: "https://via.placeholder.com/600x400?text=Evento",
+  imagen: "/placeholder.svg",
   latitud: -36.82,
   longitud: -73.05,
 }
@@ -231,15 +232,15 @@ export default function CreateEventPage() {
         id_categoria: parseInt(data.id_categoria),
         titulo: data.titulo,
         descripcion: data.descripcion,
-        fecha_inicio: data.fecha_inicio.toISOString().split('T')[0],
-        fecha_fin: data.fecha_fin.toISOString().split('T')[0],
+        fecha_inicio: formatDateForDB(data.fecha_inicio),
+        fecha_fin: formatDateForDB(data.fecha_fin),
         hora_inicio: data.hora_inicio,
         hora_fin: data.hora_fin,
-        fecha_registro: new Date().toISOString().split('T')[0],
+        fecha_registro: formatDateForDB(new Date()),
         ubicacion: data.ubicacion || undefined,
         latitud: Number(data.latitud),
         longitud: Number(data.longitud),
-        imagen: (!data.imagen || data.imagen.trim() === "") ? "https://via.placeholder.com/800x450?text=Evento" : data.imagen.trim(),
+        imagen: (!data.imagen || data.imagen.trim() === "") ? "/placeholder.svg" : data.imagen.trim(),
         capacidad: parseInt(data.capacidad),
         id_estado_evento: 1, // Borrador por defecto
       }
@@ -397,10 +398,11 @@ export default function CreateEventPage() {
                           <Popover>
                             <PopoverTrigger asChild>
                               <FormControl>
-                                <Button
-                                  variant={"outline"}
+                                <div
+                                  role="button"
+                                  tabIndex={0}
                                   className={cn(
-                                    "w-full pl-3 text-left font-normal",
+                                    "flex w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
                                     !field.value && "text-muted-foreground",
                                   )}
                                 >
@@ -410,7 +412,7 @@ export default function CreateEventPage() {
                                     <span>Selecciona una fecha</span>
                                   )}
                                   <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                </Button>
+                                </div>
                               </FormControl>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0" align="start">
@@ -431,10 +433,11 @@ export default function CreateEventPage() {
                           <Popover>
                             <PopoverTrigger asChild>
                               <FormControl>
-                                <Button
-                                  variant={"outline"}
+                                <div
+                                  role="button"
+                                  tabIndex={0}
                                   className={cn(
-                                    "w-full pl-3 text-left font-normal",
+                                    "flex w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
                                     !field.value && "text-muted-foreground",
                                   )}
                                 >
@@ -444,7 +447,7 @@ export default function CreateEventPage() {
                                     <span>Selecciona una fecha</span>
                                   )}
                                   <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                </Button>
+                                </div>
                               </FormControl>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0" align="start">

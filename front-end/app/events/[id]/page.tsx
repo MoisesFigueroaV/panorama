@@ -176,7 +176,7 @@ export default function EventPage({ params }: EventPageProps) {
         </div>
         <div className="absolute inset-0 z-0">
           <Image 
-            src={evento.imagen && evento.imagen !== "" ? evento.imagen : "https://via.placeholder.com/800x450?text=Evento"} 
+            src={evento.imagen && evento.imagen !== "" ? evento.imagen : "/placeholder.svg"} 
             alt={evento.titulo} 
             fill 
             className="object-cover" 
