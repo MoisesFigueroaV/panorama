@@ -62,7 +62,7 @@ export function useEventosDestacados(limit?: number) {
             const fechaInicio = new Date(evento.fecha_inicio);
             const fechaFin = new Date(evento.fecha_fin);
             
-            return {
+            const eventoTransformado = {
               ...evento,
               nombre_categoria: evento.categoria_evento?.nombre_categoria || null,
               nombre_organizacion: evento.organizador?.nombre_organizacion || null,
@@ -71,11 +71,20 @@ export function useEventosDestacados(limit?: number) {
               proximo: fechaInicio > hoy,
               ya_realizado: fechaFin < hoy,
             };
+            
+            console.log('🔍 Transformación de evento:', {
+              titulo: evento.titulo,
+              categoria_original: evento.categoria_evento?.nombre_categoria,
+              categoria_transformada: eventoTransformado.nombre_categoria
+            });
+            
+            return eventoTransformado;
           }) as EventoDestacado[];
           
           // Log para verificar que los estados se calculen correctamente
           console.log('🔍 Estados calculados en useEventosDestacados:', eventosTransformados.slice(0, 3).map(e => ({
             titulo: e.titulo,
+            nombre_categoria: e.nombre_categoria,
             fecha_inicio: e.fecha_inicio,
             fecha_fin: e.fecha_fin,
             en_curso: e.en_curso,
@@ -238,7 +247,12 @@ export function useEventoById(eventoId: number) {
           const { default: eventosMock } = await import('@/mocks/eventos.json');
           const eventoEncontrado = eventosMock.find((e: any) => e.id_evento === eventoId);
           if (eventoEncontrado) {
-            setEvento(eventoEncontrado);
+            setEvento({
+              ...eventoEncontrado,
+              nombre_categoria: eventoEncontrado.categoria_evento?.nombre_categoria || null,
+              nombre_organizacion: eventoEncontrado.organizador?.nombre_organizacion || null,
+              logo_organizacion: eventoEncontrado.organizador?.logo_organizacion || null,
+            });
           } else {
             setError('Evento no encontrado');
           }
@@ -253,7 +267,12 @@ export function useEventoById(eventoId: number) {
             const { default: eventosMock } = await import('@/mocks/eventos.json');
             const eventoEncontrado = eventosMock.find((e: any) => e.id_evento === eventoId);
             if (eventoEncontrado) {
-              setEvento(eventoEncontrado);
+              setEvento({
+                ...eventoEncontrado,
+                nombre_categoria: eventoEncontrado.categoria_evento?.nombre_categoria || null,
+                nombre_organizacion: eventoEncontrado.organizador?.nombre_organizacion || null,
+                logo_organizacion: eventoEncontrado.organizador?.logo_organizacion || null,
+              });
             } else {
               setError('Evento no encontrado');
             }

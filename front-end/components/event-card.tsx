@@ -21,6 +21,7 @@ interface EventCardProps {
 export default function EventCard({ event }: EventCardProps) {
   console.log('🔍 EventCard recibió evento:', {
     titulo: event.titulo,
+    nombre_categoria: event.nombre_categoria,
     en_curso: event.en_curso,
     proximo: event.proximo,
     ya_realizado: event.ya_realizado
@@ -84,7 +85,7 @@ export default function EventCard({ event }: EventCardProps) {
             className="object-cover"
           />
           <div className="absolute top-2 left-2 flex flex-col gap-2">
-            <Badge className="flex items-center justify-center px-5 py-0.5 rounded-full text-xs font-semibold">{event.nombre_categoria}</Badge>
+            <Badge className="flex items-center justify-center px-5 py-0.5 rounded-full text-xs font-semibold">{event.nombre_categoria || 'Sin categoría'}</Badge>
             <EstadoEventoBadge en_curso={event.en_curso} proximo={event.proximo} ya_realizado={event.ya_realizado} />
           </div>
           <div className="absolute top-2 right-2 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
