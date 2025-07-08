@@ -19,6 +19,13 @@ import {
   marcarNotificacionComoLeida,
 } from '@/lib/api/notificaciones'
 
+// Extiende el tipo para aceptar local_id
+interface NotificacionDropdown {
+  id_notificacion?: number;
+  local_id?: string;
+  [key: string]: any;
+}
+
 interface NotificationsDropdownProps {
   idUsuario: number
   rolUsuario: 'Administrador' | 'Organizador' | 'Usuario'
@@ -88,10 +95,10 @@ export default function NotificationsDropdown({
               Sin notificaciones
             </DropdownMenuItem>
           )}
-          {notificaciones.slice(0, 5).map((n) => (
+          {notificaciones.slice(0, 5).map((n: NotificacionDropdown, idx: number) => (
             <DropdownMenuItem
-              key={n.id_notificacion}
-              onClick={() => manejarClickNotificacion(n.id_notificacion)}
+              key={n.id_notificacion ?? n.local_id ?? `noti-${idx}`}
+              onClick={typeof n.id_notificacion === 'number' ? () => manejarClickNotificacion(n.id_notificacion as number) : () => {}}
               className="flex flex-col items-start gap-1 p-4 cursor-pointer"
             >
               <div className="flex items-center gap-2">

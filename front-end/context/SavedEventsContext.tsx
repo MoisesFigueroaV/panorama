@@ -3,6 +3,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
 
 // Usaremos una interfaz simplificada del evento para el contexto
 interface EventoGuardado {
@@ -33,6 +34,7 @@ const LOCAL_STORAGE_KEY = 'savedEvents';
 
 export const SavedEventsProvider = ({ children }: { children: ReactNode }) => {
   const [savedEvents, setSavedEvents] = useState<EventoGuardado[]>([]);
+  const { user } = useAuth();
 
   // Cargar eventos guardados desde localStorage al iniciar
   useEffect(() => {
@@ -55,7 +57,7 @@ export const SavedEventsProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [savedEvents]);
 
-  const addSavedEvent = useCallback((event: EventoGuardado) => {
+  const addSavedEvent = useCallback(async (event: EventoGuardado) => {
     setSavedEvents((prevEvents) => {
       // Evitar duplicados
       if (prevEvents.find(e => e.id_evento === event.id_evento)) {
@@ -64,7 +66,50 @@ export const SavedEventsProvider = ({ children }: { children: ReactNode }) => {
       toast.success(`'${event.titulo}' guardado en tus favoritos.`);
       return [...prevEvents, event];
     });
-  }, []);
+
+    // Simulación de notificaciones en modo local
+    try {
+      const { shouldUseLocalData } = await import("@/lib/hooks/useLocalData");
+      if (shouldUseLocalData && shouldUseLocalData() && user?.id_usuario) {
+        const { localDataManager } = await import("@/lib/localStorage/localDataManager");
+        const now = new Date();
+        const fechaInicio = new Date(`${event.fecha_inicio}T${event.hora_inicio}`);
+        // Notificación inmediata
+        await localDataManager.createNotificacion({
+          id_usuario: user.id_usuario,
+          mensaje: `¡Has guardado el evento '${event.titulo}'!`,
+          fecha_envio: now.toISOString(),
+          tipo: 'evento',
+          nombre_estado: 'No leída',
+          leido: false
+        });
+        // Notificaciones programadas
+        const programaciones = [
+          { dias: 7, texto: '¡Falta 1 semana para el evento' },
+          { dias: 3, texto: '¡Faltan 3 días para el evento' },
+          { horas: 1, texto: '¡Falta 1 hora para el evento' }
+        ];
+        for (const prog of programaciones) {
+          let fechaNoti = new Date(fechaInicio);
+          if (prog.dias) fechaNoti.setDate(fechaNoti.getDate() - prog.dias);
+          if (prog.horas) fechaNoti.setHours(fechaNoti.getHours() - prog.horas);
+          if (fechaNoti > now) {
+            await localDataManager.createNotificacion({
+              id_usuario: user.id_usuario,
+              mensaje: `${prog.texto} '${event.titulo}'!`,
+              fecha_envio: fechaNoti.toISOString(),
+              tipo: 'evento',
+              nombre_estado: 'No leída',
+              leido: false
+            });
+          }
+        }
+      }
+    } catch (e) {
+      // No hacer nada si falla la simulación local
+      console.error('Error simulando notificaciones locales:', e);
+    }
+  }, [user]);
 
   const removeSavedEvent = useCallback((eventId: number) => {
     setSavedEvents((prevEvents) => {

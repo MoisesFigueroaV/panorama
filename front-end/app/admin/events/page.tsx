@@ -12,6 +12,7 @@ import { AdminEventCard } from "@/components/admin/admin-event-card"
 import { EventFilters } from "@/components/admin/event-filters"
 import { Pagination } from "@/components/ui/pagination"
 import { api } from "@/lib/api"
+import { shouldUseLocalData } from "@/lib/hooks/useLocalData"
 import { useAuth } from "@/context/AuthContext"
 import { toast } from "sonner"
 
@@ -76,31 +77,36 @@ export default function EventsPage() {
 
   const fetchEvents = async (page = 1, newFilters = filters) => {
     try {
-      console.log('🔐 Token disponible:', !!accessToken)
-      console.log('🔐 Token:', accessToken ? accessToken.substring(0, 20) + '...' : 'No hay token')
-      console.log('👤 Usuario:', user)
-      console.log('👤 Rol:', user?.rol)
-      
-      if (!accessToken) {
-        toast.error("No tienes acceso")
-        return
-      }
-      
-      if (!user || user.rol?.id_rol !== 1) {
-        toast.error("No tienes permisos de administrador")
-        return
-      }
-      
-      console.log('📡 Fetching eventos con filtros:', newFilters)
       setLoading(true)
-      
-      // Temporalmente usar el endpoint que sabemos que funciona
-      const data = await api.eventos.getAllForAdmin(accessToken)
-      
-      console.log('📊 Datos recibidos:', data.length, 'eventos')
-      
-      // Aplicar filtros en el front-end por ahora
-      let filteredEvents = data
+      let data = [];
+      if (shouldUseLocalData()) {
+        const { default: eventosMock } = await import('@/mocks/eventos.json');
+        // Transformar igual que en la home
+        data = eventosMock.map((evento: any) => {
+          const fechaInicio = new Date(evento.fecha_inicio);
+          const fechaFin = new Date(evento.fecha_fin);
+          return {
+            ...evento,
+            nombre_categoria: evento.categoria_evento?.nombre_categoria || evento.nombre_categoria || null,
+            imagen: evento.imagen || evento.imagen_portada || evento.imagen_evento || null,
+            nombre_organizacion: evento.organizador?.nombre_organizacion || evento.nombre_organizacion || null,
+            en_curso: fechaInicio <= new Date() && fechaFin >= new Date(),
+            proximo: fechaInicio > new Date(),
+            ya_realizado: fechaFin < new Date(),
+          };
+        });
+      } else {
+        if (!accessToken) {
+          toast.error("No tienes acceso")
+          return
+        }
+        if (!user || user.rol?.id_rol !== 1) {
+          toast.error("No tienes permisos de administrador")
+          return
+        }
+        data = await api.eventos.getAllForAdmin(accessToken);
+      }
+      let filteredEvents = data;
       
       if (newFilters.estado) {
         filteredEvents = filteredEvents.filter((event: AdminEvent) => event.id_estado_evento === newFilters.estado)
@@ -268,7 +274,7 @@ export default function EventsPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 bg-[#FFB86B]/30 min-h-screen p-4 rounded-xl">
       {/* Header */}
       <div className="flex flex-col md:flex-row gap-4 md:items-center md:justify-between">
         <div>

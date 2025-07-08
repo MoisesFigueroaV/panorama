@@ -37,7 +37,7 @@ export function AdminHeader() {
     <header className="sticky top-0 z-40 w-full border-b bg-background">
       <div className="container flex h-16 items-center justify-end py-4">
         <div className="flex items-center gap-4">
-        {user && user.rol?.nombre_rol && (
+        {user && user.rol?.nombre_rol && user.rol.nombre_rol !== "Administrador" && (
           <NotificationsDropdown
             idUsuario={user.id_usuario}
             rolUsuario={user.rol.nombre_rol.trim() as "Administrador" | "Organizador" | "Usuario"}

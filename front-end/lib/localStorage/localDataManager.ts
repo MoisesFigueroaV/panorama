@@ -189,16 +189,17 @@ class LocalDataManager {
 
   async createNotificacion(notificacion: Omit<LocalNotification, 'id_notificacion' | 'local_id' | 'is_local'>): Promise<LocalNotification> {
     const notificaciones = await this.getNotificaciones();
+    // Filtrar ids válidos
+    const validIds = notificaciones.map(n => n.id_notificacion).filter(id => typeof id === 'number' && !isNaN(id));
+    const nextId = validIds.length > 0 ? Math.max(...validIds) + 1 : 1;
     const newNotificacion: LocalNotification = {
       ...notificacion,
-      id_notificacion: Math.max(...notificaciones.map(n => n.id_notificacion), 0) + 1,
+      id_notificacion: nextId,
       local_id: this.generateLocalId(),
       is_local: true
     };
-    
     notificaciones.push(newNotificacion);
     localStorage.setItem('local_notificaciones', JSON.stringify(notificaciones));
-    
     return newNotificacion;
   }
 

@@ -8,7 +8,7 @@ export default function OrganizerLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="flex min-h-screen bg-muted/30">
+    <div className="flex min-h-screen bg-background">
       <OrganizerSidebar />
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
         <OrganizerHeader />

@@ -40,7 +40,7 @@ export default function AdminProfilePage() {
   }
 
   return (
-    <div className="container py-10 space-y-6">
+    <div className="min-h-screen py-10 space-y-6 bg-[#FFB86B]/30">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Perfil de Administrador</h1>
         <p className="text-muted-foreground">

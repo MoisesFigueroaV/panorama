@@ -16,10 +16,12 @@ import { OrganizerSidebar } from "./organizer-sidebar"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/context/AuthContext"
 import NotificationsDropdown from "@/components/NotificationsDropdown"
+import { usePathname } from "next/navigation";
 
 export function OrganizerHeader() {
   const router = useRouter()
   const { user, logout } = useAuth()
+  const pathname = usePathname();
 
   const handleSignOut = async () => {
     try {
@@ -47,7 +49,7 @@ export function OrganizerHeader() {
       </Sheet>
       <div className="flex-1"></div>
       <div className="flex items-center gap-2">
-        {user && user.rol?.nombre_rol && (
+        {user && user.rol?.nombre_rol && !pathname?.includes("/profile") && (
           <NotificationsDropdown
             idUsuario={user.id_usuario}
             rolUsuario={user.rol.nombre_rol.trim() as "Administrador" | "Organizador" | "Usuario"}

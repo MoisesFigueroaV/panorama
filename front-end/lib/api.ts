@@ -181,6 +181,11 @@ export const api = {
 
       // Obtener todos los eventos para admin
       getAllForAdmin: async (token: string) => {
+        if (shouldUseLocalData()) {
+          const eventosMock = await import('@/mocks/eventos.json');
+          // Puedes adaptar el formato aquí si es necesario
+          return eventosMock.default || eventosMock;
+        }
         const response = await fetch(`${API_BASE}/api/v1/admin/events/all`, {
           headers: { 
             'Authorization': `Bearer ${token}`

@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { AdminUser } from "@/lib/hooks/useAdminDashboard";
+import { toast } from "@/components/ui/use-toast";
+import { cn } from "@/lib/utils";
 
 interface AdminUserTableProps {
   users: AdminUser[];
@@ -21,6 +23,7 @@ type SortOrder = 'asc' | 'desc';
 export function AdminUserTable({ users }: AdminUserTableProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRole, setSelectedRole] = useState<string>('all');
+  const [selectedState, setSelectedState] = useState<string>('all');
   const [sortField, setSortField] = useState<SortField>('fecha');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [currentPage, setCurrentPage] = useState(1);
@@ -50,6 +53,11 @@ export function AdminUserTable({ users }: AdminUserTableProps) {
       result = result.filter(user => user.rol?.nombre_rol === selectedRole);
     }
 
+    // Filtro por estado
+    if (selectedState !== 'all') {
+      result = result.filter(user => (selectedState === 'activo' ? user.activo !== false : user.activo === false));
+    }
+
     // Aplicar ordenamiento
     result.sort((a, b) => {
       let comparison = 0;
@@ -71,7 +79,7 @@ export function AdminUserTable({ users }: AdminUserTableProps) {
     });
 
     return result;
-  }, [users, searchTerm, selectedRole, sortField, sortOrder]);
+  }, [users, searchTerm, selectedRole, selectedState, sortField, sortOrder]);
 
   // Calcular paginación
   const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
@@ -87,6 +95,25 @@ export function AdminUserTable({ users }: AdminUserTableProps) {
     } else {
       setSortField(field);
       setSortOrder('asc');
+    }
+  };
+
+  // Cambiar estado de usuario (suspender/reactivar) en modo local
+  const handleToggleUserState = async (id_usuario: number, activo: boolean) => {
+    // Solo modo local
+    const usuariosRaw = localStorage.getItem('usuarios');
+    let usuarios = usuariosRaw ? JSON.parse(usuariosRaw) : null;
+    if (!usuarios) {
+      // Si no hay en localStorage, cargar del mock
+      const usuariosMock = await import('@/mocks/usuarios.json');
+      usuarios = usuariosMock.default || usuariosMock;
+    }
+    const idx = usuarios.findIndex((u: any) => u.id_usuario === id_usuario);
+    if (idx !== -1) {
+      usuarios[idx].activo = activo;
+      localStorage.setItem('usuarios', JSON.stringify(usuarios));
+      toast({ title: activo ? 'Usuario reactivado' : 'Usuario suspendido', description: activo ? 'El usuario ha sido reactivado.' : 'El usuario ha sido suspendido.' });
+      window.location.reload(); // Forzar recarga para reflejar el cambio (puedes optimizar esto con estado)
     }
   };
 
@@ -118,6 +145,16 @@ export function AdminUserTable({ users }: AdminUserTableProps) {
             ))}
           </SelectContent>
         </Select>
+        <Select value={selectedState} onValueChange={setSelectedState}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Filtrar por estado" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos los estados</SelectItem>
+            <SelectItem value="activo">Activo</SelectItem>
+            <SelectItem value="suspendido">Suspendido</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Tabla */}
@@ -144,6 +181,9 @@ export function AdminUserTable({ users }: AdminUserTableProps) {
                 </Button>
               </TableHead>
               <TableHead>
+                Estado
+              </TableHead>
+              <TableHead>
                 <Button variant="ghost" onClick={() => handleSort('fecha')} className="font-medium">
                   Fecha de Registro
                   <ArrowUpDown className="ml-2 h-4 w-4" />
@@ -165,7 +205,35 @@ export function AdminUserTable({ users }: AdminUserTableProps) {
                 </TableCell>
                 <TableCell>{user.correo}</TableCell>
                 <TableCell>
-                  <Badge variant="outline">{user.rol?.nombre_rol ?? 'Sin rol'}</Badge>
+                  <Badge
+                    className={
+                      user.rol?.nombre_rol === "Administrador"
+                        ? "bg-primary text-white border-primary"
+                        : user.rol?.nombre_rol === "Organizador"
+                        ? "bg-accent text-accent-foreground border-accent"
+                        : "bg-secondary text-secondary-foreground border-secondary"
+                    }
+                  >
+                    {user.rol?.nombre_rol ?? 'Sin rol'}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold",
+                      user.activo !== false
+                        ? "bg-green-100 text-green-700 border border-green-200"
+                        : "bg-red-100 text-red-700 border border-red-200"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "inline-block w-2 h-2 rounded-full",
+                        user.activo !== false ? "bg-green-500" : "bg-red-500"
+                      )}
+                    />
+                    {user.activo !== false ? "Activo" : "Suspendido"}
+                  </span>
                 </TableCell>
                 <TableCell>
                   {new Date(user.fecha_registro).toLocaleDateString('es-ES', {
@@ -182,7 +250,15 @@ export function AdminUserTable({ users }: AdminUserTableProps) {
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem>Ver detalles</DropdownMenuItem>
                       <DropdownMenuItem>Editar</DropdownMenuItem>
-                      <DropdownMenuItem className="text-red-500">Suspender</DropdownMenuItem>
+                      {user.activo !== false ? (
+                        <DropdownMenuItem className="text-red-500" onClick={() => handleToggleUserState(user.id_usuario, false)}>
+                          Suspender
+                        </DropdownMenuItem>
+                      ) : (
+                        <DropdownMenuItem className="text-green-600" onClick={() => handleToggleUserState(user.id_usuario, true)}>
+                          Reactivar
+                        </DropdownMenuItem>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>

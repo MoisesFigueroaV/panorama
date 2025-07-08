@@ -12,7 +12,8 @@
     "foto_perfil": null,
     "ultima_actualizacion": "2025-06-14T21:21:13.034042",
     "telefono": null,
-    "ubicacion": null
+    "ubicacion": null,
+    "activo": true
   },
   {
     "id_usuario": 2,
@@ -27,7 +28,8 @@
     "foto_perfil": null,
     "ultima_actualizacion": "2025-06-14T21:21:13.034042",
     "telefono": null,
-    "ubicacion": null
+    "ubicacion": null,
+    "activo": true
   },
   {
     "id_usuario": 3,
@@ -42,7 +44,8 @@
     "foto_perfil": null,
     "ultima_actualizacion": "2025-06-14T21:21:13.034042",
     "telefono": null,
-    "ubicacion": null
+    "ubicacion": null,
+    "activo": true
   },
   {
     "id_usuario": 4,
@@ -57,7 +60,8 @@
     "foto_perfil": null,
     "ultima_actualizacion": "2025-06-14T21:21:13.034042",
     "telefono": null,
-    "ubicacion": null
+    "ubicacion": null,
+    "activo": true
   },
   {
     "id_usuario": 5,
@@ -72,7 +76,8 @@
     "foto_perfil": null,
     "ultima_actualizacion": "2025-06-14T21:21:13.034042",
     "telefono": null,
-    "ubicacion": null
+    "ubicacion": null,
+    "activo": true
   },
   {
     "id_usuario": 6,
@@ -87,7 +92,8 @@
     "foto_perfil": null,
     "ultima_actualizacion": "2025-06-14T21:21:13.034042",
     "telefono": null,
-    "ubicacion": null
+    "ubicacion": null,
+    "activo": true
   },
   {
     "id_usuario": 7,
@@ -102,7 +108,8 @@
     "foto_perfil": null,
     "ultima_actualizacion": "2025-06-14T21:21:13.034042",
     "telefono": null,
-    "ubicacion": null
+    "ubicacion": null,
+    "activo": true
   },
   {
     "id_usuario": 8,
@@ -117,7 +124,8 @@
     "foto_perfil": null,
     "ultima_actualizacion": "2025-06-14T21:21:13.034042",
     "telefono": null,
-    "ubicacion": null
+    "ubicacion": null,
+    "activo": true
   },
   {
     "id_usuario": 9,
@@ -132,7 +140,8 @@
     "foto_perfil": null,
     "ultima_actualizacion": "2025-06-14T21:21:13.034042",
     "telefono": null,
-    "ubicacion": null
+    "ubicacion": null,
+    "activo": true
   },
   {
     "id_usuario": 10,
@@ -147,7 +156,8 @@
     "foto_perfil": null,
     "ultima_actualizacion": "2025-06-14T21:21:13.034042",
     "telefono": null,
-    "ubicacion": null
+    "ubicacion": null,
+    "activo": true
   },
   {
     "id_usuario": 11,
@@ -162,7 +172,8 @@
     "foto_perfil": null,
     "ultima_actualizacion": "2025-06-14T21:21:13.034042",
     "telefono": null,
-    "ubicacion": null
+    "ubicacion": null,
+    "activo": true
   },
   {
     "id_usuario": 12,
@@ -177,7 +188,8 @@
     "foto_perfil": null,
     "ultima_actualizacion": "2025-06-14T21:21:13.034042",
     "telefono": null,
-    "ubicacion": null
+    "ubicacion": null,
+    "activo": true
   },
   {
     "id_usuario": 13,
@@ -192,7 +204,8 @@
     "foto_perfil": null,
     "ultima_actualizacion": "2025-06-14T21:21:13.034042",
     "telefono": null,
-    "ubicacion": null
+    "ubicacion": null,
+    "activo": true
   },
   {
     "id_usuario": 14,
@@ -207,7 +220,8 @@
     "foto_perfil": null,
     "ultima_actualizacion": "2025-06-14T21:21:13.034042",
     "telefono": null,
-    "ubicacion": null
+    "ubicacion": null,
+    "activo": true
   },
   {
     "id_usuario": 15,
@@ -222,7 +236,8 @@
     "foto_perfil": null,
     "ultima_actualizacion": "2025-06-14T21:21:13.034042",
     "telefono": null,
-    "ubicacion": null
+    "ubicacion": null,
+    "activo": true
   },
   {
     "id_usuario": 16,
@@ -237,7 +252,8 @@
     "foto_perfil": null,
     "ultima_actualizacion": "2025-06-14T21:21:13.034042",
     "telefono": null,
-    "ubicacion": null
+    "ubicacion": null,
+    "activo": true
   },
   {
     "id_usuario": 17,
@@ -252,7 +268,8 @@
     "foto_perfil": null,
     "ultima_actualizacion": "2025-06-14T21:21:13.034042",
     "telefono": null,
-    "ubicacion": null
+    "ubicacion": null,
+    "activo": true
   },
   {
     "id_usuario": 18,
@@ -267,7 +284,8 @@
     "foto_perfil": null,
     "ultima_actualizacion": "2025-06-14T21:21:13.034042",
     "telefono": null,
-    "ubicacion": null
+    "ubicacion": null,
+    "activo": true
   },
   {
     "id_usuario": 19,
@@ -282,7 +300,8 @@
     "foto_perfil": null,
     "ultima_actualizacion": "2025-06-14T21:21:13.034042",
     "telefono": null,
-    "ubicacion": null
+    "ubicacion": null,
+    "activo": true
   },
   {
     "id_usuario": 20,
@@ -297,7 +316,8 @@
     "foto_perfil": null,
     "ultima_actualizacion": "2025-06-14T21:21:13.034042",
     "telefono": null,
-    "ubicacion": null
+    "ubicacion": null,
+    "activo": true
   },
   {
     "id_usuario": 21,
@@ -312,7 +332,8 @@
     "foto_perfil": null,
     "ultima_actualizacion": "2025-06-14T21:21:13.034042",
     "telefono": null,
-    "ubicacion": null
+    "ubicacion": null,
+    "activo": true
   },
   {
     "id_usuario": 22,
@@ -327,7 +348,8 @@
     "foto_perfil": null,
     "ultima_actualizacion": "2025-06-14T21:21:13.034042",
     "telefono": null,
-    "ubicacion": null
+    "ubicacion": null,
+    "activo": true
   },
   {
     "id_usuario": 23,
@@ -342,7 +364,8 @@
     "foto_perfil": null,
     "ultima_actualizacion": "2025-06-14T21:21:13.034042",
     "telefono": null,
-    "ubicacion": null
+    "ubicacion": null,
+    "activo": true
   },
   {
     "id_usuario": 24,
@@ -357,7 +380,8 @@
     "foto_perfil": null,
     "ultima_actualizacion": "2025-06-14T21:21:13.034042",
     "telefono": null,
-    "ubicacion": null
+    "ubicacion": null,
+    "activo": true
   },
   {
     "id_usuario": 25,
@@ -372,7 +396,8 @@
     "foto_perfil": null,
     "ultima_actualizacion": "2025-06-14T21:21:13.034042",
     "telefono": null,
-    "ubicacion": null
+    "ubicacion": null,
+    "activo": true
   },
   {
     "id_usuario": 26,
@@ -387,7 +412,8 @@
     "foto_perfil": null,
     "ultima_actualizacion": "2025-06-14T21:21:13.034042",
     "telefono": null,
-    "ubicacion": null
+    "ubicacion": null,
+    "activo": true
   },
   {
     "id_usuario": 27,
@@ -402,7 +428,8 @@
     "foto_perfil": null,
     "ultima_actualizacion": "2025-06-14T21:21:13.034042",
     "telefono": null,
-    "ubicacion": null
+    "ubicacion": null,
+    "activo": true
   },
   {
     "id_usuario": 28,
@@ -417,7 +444,8 @@
     "foto_perfil": null,
     "ultima_actualizacion": "2025-06-14T21:21:13.034042",
     "telefono": null,
-    "ubicacion": null
+    "ubicacion": null,
+    "activo": true
   },
   {
     "id_usuario": 29,
@@ -432,7 +460,8 @@
     "foto_perfil": null,
     "ultima_actualizacion": "2025-06-14T21:21:13.034042",
     "telefono": null,
-    "ubicacion": null
+    "ubicacion": null,
+    "activo": true
   },
   {
     "id_usuario": 30,
@@ -447,7 +476,8 @@
     "foto_perfil": null,
     "ultima_actualizacion": "2025-06-14T21:21:13.034042",
     "telefono": null,
-    "ubicacion": null
+    "ubicacion": null,
+    "activo": true
   },
   {
     "id_usuario": 31,
@@ -462,7 +492,8 @@
     "foto_perfil": null,
     "ultima_actualizacion": "2025-06-14T21:21:13.034042",
     "telefono": null,
-    "ubicacion": null
+    "ubicacion": null,
+    "activo": true
   },
   {
     "id_usuario": 33,
@@ -477,7 +508,8 @@
     "foto_perfil": null,
     "ultima_actualizacion": "2025-06-14T21:21:13.034042",
     "telefono": null,
-    "ubicacion": null
+    "ubicacion": null,
+    "activo": true
   },
   {
     "id_usuario": 34,
@@ -492,7 +524,8 @@
     "foto_perfil": null,
     "ultima_actualizacion": "2025-06-14T21:21:13.034042",
     "telefono": null,
-    "ubicacion": null
+    "ubicacion": null,
+    "activo": true
   },
   {
     "id_usuario": 35,
@@ -507,7 +540,8 @@
     "foto_perfil": null,
     "ultima_actualizacion": "2025-06-14T21:21:13.034042",
     "telefono": null,
-    "ubicacion": null
+    "ubicacion": null,
+    "activo": true
   },
   {
     "id_usuario": 36,
@@ -522,7 +556,8 @@
     "foto_perfil": null,
     "ultima_actualizacion": "2025-06-14T21:21:13.034042",
     "telefono": null,
-    "ubicacion": null
+    "ubicacion": null,
+    "activo": true
   },
   {
     "id_usuario": 37,
@@ -537,7 +572,8 @@
     "foto_perfil": null,
     "ultima_actualizacion": "2025-06-14T21:21:13.034042",
     "telefono": null,
-    "ubicacion": null
+    "ubicacion": null,
+    "activo": true
   },
   {
     "id_usuario": 45,
@@ -552,7 +588,8 @@
     "foto_perfil": null,
     "ultima_actualizacion": "2025-06-14T21:21:13.034042",
     "telefono": null,
-    "ubicacion": null
+    "ubicacion": null,
+    "activo": true
   },
   {
     "id_usuario": 46,
@@ -567,7 +604,8 @@
     "foto_perfil": null,
     "ultima_actualizacion": "2025-06-14T21:21:13.034042",
     "telefono": null,
-    "ubicacion": null
+    "ubicacion": null,
+    "activo": true
   },
   {
     "id_usuario": 55,
@@ -582,7 +620,8 @@
     "foto_perfil": null,
     "ultima_actualizacion": "2025-06-14T23:11:16.52231",
     "telefono": null,
-    "ubicacion": null
+    "ubicacion": null,
+    "activo": true
   },
   {
     "id_usuario": 54,
@@ -597,7 +636,8 @@
     "foto_perfil": "/placeholder.svg?height=128&width=128",
     "ultima_actualizacion": "2025-06-14T21:21:13.034042",
     "telefono": "+56 9 9456 7230",
-    "ubicacion": "Valparaiso, Chile"
+    "ubicacion": "Valparaiso, Chile",
+    "activo": true
   },
   {
     "id_usuario": 59,
@@ -612,7 +652,8 @@
     "foto_perfil": "https://mi-cdn.com/perfiles/juan.jpg",
     "ultima_actualizacion": "2025-06-16T19:07:25.063671",
     "telefono": null,
-    "ubicacion": null
+    "ubicacion": null,
+    "activo": true
   },
   {
     "id_usuario": 60,
@@ -627,7 +668,8 @@
     "foto_perfil": "https://mi-cdn.com/perfiles/juan.jpg",
     "ultima_actualizacion": "2025-06-16T19:24:53.4736",
     "telefono": null,
-    "ubicacion": null
+    "ubicacion": null,
+    "activo": true
   },
   {
     "id_usuario": 61,
@@ -642,7 +684,8 @@
     "foto_perfil": "https://mi-cdn.com/perfiles/camila.jpg",
     "ultima_actualizacion": "2025-06-16T20:08:35.288501",
     "telefono": null,
-    "ubicacion": null
+    "ubicacion": null,
+    "activo": true
   },
   {
     "id_usuario": 62,
@@ -657,7 +700,8 @@
     "foto_perfil": null,
     "ultima_actualizacion": "2025-06-16T21:39:56.060388",
     "telefono": null,
-    "ubicacion": null
+    "ubicacion": null,
+    "activo": true
   },
   {
     "id_usuario": 63,
@@ -672,7 +716,8 @@
     "foto_perfil": null,
     "ultima_actualizacion": "2025-06-18T09:19:10.735239",
     "telefono": null,
-    "ubicacion": null
+    "ubicacion": null,
+    "activo": true
   },
   {
     "id_usuario": 64,
@@ -687,7 +732,8 @@
     "foto_perfil": null,
     "ultima_actualizacion": "2025-06-18T16:42:19.337017",
     "telefono": null,
-    "ubicacion": null
+    "ubicacion": null,
+    "activo": true
   },
   {
     "id_usuario": 32,
@@ -702,7 +748,8 @@
     "foto_perfil": "/placeholder.svg?height=128&width=128",
     "ultima_actualizacion": "2025-06-14T21:21:13.034042",
     "telefono": null,
-    "ubicacion": null
+    "ubicacion": null,
+    "activo": true
   },
   {
     "id_usuario": 65,
@@ -717,7 +764,8 @@
     "foto_perfil": null,
     "ultima_actualizacion": "2025-06-18T16:44:15.115679",
     "telefono": null,
-    "ubicacion": null
+    "ubicacion": null,
+    "activo": true
   },
   {
     "id_usuario": 66,
@@ -732,7 +780,8 @@
     "foto_perfil": null,
     "ultima_actualizacion": "2025-06-22T23:09:34.492742",
     "telefono": null,
-    "ubicacion": null
+    "ubicacion": null,
+    "activo": true
   },
   {
     "id_usuario": 67,
@@ -747,7 +796,8 @@
     "foto_perfil": null,
     "ultima_actualizacion": "2025-06-24T01:53:35.131098",
     "telefono": null,
-    "ubicacion": null
+    "ubicacion": null,
+    "activo": true
   },
   {
     "id_usuario": 68,
@@ -762,7 +812,8 @@
     "foto_perfil": null,
     "ultima_actualizacion": "2025-06-24T02:04:27.200164",
     "telefono": null,
-    "ubicacion": null
+    "ubicacion": null,
+    "activo": true
   },
   {
     "id_usuario": 69,
@@ -777,6 +828,7 @@
     "foto_perfil": null,
     "ultima_actualizacion": "2025-06-24T02:05:57.749613",
     "telefono": null,
-    "ubicacion": null
+    "ubicacion": null,
+    "activo": true
   }
 ]

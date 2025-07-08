@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { apiClient, getAccessToken } from '@/lib/api/apiClient';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { shouldUseLocalData } from '@/lib/hooks/useLocalData';
 
 // Este tipo debe coincidir con la respuesta del backend desde admin.services.ts
 export interface AdminUser {
@@ -13,6 +14,7 @@ export interface AdminUser {
   fecha_registro: string;
   id_rol: number;
   rol: { id_rol: number; nombre_rol: string; } | null;
+  activo?: boolean;
 }
 
 export interface PaginatedResponse<T> {
@@ -32,16 +34,41 @@ export const useAdminUsers = () => {
   const [totalPages, setTotalPages] = useState(1);
 
   const fetchUsers = useCallback(async (currentPage: number) => {
-    // Verificar que el usuario es admin
-    if (!user || user.rol?.id_rol !== 1) { // 1 es el ID del rol de administrador
-      router.push('/login');
-      return;
-    }
-
-    // Verificar que tenemos un token de acceso
-    const token = getAccessToken();
-    if (!token) {
-      router.push('/login');
+    if (shouldUseLocalData()) {
+      // Cargar usuarios desde localStorage si existen, si no desde el mock
+      let usuariosRaw = null;
+      if (typeof window !== 'undefined') {
+        usuariosRaw = localStorage.getItem('usuarios');
+      }
+      let usuariosData;
+      if (usuariosRaw) {
+        usuariosData = JSON.parse(usuariosRaw);
+      } else {
+        const usuariosMock = await import('@/mocks/usuarios.json');
+        usuariosData = usuariosMock.default || usuariosMock;
+      }
+      const allUsers = usuariosData
+        .filter((u: any) => u.id_rol && u.id_rol > 0)
+        .map((u: any) => ({
+          id_usuario: u.id_usuario,
+          nombre_usuario: u.nombre_usuario,
+          correo: u.correo,
+          fecha_registro: u.fecha_registro,
+          id_rol: u.id_rol,
+          rol: u.id_rol ? { id_rol: u.id_rol, nombre_rol: u.id_rol === 1 ? 'Administrador' : (u.id_rol === 2 ? 'Organizador' : 'Usuario') } : null,
+          activo: u.activo !== false // por defecto true si no existe
+        }));
+      const pageSize = 10;
+      const start = (currentPage - 1) * pageSize;
+      const end = start + pageSize;
+      setUsers({
+        users: allUsers.slice(start, end),
+        total: allUsers.length,
+        page: currentPage,
+        pageSize
+      });
+      setTotalPages(Math.ceil(allUsers.length / pageSize));
+      setLoading(false);
       return;
     }
 

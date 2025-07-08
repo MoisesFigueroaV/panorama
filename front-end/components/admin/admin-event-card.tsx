@@ -25,6 +25,9 @@ interface AdminEvent {
   nombre_organizacion: string | null
   nombre_categoria: string | null
   nombre_estado: string | null
+  imagen_portada?: string | null;
+  imagen_evento?: string | null;
+  categoria_evento?: { nombre_categoria: string | null };
 }
 
 interface AdminEventCardProps {
@@ -99,18 +102,24 @@ export function AdminEventCard({ event, onStatusChange }: AdminEventCardProps) {
 
   console.log('🖼️ [ADMIN] IMAGEN DEL EVENTO:', event.imagen)
 
+  // Lógica igual que en EventCard de la home
+  const imgSrc = event.imagen || "/placeholder.svg";
+
+  // Compatibilidad con mocks: buscar categoría en varias propiedades
+  const categoria = event.nombre_categoria || event.categoria_evento?.nombre_categoria || 'Sin categoría';
+
   return (
     <Card className="overflow-hidden">
-      <div className="aspect-video relative overflow-hidden">
+      <div className="aspect-video relative overflow-hidden rounded-lg bg-[#FFB86B]/20">
         <Image
-          src={event.imagen && event.imagen.startsWith('http') ? event.imagen : '/placeholder.svg'}
+          src={imgSrc}
           alt={event.titulo}
           fill
-          className="object-cover"
+          className="object-cover rounded-lg"
         />
         <div className="absolute top-2 left-2 flex gap-1">
           {getStatusBadge(event.id_estado_evento, event.nombre_estado)}
-          {getCategoryBadge(event.nombre_categoria)}
+          <Badge variant="outline">{categoria}</Badge>
         </div>
       </div>
 

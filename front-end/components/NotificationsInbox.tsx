@@ -14,6 +14,7 @@ interface Notificacion {
   fecha_envio: string
   nombre_estado?: string | null
   leido?: boolean
+  local_id?: string
 }
 
 interface NotificationsInboxProps {
@@ -80,9 +81,9 @@ export default function NotificationsInbox({ idUsuario }: NotificationsInboxProp
         {notificacionesFiltradas.length === 0 ? (
           <p className="text-muted-foreground text-sm">No hay notificaciones para este filtro.</p>
         ) : (
-          notificacionesFiltradas.map(n => (
+          notificacionesFiltradas.map((n, idx) => (
             <div
-              key={n.id_notificacion}
+              key={n.id_notificacion ?? n.local_id ?? `noti-${idx}`}
               className={`flex items-start gap-4 p-4 rounded-lg border transition ${
                 n.leido ? 'bg-muted' : 'bg-white'
               }`}

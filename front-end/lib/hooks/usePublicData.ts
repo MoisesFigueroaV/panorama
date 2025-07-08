@@ -130,7 +130,14 @@ export function useOrganizadoresVerificados(limit?: number) {
         if (isLocalMode) {
           console.log('[useOrganizadoresVerificados] Cargando datos desde JSON local');
           const { default: organizadoresMock } = await import('@/mocks/organizadores.json');
-          setOrganizadores(organizadoresMock.slice(0, limit || organizadoresMock.length));
+          setOrganizadores(
+            organizadoresMock
+              .slice(0, limit || organizadoresMock.length)
+              .map((org: any) => ({
+                total_eventos: 0,
+                ...org,
+              }))
+          );
         } else {
           console.log('[useOrganizadoresVerificados] Cargando datos desde Supabase');
           try {
@@ -139,7 +146,14 @@ export function useOrganizadoresVerificados(limit?: number) {
           } catch (remoteError) {
             console.warn('⚠️ Error al cargar datos remotos, fallback a locales:', remoteError);
             const { default: organizadoresMock } = await import('@/mocks/organizadores.json');
-            setOrganizadores(organizadoresMock.slice(0, limit || organizadoresMock.length));
+            setOrganizadores(
+              organizadoresMock
+                .slice(0, limit || organizadoresMock.length)
+                .map((org: any) => ({
+                  total_eventos: 0,
+                  ...org,
+                }))
+            );
           }
         }
       } catch (err: any) {

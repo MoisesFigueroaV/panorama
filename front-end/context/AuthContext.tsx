@@ -39,6 +39,7 @@ interface AuthContextType {
   login: (credentials: LoginUsuarioPayload) => Promise<void>;
   register: (data: RegistroUsuarioPayload) => Promise<UsuarioAuth>;
   logout: () => void;
+  setUser: React.Dispatch<React.SetStateAction<UsuarioAuth | null>>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -85,9 +86,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Verificar sesión al cargar y configurar interceptor
   useEffect(() => {
-    checkSession()
-    setupAuthInterceptor()
-  }, [])
+    // Persistencia en modo local
+    const tryRestoreLocalUser = async () => {
+      const { shouldUseLocalData } = await import("@/lib/hooks/useLocalData");
+      if (shouldUseLocalData && shouldUseLocalData()) {
+        const stored = localStorage.getItem('local_user');
+        if (stored) {
+          setUser(JSON.parse(stored));
+          setLocalAccessToken('local-token');
+          setIsLoadingSession(false);
+          return;
+        }
+      }
+      checkSession();
+      setupAuthInterceptor();
+    };
+    tryRestoreLocalUser();
+  }, []);
 
   const setupAuthInterceptor = () => {
     // Configurar interceptor para manejar renovación de tokens
@@ -181,6 +196,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // Limpiar estado
       setUser(null)
       setLocalAccessToken(null)
+      // Limpiar usuario local
+      localStorage.removeItem('local_user');
       
       console.log('Limpiando headers de la API...');
       // Limpiar headers de la API
@@ -201,6 +218,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           const user = await localLogin(credentials.correo, credentials.contrasena);
           setUser(user);
           setLocalAccessToken('local-token'); // Simulate access token
+          // Guardar usuario en localStorage para persistencia
+          localStorage.setItem('local_user', JSON.stringify(user));
           // Redirección específica por rol
           if (user.rol?.id_rol === 1) {
             router.push('/admin');
@@ -213,6 +232,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           }
         } catch (err) {
           setUser(null);
+          localStorage.removeItem('local_user');
           throw err;
         } finally {
           setIsLoadingSession(false);
@@ -288,7 +308,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       isLoadingSession, 
       login, 
       register,
-      logout 
+      logout,
+      setUser
     }}>
       {children}
     </AuthContext.Provider>

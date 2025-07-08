@@ -38,6 +38,7 @@ import NotificationsInbox from "@/components/NotificationsInbox"
 import { useSavedEvents } from "@/context/SavedEventsContext"
 import Image from "next/image"
 import NotificationsDropdown from "@/components/NotificationsDropdown"
+import { shouldUseLocalData } from "@/lib/hooks/useLocalData";
 
 // Esquema de validación para el formulario de perfil personal
 const profileFormSchema = z.object({
@@ -122,6 +123,7 @@ const defaultNotificationValues: NotificationsFormValues = {
 
 export default function ProfilePage() {
   const { user, logout } = useAuth()
+  const { setUser } = useAuth();
   const { savedEvents, removeSavedEvent } = useSavedEvents()
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [avatar, setAvatar] = useState<string>(user?.foto_perfil || "/placeholder.svg?height=128&width=128")
@@ -207,7 +209,12 @@ export default function ProfilePage() {
       
       const response = await apiClient.put('/usuarios/yo', updateData)
       console.log('Respuesta del backend:', response.data);
-
+      // Si estamos en modo local, actualizar el usuario en localStorage y en el contexto
+      if (shouldUseLocalData() && user) {
+        const updatedUser = { ...user, ...updateData };
+        localStorage.setItem('local_user', JSON.stringify(updatedUser));
+        setUser(updatedUser);
+      }
       setSuccessMessage("Tu información personal ha sido actualizada correctamente.")
       toast({
         title: "Perfil actualizado",

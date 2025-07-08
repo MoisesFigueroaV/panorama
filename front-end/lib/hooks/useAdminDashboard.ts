@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { apiClient } from '@/lib/api/apiClient';
 import { PaginatedResponse } from './useAdminUsers';
+import { shouldUseLocalData } from '@/lib/hooks/useLocalData';
 
 // --- Tipos de Datos (Contratos con la API) ---
 export interface DashboardKpis {
@@ -18,6 +19,7 @@ export interface AdminUser {
   correo: string;
   fecha_registro: string;
   rol: { id_rol: number; nombre_rol: string; } | null;
+  activo?: boolean;
 }
 
 export interface AdminOrganizer {
@@ -48,6 +50,59 @@ export const useAdminDashboard = () => {
     setIsLoading(true);
     setError(null);
     try {
+      if (shouldUseLocalData()) {
+        // KPIs
+        const kpisMock = await import('@/mocks/dashboard-kpis.json');
+        // Usuarios (solo admins y los 5 más recientes), desde localStorage si existe
+        let usuariosRaw = null;
+        if (typeof window !== 'undefined') {
+          usuariosRaw = localStorage.getItem('usuarios');
+        }
+        let usuariosData;
+        let usuariosMock;
+        if (usuariosRaw) {
+          usuariosData = JSON.parse(usuariosRaw);
+        } else {
+          usuariosMock = await import('@/mocks/usuarios.json');
+          usuariosData = usuariosMock.default || usuariosMock;
+        }
+        const usersList = usuariosData
+          .filter((u: any) => u.id_rol && u.id_rol > 0)
+          .slice(-5)
+          .map((u: any) => ({
+            id_usuario: u.id_usuario,
+            nombre_usuario: u.nombre_usuario,
+            correo: u.correo,
+            fecha_registro: u.fecha_registro,
+            rol: u.id_rol ? { id_rol: u.id_rol, nombre_rol: u.id_rol === 1 ? 'Administrador' : (u.id_rol === 2 ? 'Organizador' : 'Usuario') } : null,
+            activo: u.activo !== false
+          }));
+        // Organizadores
+        const organizadoresMock = await import('@/mocks/organizadores.json');
+        const usuariosFuente = usuariosData || (usuariosMock?.default || usuariosMock);
+        const organizersList = (organizadoresMock.default || organizadoresMock).map((o: any) => ({
+          id_organizador: o.id_organizador,
+          nombre_organizacion: o.nombre_organizacion,
+          acreditado: o.acreditado ?? false,
+          documento_acreditacion: o.documento_acreditacion ?? null,
+          usuario: {
+            nombre_usuario: usuariosFuente.find((u: any) => u.id_usuario === o.id_usuario)?.nombre_usuario || '',
+            correo: usuariosFuente.find((u: any) => u.id_usuario === o.id_usuario)?.correo || '',
+            fecha_registro: usuariosFuente.find((u: any) => u.id_usuario === o.id_usuario)?.fecha_registro || ''
+          },
+          estadoAcreditacionActual: o.id_estado_acreditacion_actual ? { nombre_estado: 'Acreditado' } : null
+        }));
+        setKpis({
+          totalUsuarios: kpisMock.usuariosRegistrados ?? usersList.length,
+          totalOrganizadores: kpisMock.organizadoresActivos ?? organizersList.length,
+          solicitudesPendientes: kpisMock.eventosPendientesAprobacion ?? 0,
+          eventosActivos: kpisMock.eventosTotales ?? 0
+        });
+        setUsers(usersList);
+        setOrganizers(organizersList);
+        setIsLoading(false);
+        return;
+      }
       // Hacemos las llamadas a la API en paralelo para más eficiencia
       const [kpisResponse, usersResponse, organizersResponse] = await Promise.all([
         apiClient.get<DashboardKpis>('/admin/dashboard/kpis'),
