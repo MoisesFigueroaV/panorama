@@ -31,6 +31,7 @@ import { ImageUpload } from "@/components/ui/image-upload"
 import dynamic from 'next/dynamic'
 import { useCategorias } from "@/lib/hooks/usePublicData"
 import { formatDateForDB } from '@/lib/utils/date-utils'
+import { shouldUseLocalData, addLocalEvent } from '@/lib/hooks/useLocalData';
 
 const EventMapPicker = dynamic(() => import('@/components/event-map-picker'), { ssr: false })
 
@@ -247,6 +248,14 @@ export default function CreateEventPage() {
 
       console.log('📤 Enviando datos al API:', eventoData)
       console.log('🌐 URL del API:', process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000')
+
+      // Si estamos en modo local, agregar el evento al mock
+      if (shouldUseLocalData()) {
+        await addLocalEvent(eventoData);
+        toast.success("Evento creado exitosamente como borrador. Espera la aprobación del administrador.");
+        router.push("/organizers/dashboard/events");
+        return;
+      }
 
       await api.eventos.create(eventoData, accessToken)
       console.log('✅ Evento creado exitosamente')

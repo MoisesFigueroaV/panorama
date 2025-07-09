@@ -375,9 +375,28 @@ export default function Home() {
             <PromotedEventsCarousel events={eventosCarrusel} />
           )}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8 mb-8">
-            {eventosDestacadosFila.map((event) => (
-                  <EventCard key={event.id_evento} event={event} />
-                ))}
+            {eventosDestacadosFila.map((event: Event) => {
+              const now = new Date();
+              const fechaInicio = new Date(event.fecha_inicio);
+              const fechaFin = new Date(event.fecha_fin);
+              const proximo = fechaInicio > now;
+              const en_curso = fechaInicio <= now && fechaFin >= now;
+              const ya_realizado = fechaFin < now;
+              // Extraer nombre_categoria correctamente
+              const nombre_categoria = event.nombre_categoria ?? (event as any).categoria_evento?.nombre_categoria ?? 'Sin categoría';
+              return (
+                <EventCard
+                  key={event.id_evento}
+                  event={{
+                    ...event,
+                    proximo,
+                    en_curso,
+                    ya_realizado,
+                    nombre_categoria,
+                  }}
+                />
+              );
+            })}
           </div>
           <div className="flex justify-center mt-8">
             <Link href="/events">
@@ -487,7 +506,7 @@ export default function Home() {
                       <a href="/events" className="inline-block px-6 py-2 rounded bg-primary text-white font-semibold hover:bg-primary/90 transition">Ver más eventos</a>
               </div>
                   </>
-                )}
+                
             </TabsContent>
             <TabsContent value="map">
                 {locationError && (

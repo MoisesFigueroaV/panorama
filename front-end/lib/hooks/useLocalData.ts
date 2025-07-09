@@ -128,7 +128,17 @@ export function useEventosData() {
   const { isLocalMode } = useDataMode();
   
   const fetchLocalEventos = async () => {
-    // Importar dinámicamente para evitar problemas de SSR
+    // Leer primero de localStorage si existe
+    if (typeof window !== 'undefined') {
+      const eventosStr = localStorage.getItem('local_eventos');
+      if (eventosStr) {
+        try {
+          const eventos = JSON.parse(eventosStr);
+          if (Array.isArray(eventos)) return eventos;
+        } catch {}
+      }
+    }
+    // Si no hay en localStorage, usar el mock original
     const { default: eventosMock } = await import('@/mocks/eventos.json');
     return eventosMock;
   };
@@ -257,4 +267,29 @@ export function useSyncPendingOnReconnect() {
     }
     setWasLocal(shouldUseLocalData());
   }, [shouldUseLocalData()]);
+} 
+
+// Agrega un evento al mock de eventos en localStorage (modo local)
+export async function addLocalEvent(evento: any) {
+  let eventos: any[] = [];
+  // Leer los eventos actuales de localStorage
+  if (typeof window !== 'undefined') {
+    const eventosStr = localStorage.getItem('local_eventos');
+    if (eventosStr) {
+      try {
+        eventos = JSON.parse(eventosStr);
+      } catch {
+        eventos = [];
+      }
+    }
+  }
+  // Generar un id único
+  const maxId = eventos.reduce((max, ev) => Math.max(max, ev.id_evento || 0), 0);
+  // Forzar estado pendiente SIEMPRE
+  const nuevoEvento = { ...evento, id_evento: maxId + 1, id_estado_evento: 1 };
+  eventos.push(nuevoEvento);
+  // Guardar en localStorage
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('local_eventos', JSON.stringify(eventos));
+  }
 } 

@@ -1,5 +1,40 @@
 [
   {
+    "id_evento": 999,
+    "id_organizador": 1,
+    "id_categoria": 1,
+    "titulo": "Evento pendiente de ejemplo",
+    "descripcion": "Este es un evento de prueba en estado pendiente/borrador.",
+    "fecha_inicio": "2025-12-01",
+    "fecha_fin": "2025-12-01",
+    "fecha_registro": "2025-11-01",
+    "ubicacion": "Teatro de Prueba, Ciudad",
+    "latitud": -36.82,
+    "longitud": -73.05,
+    "imagen": "/placeholder.svg",
+    "capacidad": 100,
+    "id_estado_evento": 1,
+    "hora_inicio": "20:00:00",
+    "hora_fin": "22:00:00",
+    "categoria_evento": {
+      "id_categoria": 1,
+      "nombre_categoria": "Música"
+    },
+    "organizador": {
+      "id_organizador": 1,
+      "nombre_organizacion": "Organizador Demo",
+      "acreditado": true,
+      "id_usuario": 1,
+      "descripcion": "Organizador de prueba.",
+      "anio_fundacion": 2020,
+      "ubicacion": "Ciudad",
+      "tipo_organizacion": "institucion",
+      "telefono_organizacion": "+56912345678",
+      "documento_acreditacion": "",
+      "id_estado_acreditacion_actual": 2
+    }
+  },
+  {
     "id_evento": 102,
     "id_organizador": 6,
     "id_categoria": 1,

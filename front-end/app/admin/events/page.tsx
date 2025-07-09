@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, Plus, Download, RefreshCw, Calendar, Users, MapPin } from "lucide-react"
+import { Search, Plus, Download, RefreshCw, Calendar, Users, MapPin, Check, Clock } from "lucide-react"
 import { AdminEventCard } from "@/components/admin/admin-event-card"
 import { EventFilters } from "@/components/admin/event-filters"
 import { Pagination } from "@/components/ui/pagination"
@@ -15,6 +15,7 @@ import { api } from "@/lib/api"
 import { shouldUseLocalData } from "@/lib/hooks/useLocalData"
 import { useAuth } from "@/context/AuthContext"
 import { toast } from "sonner"
+import categoriasMock from '@/mocks/categorias.json';
 
 interface AdminEvent {
   id_evento: number
@@ -75,19 +76,32 @@ export default function EventsPage() {
   const [activeTab, setActiveTab] = useState("all")
   const { accessToken, user } = useAuth()
 
+  // Guardar todos los eventos para stats globales
+  const [allEvents, setAllEvents] = useState<AdminEvent[]>([]);
+
   const fetchEvents = async (page = 1, newFilters = filters) => {
     try {
       setLoading(true)
       let data = [];
       if (shouldUseLocalData()) {
-        const { default: eventosMock } = await import('@/mocks/eventos.json');
+        // Leer eventos desde localStorage en modo local
+        let eventosLocal = [];
+        if (typeof window !== 'undefined') {
+          const eventosStr = localStorage.getItem('local_eventos');
+          if (eventosStr) {
+            try {
+              eventosLocal = JSON.parse(eventosStr);
+            } catch {}
+          }
+        }
+        console.log('🟡 [ADMIN] Eventos en local_eventos:', eventosLocal);
         // Transformar igual que en la home
-        data = eventosMock.map((evento: any) => {
+        data = eventosLocal.map((evento: any) => {
           const fechaInicio = new Date(evento.fecha_inicio);
           const fechaFin = new Date(evento.fecha_fin);
           return {
             ...evento,
-            nombre_categoria: evento.categoria_evento?.nombre_categoria || evento.nombre_categoria || null,
+            nombre_categoria: getCategoriaNombre(evento.id_categoria),
             imagen: evento.imagen || evento.imagen_portada || evento.imagen_evento || null,
             nombre_organizacion: evento.organizador?.nombre_organizacion || evento.nombre_organizacion || null,
             en_curso: fechaInicio <= new Date() && fechaFin >= new Date(),
@@ -95,6 +109,7 @@ export default function EventsPage() {
             ya_realizado: fechaFin < new Date(),
           };
         });
+        setAllEvents(data); // Guardar todos los eventos para stats globales
       } else {
         if (!accessToken) {
           toast.error("No tienes acceso")
@@ -105,11 +120,12 @@ export default function EventsPage() {
           return
         }
         data = await api.eventos.getAllForAdmin(accessToken);
+        setAllEvents(data); // Guardar todos los eventos para stats globales
       }
       let filteredEvents = data;
       
       if (newFilters.estado) {
-        filteredEvents = filteredEvents.filter((event: AdminEvent) => event.id_estado_evento === newFilters.estado)
+        filteredEvents = filteredEvents.filter((event: AdminEvent) => Number(event.id_estado_evento) === Number(newFilters.estado))
         console.log('🔍 Filtrado por estado:', newFilters.estado, 'eventos:', filteredEvents.length)
       }
       
@@ -166,8 +182,8 @@ export default function EventsPage() {
   }, [accessToken])
 
   const handleStatusChange = () => {
-    // Refrescar la lista cuando se cambie el estado de un evento
-    fetchEvents(pagination.page, filters)
+    // Refrescar SIEMPRE la lista desde la página 1 y con el filtro actual
+    fetchEvents(1, filters)
   }
 
   const handleFiltersChange = (newFilters: Filters) => {
@@ -195,7 +211,7 @@ export default function EventsPage() {
   }
 
   const handleTabChange = (tab: string) => {
-    console.log('🔄 Cambiando a pestaña:', tab)
+    console.log('�� Cambiando a pestaña:', tab)
     setActiveTab(tab)
     let newFilters = { ...filters }
     
@@ -216,39 +232,12 @@ export default function EventsPage() {
     fetchEvents(1, newFilters)
   }
 
-  const getEventStats = () => {
-    // Si estamos en una pestaña específica, solo contar los eventos de ese estado
-    if (activeTab !== "all") {
-      const stats = {
-        total: pagination.total,
-        pending: activeTab === "pending" ? pagination.total : 0,
-        published: activeTab === "published" ? pagination.total : 0
-      }
-      return stats
-    }
-
-    // Si estamos en "all", contar todos los eventos cargados
-    const stats = {
-      total: pagination.total,
-      pending: 0,
-      published: 0
-    }
-
-    events.forEach(event => {
-      switch (event.id_estado_evento) {
-        case 1:
-          stats.pending++
-          break
-        case 2:
-          stats.published++
-          break
-      }
-    })
-
-    return stats
-  }
-
-  const stats = getEventStats()
+  // Stats globales usando todos los eventos
+  const stats = {
+    total: allEvents.length,
+    pending: allEvents.filter(e => e.id_estado_evento === 1).length,
+    published: allEvents.filter(e => e.id_estado_evento === 2).length,
+  };
 
   if (loading && events.length === 0) {
     return (
@@ -291,10 +280,6 @@ export default function EventsPage() {
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             Actualizar
           </Button>
-          <Button className="gap-2">
-            <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Nuevo evento</span>
-          </Button>
         </div>
       </div>
 
@@ -313,7 +298,7 @@ export default function EventsPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Pendientes</CardTitle>
-            <Badge variant="secondary" className="h-4 w-4" />
+            <Clock className="h-4 w-4 text-yellow-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.pending}</div>
@@ -323,7 +308,7 @@ export default function EventsPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Publicados</CardTitle>
-            <Badge variant="default" className="h-4 w-4" />
+            <Check className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.published}</div>
@@ -333,11 +318,6 @@ export default function EventsPage() {
       </div>
 
       {/* Filtros */}
-      <EventFilters 
-        filters={filters}
-        onFiltersChange={handleFiltersChange}
-        onClearFilters={handleClearFilters}
-      />
 
       {/* Contenido principal */}
       <Card>
@@ -410,4 +390,11 @@ export default function EventsPage() {
       </Card>
     </div>
   )
+}
+
+// Función auxiliar para obtener el nombre de la categoría por id
+function getCategoriaNombre(id_categoria: number | null | undefined): string {
+  if (!id_categoria) return 'Sin categoría';
+  const cat = categoriasMock.find((c: any) => Number(c.id_categoria) === Number(id_categoria));
+  return cat ? cat.nombre_categoria : 'Sin categoría';
 }
