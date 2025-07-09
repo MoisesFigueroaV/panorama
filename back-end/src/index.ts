@@ -26,6 +26,7 @@ import { adminRoutes } from './modules/admin/admin.routes';
 import { eventoRoutes, publicEventoRoutes } from './modules/evento/evento.routes';
 import { uploadRoutes } from './modules/upload/upload.routes';
 import { notificaciones } from './modules/notificaciones/notificaciones.routes';
+import { calificacionRoutes } from './modules/calificacion/calificacion.routes';
 
 // Cargar variables de entorno
 dotenv.config();
@@ -128,6 +129,8 @@ const app = new Elysia()
 
       // Módulo de Notificaciones
       .use(notificaciones)
+      // Módulo de Calificaciones
+      .use(calificacionRoutes)
   )
 
   // Iniciar el servidor

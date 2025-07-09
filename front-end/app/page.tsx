@@ -45,7 +45,7 @@ import CategoryCard from "@/components/category-card"
 import TestimonialCard from "@/components/testimonial-card"
 import FeaturedOrganizers from "@/components/featured-organizers"
 import { DynamicHeader } from "@/components/dynamic-header"
-import { useEventosDestacados, useOrganizadoresVerificados, useCategorias, useEventosByCategoria } from "@/lib/hooks/usePublicData"
+import { useEventosData, useOrganizadoresData, useCategoriasData } from '@/lib/hooks/useLocalData'
 import CategoryCardWithCount from "@/components/category-card-with-count"
 import { DataModeToggleCompact } from "@/components/ui/data-mode-toggle"
 
@@ -95,10 +95,30 @@ function getImageUrl(imagen: string | null): string {
 export default function Home() {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
-  const { eventos, loading: isLoadingEventos, error: errorEventos } = useEventosDestacados(30);
-  const [kpis, setKpis] = useState<{ eventosActivos: number, totalUsuarios: number, totalOrganizadores: number } | null>(null);
-  const [loadingKpis, setLoadingKpis] = useState(true);
-  
+  const { data: eventosAll = [] } = useEventosData();
+  const { data: organizacionesAll = [] } = useOrganizadoresData();
+  const { data: categoriasMock = [] } = useCategoriasData ? useCategoriasData() : { data: [] };
+  const [usuariosAll, setUsuariosAll] = useState<any[]>([]);
+
+  useEffect(() => {
+    async function fetchUsuarios() {
+      try {
+        const mod = await import('@/mocks/usuarios.json');
+        setUsuariosAll(mod.default || []);
+      } catch {
+        setUsuariosAll([]);
+      }
+    }
+    fetchUsuarios();
+  }, []);
+
+  const eventosPublicados = Array.isArray(eventosAll)
+    ? eventosAll.filter(ev => ev.estado_evento?.nombre_estado === 'Publicado' || ev.estado_evento?.nombre_estado === 'publicado').length
+    : 0;
+  const usuariosRegistrados = Array.isArray(usuariosAll) ? usuariosAll.length : 0;
+  const totalOrganizaciones = Array.isArray(organizacionesAll) ? organizacionesAll.length : 0;
+  const totalCiudades = 1;
+
   useEffect(() => {
     // Limpiar ubicación guardada al cargar la página
     localStorage.removeItem('userLocation');
@@ -145,29 +165,32 @@ export default function Home() {
       try {
         const res = await apiClient.get('/admin/dashboard/kpis');
         const data = res.data;
-        setKpis({
-          eventosActivos: data.eventosActivos,
-          totalUsuarios: data.totalUsuarios,
-          totalOrganizadores: data.totalOrganizadores,
-        });
+        // setKpis({
+        //   eventosActivos: data.eventosActivos,
+        //   totalUsuarios: data.totalUsuarios,
+        //   totalOrganizadores: data.totalOrganizadores,
+        // });
       } catch (e) {
-        setKpis(null);
+        // setKpis(null);
       } finally {
-        setLoadingKpis(false);
+        // setLoadingKpis(false);
       }
     }
     fetchKpis();
   }, []);
 
   // Obtener datos reales
-  const { organizadores, loading: loadingOrganizadores, error: errorOrganizadores } = useOrganizadoresVerificados(3);
   const categoriasExtra = [
     { id_categoria: 6, nombre_categoria: 'Teatro' },
     { id_categoria: 7, nombre_categoria: 'Cine' },
     { id_categoria: 8, nombre_categoria: 'Negocios' },
   ];
-  const { categorias: categoriasBD, loading: loadingCategorias, error: errorCategorias } = useCategorias();
-  const categorias = [...categoriasBD, ...categoriasExtra.filter(cat => !categoriasBD.some(c => c.id_categoria === cat.id_categoria))];
+  // Unir categorías del mock y extra, sin duplicados
+  const categoriasArray = Array.isArray(categoriasMock) ? categoriasMock : [];
+  const categorias = [
+    ...categoriasArray,
+    ...categoriasExtra.filter(cat => !categoriasArray.some((c: any) => c.id_categoria === cat.id_categoria))
+  ];
 
   // Testimonios para mostrar
   const testimonials = [
@@ -186,14 +209,14 @@ export default function Home() {
     // Más testimonios podrían agregarse aquí
   ];
 
-  (eventos || []).forEach((e: any) => console.log('Evento:', e.titulo, 'Capacidad:', e.capacidad, 'Imagen:', e.imagen, 'Ya realizado:', e.ya_realizado));
+  (eventosAll || []).forEach((e: any) => console.log('Evento:', e.titulo, 'Capacidad:', e.capacidad, 'Imagen:', e.imagen, 'Ya realizado:', e.ya_realizado));
 
   // Unificar lógica de destacados
-  const eventosDestacadosBase = (eventos || [])
-    .filter((event: any) => event.capacidad >= 1000 && event.imagen && !event.ya_realizado)
-    .sort((a: any, b: any) => new Date(b.fecha_registro).getTime() - new Date(a.fecha_registro).getTime());
+  const eventosDestacadosBase = (eventosAll || [])
+    .filter((event: Event) => event.capacidad >= 1000 && event.imagen && !event.ya_realizado)
+    .sort((a: Event, b: Event) => new Date(b.fecha_registro).getTime() - new Date(a.fecha_registro).getTime());
 
-  const eventosCarrusel = eventosDestacadosBase.slice(0, 5).map(event => ({
+  const eventosCarrusel = eventosDestacadosBase.slice(0, 5).map((event: Event) => ({
     id: String(event.id_evento),
     title: event.titulo,
     date: event.fecha_inicio,
@@ -209,7 +232,7 @@ export default function Home() {
 
   console.log('EVENTOS CARRUSEL:', eventosCarrusel);
 
-  console.log('EVENTOS DESTACADOS DEL BACKEND:', eventos);
+  console.log('EVENTOS DESTACADOS DEL BACKEND:', eventosAll);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -312,28 +335,28 @@ export default function Home() {
               <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
                 <Calendar className="h-8 w-8 text-primary" />
               </div>
-              <h3 className="text-4xl font-bold text-primary mb-1">{loadingKpis ? '...' : kpis?.eventosActivos ?? '0'}</h3>
+              <h3 className="text-4xl font-bold text-primary mb-1">{eventosPublicados}</h3>
               <p className="text-muted-foreground font-medium">Eventos publicados</p>
             </div>
             <div className="bg-gradient-to-br from-accent/5 to-accent/10 rounded-xl border border-accent/20 p-6 text-center hover:shadow-md transition-all duration-300">
               <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
                 <Users className="h-8 w-8 text-accent" />
               </div>
-              <h3 className="text-4xl font-bold text-accent mb-1">{loadingKpis ? '...' : kpis?.totalUsuarios ?? '0'}</h3>
+              <h3 className="text-4xl font-bold text-accent mb-1">{usuariosRegistrados}</h3>
               <p className="text-muted-foreground font-medium">Usuarios registrados</p>
             </div>
             <div className="bg-gradient-to-br from-highlight/5 to-highlight/10 rounded-xl border border-highlight/20 p-6 text-center hover:shadow-md transition-all duration-300">
               <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
                 <Building2 className="h-8 w-8 text-highlight" />
               </div>
-              <h3 className="text-4xl font-bold text-highlight mb-1">{loadingKpis ? '...' : kpis?.totalOrganizadores ?? '0'}</h3>
+              <h3 className="text-4xl font-bold text-highlight mb-1">{totalOrganizaciones}</h3>
               <p className="text-muted-foreground font-medium">Organizaciones</p>
             </div>
             <div className="bg-gradient-to-br from-primary/5 to-accent/10 rounded-xl border border-accent/20 p-6 text-center hover:shadow-md transition-all duration-300">
               <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
                 <Globe className="h-8 w-8 text-accent" />
               </div>
-              <h3 className="text-4xl font-bold text-accent mb-1">1</h3>
+              <h3 className="text-4xl font-bold text-accent mb-1">{totalCiudades}</h3>
               <p className="text-muted-foreground font-medium">Ciudades</p>
             </div>
           </div>
@@ -443,22 +466,22 @@ export default function Home() {
                 <TabsTrigger value="map">Mapa</TabsTrigger>
                 </TabsList>
             <TabsContent value="list" className="space-y-8">
-                {isLoadingEventos ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {[1, 2, 3, 4, 5, 6].map((i) => (
-                    <div key={i} className="h-64 bg-gray-200 rounded-lg animate-pulse" />
-                  ))}
-                </div>
-              ) : errorEventos ? (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">Error al cargar eventos: {errorEventos}</p>
-                </div>
-              ) : (
+                {/* Aquí iría el loading/error de eventos si se usa el hook remoto */}
+                {/* Eliminar bloque de errorEventos */}
                   <>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {eventos?.map((event) => (
-                    <EventCard key={event.id_evento} event={event} />
-                  ))}
+                      {eventosAll?.map((event: Event) => {
+                         // Calcular proximo y en_curso si no existen
+                         const now = new Date();
+                         const fechaInicio = new Date(event.fecha_inicio);
+                         const fechaFin = new Date(event.fecha_fin);
+                         const proximo = (event as any).proximo !== undefined ? (event as any).proximo : (fechaInicio > now);
+                         const en_curso = (event as any).en_curso !== undefined ? (event as any).en_curso : (fechaInicio <= now && fechaFin >= now);
+                         const ya_realizado = (event as any).ya_realizado !== undefined ? (event as any).ya_realizado : (fechaFin < now);
+                         return (
+                           <EventCard key={event.id_evento} event={{ ...event, proximo, en_curso, ya_realizado }} />
+                         );
+                       })}
                 </div>
                     <div className="flex justify-center mt-6">
                       <a href="/events" className="inline-block px-6 py-2 rounded bg-primary text-white font-semibold hover:bg-primary/90 transition">Ver más eventos</a>
@@ -475,7 +498,7 @@ export default function Home() {
                 <EventMap 
                   center={userLocation || { lat: -36.82, lng: -73.05 }}
                   userLocation={userLocation}
-                  events={eventos || []}
+                  events={eventosAll || []}
                 />
             </TabsContent>
           </Tabs>
@@ -489,14 +512,14 @@ export default function Home() {
             <p className="text-muted-foreground">Conoce a quienes crean los mejores eventos</p>
           </div>
           <FeaturedOrganizers 
-            organizadores={organizadores} 
-            loading={loadingOrganizadores} 
+            organizadores={(organizacionesAll || []).slice(0, 9)} 
+            loading={false} 
           />
-          {errorOrganizadores && (
+          {/* errorOrganizadores && (
             <div className="text-center py-8">
               <p className="text-muted-foreground">Error al cargar organizadores: {errorOrganizadores}</p>
             </div>
-          )}
+          ) */}
         </section>
 
         {/* Testimonials */}

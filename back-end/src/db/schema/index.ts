@@ -20,6 +20,7 @@ export * from './organizador.schema';
 export * from './redSocialOrganizador.schema';
 export * from './evento.schema';
 export * from './notificaciones.schema';
+export * from './calificacionEvento.schema';
 
 // Tablas de Historial
 export * from './historialEstadoAcreditacion.schema';

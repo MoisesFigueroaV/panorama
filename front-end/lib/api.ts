@@ -21,6 +21,7 @@ function savePendingEditOrDelete(entity: string, data: any, action: string) {
 // Helper para saber si estamos en modo local
 import { shouldUseLocalData } from '@/lib/hooks/useLocalData';
 import { formatDateForDB } from '@/lib/utils/date-utils'
+import { localDataManager } from '@/lib/localStorage/localDataManager';
 
 export const api = {
     users: {
@@ -63,7 +64,6 @@ export const api = {
       create: async (data: any, token: string) => {
         if (shouldUseLocalData()) {
           console.log('📁 Modo local: creando evento en localStorage...');
-          const { localDataManager } = await import('@/lib/localStorage/localDataManager');
           
           // Inicializar con mocks si es necesario
           await localDataManager.initializeWithMocks();
@@ -743,6 +743,60 @@ export const api = {
           throw new Error(errorText || 'Error al subir imagen');
         }
         
+        return response.json();
+      }
+    },
+    calificaciones: {
+      // Crear calificación (requiere token)
+      create: async (data: any, token: string) => {
+        if (shouldUseLocalData()) {
+          const user = JSON.parse(localStorage.getItem('current_user') || '{}');
+          let nombre_usuario = user?.nombre || user?.nombre_usuario || user?.username || user?.correo || user?.email || '';
+          if (!nombre_usuario || ["Usuario", "Organizador", "Administrador"].includes(nombre_usuario)) {
+            nombre_usuario = user?.correo || user?.email || 'Invitado';
+          }
+          return localDataManager.createCalificacion({
+            ...data,
+            id_usuario: user?.id_usuario || 1,
+            nombre_usuario,
+          });
+        }
+        const response = await fetch(`${API_BASE}/api/v1/calificaciones`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(data)
+        });
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Error al crear calificación');
+        }
+        return response.json();
+      },
+      // Obtener calificaciones de un evento
+      getByEvento: async (id_evento: number) => {
+        if (shouldUseLocalData()) {
+          return localDataManager.getCalificacionesByEvento(id_evento);
+        }
+        const response = await fetch(`${API_BASE}/api/v1/calificaciones/evento/${id_evento}`);
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Error al obtener calificaciones');
+        }
+        return response.json();
+      },
+      // Obtener promedio de calificaciones de un organizador
+      getPromedioByOrganizador: async (id_organizador: number) => {
+        if (shouldUseLocalData()) {
+          return localDataManager.getPromedioCalificacionesByOrganizador(id_organizador);
+        }
+        const response = await fetch(`${API_BASE}/api/v1/calificaciones/organizador/${id_organizador}`);
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Error al obtener promedio de calificaciones');
+        }
         return response.json();
       }
     }

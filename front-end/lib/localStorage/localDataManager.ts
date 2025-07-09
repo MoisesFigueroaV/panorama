@@ -53,6 +53,18 @@ export interface LocalNotification {
   is_local?: boolean;
 }
 
+export interface LocalCalificacion {
+  id_calificacion: number;
+  id_evento: number;
+  id_usuario: number;
+  puntuacion: number;
+  comentario: string;
+  fecha: string;
+  nombre_usuario: string;
+  local_id?: string;
+  is_local?: boolean;
+}
+
 class LocalDataManager {
   private static instance: LocalDataManager;
   
@@ -218,6 +230,49 @@ class LocalDataManager {
     localStorage.setItem('local_notificaciones', JSON.stringify(notificaciones));
     
     return notificaciones[index];
+  }
+
+  // CALIFICACIONES
+  async getCalificaciones(): Promise<LocalCalificacion[]> {
+    if (typeof window === 'undefined') return [];
+    const stored = localStorage.getItem('local_calificaciones');
+    if (!stored) return [];
+    try {
+      return JSON.parse(stored);
+    } catch {
+      return [];
+    }
+  }
+
+  async getCalificacionesByEvento(id_evento: number): Promise<LocalCalificacion[]> {
+    const calificaciones = await this.getCalificaciones();
+    return calificaciones.filter(c => c.id_evento === id_evento);
+  }
+
+  async createCalificacion(calificacion: Omit<LocalCalificacion, 'id_calificacion' | 'local_id' | 'is_local' | 'fecha'>): Promise<LocalCalificacion> {
+    const calificaciones = await this.getCalificaciones();
+    const nextId = calificaciones.length > 0 ? Math.max(...calificaciones.map(c => c.id_calificacion)) + 1 : 1;
+    const nueva: LocalCalificacion = {
+      ...calificacion,
+      id_calificacion: nextId,
+      fecha: formatDateForDB(new Date()),
+      local_id: this.generateLocalId(),
+      is_local: true
+    };
+    calificaciones.push(nueva);
+    localStorage.setItem('local_calificaciones', JSON.stringify(calificaciones));
+    return nueva;
+  }
+
+  async getPromedioCalificacionesByOrganizador(id_organizador: number): Promise<{ promedio: number, total: number, comentarios: LocalCalificacion[] }> {
+    // Obtener todos los eventos de este organizador
+    const eventos = await this.getEventosByOrganizador(id_organizador);
+    const ids = eventos.map(e => e.id_evento);
+    const calificaciones = await this.getCalificaciones();
+    const filtradas = calificaciones.filter(c => ids.includes(c.id_evento));
+    const total = filtradas.length;
+    const promedio = total > 0 ? filtradas.reduce((acc, c) => acc + c.puntuacion, 0) / total : 0;
+    return { promedio, total, comentarios: filtradas };
   }
 
   // SINCRONIZACIÓN

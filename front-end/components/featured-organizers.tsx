@@ -51,6 +51,7 @@ export default function FeaturedOrganizers({ organizadores, loading = false }: F
     );
   }
 
+  // Grid responsivo clásico, sin carrusel
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       {organizadores.map((organizer) => (

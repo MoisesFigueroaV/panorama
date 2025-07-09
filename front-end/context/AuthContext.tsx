@@ -220,6 +220,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setLocalAccessToken('local-token'); // Simulate access token
           // Guardar usuario en localStorage para persistencia
           localStorage.setItem('local_user', JSON.stringify(user));
+          localStorage.setItem('current_user', JSON.stringify(user));
           // Redirección específica por rol
           if (user.rol?.id_rol === 1) {
             router.push('/admin');
