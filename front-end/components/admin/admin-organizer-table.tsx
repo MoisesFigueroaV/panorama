@@ -10,9 +10,9 @@ import { useState } from "react";
 import type { AdminOrganizer } from "@/lib/hooks/useAdminOrganizers";
 
 const ESTADO_COLORS = {
-  'Pendiente': 'bg-yellow-500/20 text-yellow-600 border-yellow-500',
-  'Aprobado': 'bg-green-500/20 text-green-600 border-green-500',
-} as const;
+  'Pendiente': 'bg-gray-300/20 text-gray-600 border-gray-400',
+  'Aprobado': 'bg-yellow-400/20 text-yellow-700 border-yellow-400',
+};
 
 interface AdminOrganizerTableProps {
   organizers: AdminOrganizer[];
@@ -76,45 +76,41 @@ export function AdminOrganizerTable({ organizers, onUpdate }: AdminOrganizerTabl
             <TableHead>Contacto</TableHead>
             <TableHead>Fecha de Registro</TableHead>
             <TableHead>Estado</TableHead>
-            <TableHead className="text-center">Documento</TableHead>
             <TableHead className="text-right">Acciones</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {organizers.map((org) => (
-            <TableRow key={org.id_organizador}>
-              <TableCell className="font-medium">{org.nombre_organizacion}</TableCell>
-              <TableCell>
-                <div>{org.usuario?.nombre_usuario ?? 'N/A'}</div>
-                <div className="text-sm text-muted-foreground">{org.usuario?.correo ?? 'N/A'}</div>
-              </TableCell>
-              <TableCell>
-                {org.usuario?.fecha_registro ? new Date(org.usuario.fecha_registro).toLocaleDateString('es-ES', {
-                  day: 'numeric',
-                  month: 'short',
-                  year: 'numeric'
-                }) : 'N/A'}
-              </TableCell>
-              <TableCell>
+          {organizers.map((org) => {
+            // Estado y color estrictos por id_estado_acreditacion
+            let estado = 'Pendiente';
+            let color = ESTADO_COLORS['Pendiente'];
+            if (org.estadoAcreditacionActual?.id_estado_acreditacion === 2) {
+              estado = 'Acreditado';
+              color = ESTADO_COLORS['Aprobado'];
+            }
+            return (
+              <TableRow key={org.id_organizador}>
+                <TableCell className="font-medium">{org.nombre_organizacion}</TableCell>
+                <TableCell>
+                  <div>{org.usuario?.nombre_usuario ?? 'N/A'}</div>
+                  <div className="text-sm text-muted-foreground">{org.usuario?.correo ?? 'N/A'}</div>
+                </TableCell>
+                <TableCell>
+                  {org.usuario?.fecha_registro ? new Date(org.usuario.fecha_registro).toLocaleDateString('es-ES', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric'
+                  }) : 'N/A'}
+                </TableCell>
+                <TableCell>
                 <Badge 
                   variant="outline" 
-                  className={ESTADO_COLORS[org.estadoAcreditacionActual?.nombre_estado as keyof typeof ESTADO_COLORS] ?? 'bg-gray-500/20 text-gray-600 border-gray-500'}
+                  className={color}
                 >
-                  {org.estadoAcreditacionActual?.nombre_estado ?? 'Pendiente'}
+                  {estado}
                 </Badge>
-              </TableCell>
-              <TableCell className="text-center">
-                {org.documento_acreditacion ? (
-                  <Button variant="outline" size="sm" asChild>
-                    <a href={org.documento_acreditacion} target="_blank" rel="noopener noreferrer" className="gap-2">
-                      <FileText className="h-4 w-4" /> Ver
-                    </a>
-                  </Button>
-                ) : (
-                  <span className="text-xs text-muted-foreground">No adjunto</span>
-                )}
-              </TableCell>
-              <TableCell className="text-right">
+                </TableCell>
+                <TableCell className="text-right">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon">
@@ -128,7 +124,6 @@ export function AdminOrganizerTable({ organizers, onUpdate }: AdminOrganizerTabl
                         Ver detalles
                       </Button>
                     </DropdownMenuItem>
-                    
                     {/* Acciones según el estado actual */}
                     {org.estadoAcreditacionActual?.nombre_estado === 'Pendiente' && (
                       <DropdownMenuItem asChild>
@@ -143,17 +138,16 @@ export function AdminOrganizerTable({ organizers, onUpdate }: AdminOrganizerTabl
                         </Button>
                       </DropdownMenuItem>
                     )}
-                    
                     {org.estadoAcreditacionActual?.nombre_estado === 'Aprobado' && (
                       <DropdownMenuItem asChild>
                         <Button 
                           variant="ghost" 
-                          className="w-full justify-start text-yellow-600 hover:text-yellow-600 hover:bg-yellow-50" 
+                          className="w-full justify-start text-gray-600 hover:text-gray-600 hover:bg-gray-100" 
                           size="sm"
                           onClick={() => handleAction(org.id_organizador, 'pending')}
                         >
                           <CheckCircle className="h-4 w-4 mr-2" />
-                          Volver a Pendiente
+                          Suspender
                         </Button>
                       </DropdownMenuItem>
                     )}
@@ -161,7 +155,8 @@ export function AdminOrganizerTable({ organizers, onUpdate }: AdminOrganizerTabl
                 </DropdownMenu>
               </TableCell>
             </TableRow>
-          ))}
+          );
+        })}
         </TableBody>
       </Table>
 

@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils'
 import { api } from '@/lib/api'
 import { useAuth } from '@/context/AuthContext'
 import { toast } from 'sonner'
+import { shouldUseLocalData } from '@/lib/hooks/useLocalData'
 
 export interface ImageUploadProps {
   onImageUpload: (imageUrl: string) => void
@@ -28,12 +29,44 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
   const [preview, setPreview] = useState<string | null>(currentImage || null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { accessToken } = useAuth()
+  const isLocalMode = shouldUseLocalData()
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
+
+    // Validaciones
+    if (!file.type.startsWith('image/')) {
+      toast.error('El archivo debe ser una imagen')
+      return
+    }
+
+    const maxSize = 5 * 1024 * 1024 // 5MB
+    if (file.size > maxSize) {
+      toast.error('La imagen no puede ser mayor a 5MB')
+      return
+    }
+
+    // Crear preview inmediatamente
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const previewUrl = e.target?.result as string
+      setPreview(previewUrl)
+      
+      // En modo local, usar el preview directamente
+      if (isLocalMode) {
+        onImageUpload(previewUrl)
+        toast.success('Imagen cargada exitosamente')
+        return
+      }
+    }
+    reader.readAsDataURL(file)
+    
+    // Solo subir al servidor si no estamos en modo local
+    if (!isLocalMode) {
     setIsUploadingState(true)
     if (typeof setIsUploading === 'function') setIsUploading(true)
+      
     try {
       const result = await api.upload.uploadImage(file, accessToken!, folder)
       onImageUpload(result.imageUrl || result.url || result.publicUrl)
@@ -45,6 +78,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
     } finally {
       setIsUploadingState(false)
       if (typeof setIsUploading === 'function') setIsUploading(false)
+      }
     }
   }
 
@@ -74,7 +108,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
           ) : (
             <>
               <ImagePlus className="h-4 w-4" />
-              Seleccionar imagen
+              {isLocalMode ? 'Seleccionar imagen' : 'Subir imagen'}
             </>
           )}
         </Button>
@@ -112,7 +146,10 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
       )}
 
       <p className="text-sm text-muted-foreground">
-        Formatos soportados: JPG, PNG, GIF, AVIF. Máximo 5MB.
+        {isLocalMode 
+          ? 'Modo local: Las imágenes se guardan en tu navegador'
+          : 'Formatos soportados: JPG, PNG, GIF, AVIF. Máximo 5MB.'
+        }
       </p>
     </div>
   )

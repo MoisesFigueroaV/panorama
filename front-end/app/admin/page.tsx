@@ -10,9 +10,27 @@ import { useAdminDashboard } from "@/lib/hooks/useAdminDashboard"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api/apiClient"
+import { AdminEventCard } from "@/components/admin/admin-event-card";
+import { shouldUseLocalData } from "@/lib/hooks/useLocalData";
+import { useEffect, useState } from "react";
 
 export default function AdminDashboardPage() {
   const { kpis, users, organizers, isLoading, error, refetch } = useAdminDashboard();
+  const [recentEvents, setRecentEvents] = useState<any[]>([]);
+
+  useEffect(() => {
+    async function fetchRecentEvents() {
+      if (shouldUseLocalData()) {
+        const { default: eventosMock } = await import("@/mocks/eventos.json");
+        setRecentEvents(eventosMock.slice(-6).reverse());
+      } else {
+        // Aquí deberías llamar a la API real para eventos recientes
+        // Por ahora, dejar vacío o implementar si tienes endpoint
+        setRecentEvents([]);
+      }
+    }
+    fetchRecentEvents();
+  }, []);
 
   const handleInitializeEvents = async () => {
     try {
@@ -162,6 +180,27 @@ export default function AdminDashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Eventos recientes</CardTitle>
+          <CardDescription>Últimos eventos creados en la plataforma</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {recentEvents.length > 0 ? (
+              recentEvents.map((event) => (
+                <AdminEventCard key={event.id_evento} event={event} />
+              ))
+            ) : (
+              <div className="col-span-full text-center py-8 text-muted-foreground">
+                <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p className="text-lg font-medium">No hay eventos recientes</p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

@@ -45,8 +45,9 @@ import CategoryCard from "@/components/category-card"
 import TestimonialCard from "@/components/testimonial-card"
 import FeaturedOrganizers from "@/components/featured-organizers"
 import { DynamicHeader } from "@/components/dynamic-header"
-import { useEventosDestacados, useOrganizadoresVerificados, useCategorias, useEventosByCategoria } from "@/lib/hooks/usePublicData"
+import { useEventosData, useOrganizadoresData, useCategoriasData } from '@/lib/hooks/useLocalData'
 import CategoryCardWithCount from "@/components/category-card-with-count"
+import { DataModeToggleCompact } from "@/components/ui/data-mode-toggle"
 
 // Tipos
 interface Event {
@@ -86,17 +87,38 @@ const EventMap = dynamic(
 function getImageUrl(imagen: string | null): string {
   if (!imagen) return "/placeholder.svg";
   if (imagen.startsWith("http")) return imagen;
-  // Ajusta la URL de Supabase según tu configuración real
+  if (imagen.startsWith("/")) return imagen; // Permitir rutas locales
+  // Solo para rutas relativas de Supabase Storage
   return `https://<TU_SUPABASE_URL>/storage/v1/object/public/eventos-media/Imagenes/${imagen}`;
 }
 
 export default function Home() {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
-  const { eventos, loading: isLoadingEventos, error: errorEventos } = useEventosDestacados(30);
-  const [kpis, setKpis] = useState<{ eventosActivos: number, totalUsuarios: number, totalOrganizadores: number } | null>(null);
-  const [loadingKpis, setLoadingKpis] = useState(true);
-  
+  const { data: eventosAll = [] } = useEventosData();
+  const { data: organizacionesAll = [] } = useOrganizadoresData();
+  const { data: categoriasMock = [] } = useCategoriasData ? useCategoriasData() : { data: [] };
+  const [usuariosAll, setUsuariosAll] = useState<any[]>([]);
+
+  useEffect(() => {
+    async function fetchUsuarios() {
+      try {
+        const mod = await import('@/mocks/usuarios.json');
+        setUsuariosAll(mod.default || []);
+      } catch {
+        setUsuariosAll([]);
+      }
+    }
+    fetchUsuarios();
+  }, []);
+
+  const eventosPublicados = Array.isArray(eventosAll)
+    ? eventosAll.filter(ev => ev.estado_evento?.nombre_estado === 'Publicado' || ev.estado_evento?.nombre_estado === 'publicado').length
+    : 0;
+  const usuariosRegistrados = Array.isArray(usuariosAll) ? usuariosAll.length : 0;
+  const totalOrganizaciones = Array.isArray(organizacionesAll) ? organizacionesAll.length : 0;
+  const totalCiudades = 1;
+
   useEffect(() => {
     // Limpiar ubicación guardada al cargar la página
     localStorage.removeItem('userLocation');
@@ -114,8 +136,22 @@ export default function Home() {
           setLocationError(null);
         },
         (error) => {
-          console.error("Error getting location:", error);
-          setLocationError("No pudimos obtener tu ubicación. Mostrando eventos en Concepción.");
+          let mensaje = "No pudimos obtener tu ubicación. Mostrando eventos en Concepción.";
+          if (error && error.code !== undefined) {
+            switch (error.code) {
+              case 1:
+                mensaje = "Permiso de ubicación denegado. Mostrando eventos en Concepción.";
+                break;
+              case 2:
+                mensaje = "Ubicación no disponible. Mostrando eventos en Concepción.";
+                break;
+              case 3:
+                mensaje = "La solicitud de ubicación expiró. Mostrando eventos en Concepción.";
+                break;
+            }
+          }
+          console.error("Error obteniendo ubicación:", error?.message || error);
+          setLocationError(mensaje);
         },
         { enableHighAccuracy: true, maximumAge: 0 } // Forzar solicitud nueva cada vez
       );
@@ -129,29 +165,32 @@ export default function Home() {
       try {
         const res = await apiClient.get('/admin/dashboard/kpis');
         const data = res.data;
-        setKpis({
-          eventosActivos: data.eventosActivos,
-          totalUsuarios: data.totalUsuarios,
-          totalOrganizadores: data.totalOrganizadores,
-        });
+        // setKpis({
+        //   eventosActivos: data.eventosActivos,
+        //   totalUsuarios: data.totalUsuarios,
+        //   totalOrganizadores: data.totalOrganizadores,
+        // });
       } catch (e) {
-        setKpis(null);
+        // setKpis(null);
       } finally {
-        setLoadingKpis(false);
+        // setLoadingKpis(false);
       }
     }
     fetchKpis();
   }, []);
 
   // Obtener datos reales
-  const { organizadores, loading: loadingOrganizadores, error: errorOrganizadores } = useOrganizadoresVerificados(3);
   const categoriasExtra = [
     { id_categoria: 6, nombre_categoria: 'Teatro' },
     { id_categoria: 7, nombre_categoria: 'Cine' },
     { id_categoria: 8, nombre_categoria: 'Negocios' },
   ];
-  const { categorias: categoriasBD, loading: loadingCategorias, error: errorCategorias } = useCategorias();
-  const categorias = [...categoriasBD, ...categoriasExtra.filter(cat => !categoriasBD.some(c => c.id_categoria === cat.id_categoria))];
+  // Unir categorías del mock y extra, sin duplicados
+  const categoriasArray = Array.isArray(categoriasMock) ? categoriasMock : [];
+  const categorias = [
+    ...categoriasArray,
+    ...categoriasExtra.filter(cat => !categoriasArray.some((c: any) => c.id_categoria === cat.id_categoria))
+  ];
 
   // Testimonios para mostrar
   const testimonials = [
@@ -170,14 +209,14 @@ export default function Home() {
     // Más testimonios podrían agregarse aquí
   ];
 
-  (eventos || []).forEach((e: any) => console.log('Evento:', e.titulo, 'Capacidad:', e.capacidad, 'Imagen:', e.imagen, 'Ya realizado:', e.ya_realizado));
+  (eventosAll || []).forEach((e: any) => console.log('Evento:', e.titulo, 'Capacidad:', e.capacidad, 'Imagen:', e.imagen, 'Ya realizado:', e.ya_realizado));
 
   // Unificar lógica de destacados
-  const eventosDestacadosBase = (eventos || [])
-    .filter((event: any) => event.capacidad >= 1000 && event.imagen && !event.ya_realizado)
-    .sort((a: any, b: any) => new Date(b.fecha_registro).getTime() - new Date(a.fecha_registro).getTime());
+  const eventosDestacadosBase = (eventosAll || [])
+    .filter((event: Event) => event.capacidad >= 1000 && event.imagen && !event.ya_realizado)
+    .sort((a: Event, b: Event) => new Date(b.fecha_registro).getTime() - new Date(a.fecha_registro).getTime());
 
-  const eventosCarrusel = eventosDestacadosBase.slice(0, 5).map(event => ({
+  const eventosCarrusel = eventosDestacadosBase.slice(0, 5).map((event: Event) => ({
     id: String(event.id_evento),
     title: event.titulo,
     date: event.fecha_inicio,
@@ -193,7 +232,7 @@ export default function Home() {
 
   console.log('EVENTOS CARRUSEL:', eventosCarrusel);
 
-  console.log('EVENTOS DESTACADOS DEL BACKEND:', eventos);
+  console.log('EVENTOS DESTACADOS DEL BACKEND:', eventosAll);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -296,28 +335,28 @@ export default function Home() {
               <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
                 <Calendar className="h-8 w-8 text-primary" />
               </div>
-              <h3 className="text-4xl font-bold text-primary mb-1">{loadingKpis ? '...' : kpis?.eventosActivos ?? '0'}</h3>
+              <h3 className="text-4xl font-bold text-primary mb-1">{eventosPublicados}</h3>
               <p className="text-muted-foreground font-medium">Eventos publicados</p>
             </div>
             <div className="bg-gradient-to-br from-accent/5 to-accent/10 rounded-xl border border-accent/20 p-6 text-center hover:shadow-md transition-all duration-300">
               <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
                 <Users className="h-8 w-8 text-accent" />
               </div>
-              <h3 className="text-4xl font-bold text-accent mb-1">{loadingKpis ? '...' : kpis?.totalUsuarios ?? '0'}</h3>
+              <h3 className="text-4xl font-bold text-accent mb-1">{usuariosRegistrados}</h3>
               <p className="text-muted-foreground font-medium">Usuarios registrados</p>
             </div>
             <div className="bg-gradient-to-br from-highlight/5 to-highlight/10 rounded-xl border border-highlight/20 p-6 text-center hover:shadow-md transition-all duration-300">
               <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
                 <Building2 className="h-8 w-8 text-highlight" />
               </div>
-              <h3 className="text-4xl font-bold text-highlight mb-1">{loadingKpis ? '...' : kpis?.totalOrganizadores ?? '0'}</h3>
+              <h3 className="text-4xl font-bold text-highlight mb-1">{totalOrganizaciones}</h3>
               <p className="text-muted-foreground font-medium">Organizaciones</p>
             </div>
             <div className="bg-gradient-to-br from-primary/5 to-accent/10 rounded-xl border border-accent/20 p-6 text-center hover:shadow-md transition-all duration-300">
               <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
                 <Globe className="h-8 w-8 text-accent" />
               </div>
-              <h3 className="text-4xl font-bold text-accent mb-1">1</h3>
+              <h3 className="text-4xl font-bold text-accent mb-1">{totalCiudades}</h3>
               <p className="text-muted-foreground font-medium">Ciudades</p>
             </div>
           </div>
@@ -336,9 +375,28 @@ export default function Home() {
             <PromotedEventsCarousel events={eventosCarrusel} />
           )}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8 mb-8">
-            {eventosDestacadosFila.map((event) => (
-              <EventCard key={event.id_evento} event={event} />
-            ))}
+            {eventosDestacadosFila.map((event: Event) => {
+              const now = new Date();
+              const fechaInicio = new Date(event.fecha_inicio);
+              const fechaFin = new Date(event.fecha_fin);
+              const proximo = fechaInicio > now;
+              const en_curso = fechaInicio <= now && fechaFin >= now;
+              const ya_realizado = fechaFin < now;
+              // Extraer nombre_categoria correctamente
+              const nombre_categoria = event.nombre_categoria ?? (event as any).categoria_evento?.nombre_categoria ?? 'Sin categoría';
+              return (
+                <EventCard
+                  key={event.id_evento}
+                  event={{
+                    ...event,
+                    proximo,
+                    en_curso,
+                    ya_realizado,
+                    nombre_categoria,
+                  }}
+                />
+              );
+            })}
           </div>
           <div className="flex justify-center mt-8">
             <Link href="/events">
@@ -356,23 +414,23 @@ export default function Home() {
           <div className="flex flex-wrap justify-center gap-4">
             {categorias?.map((categoria) => {
               const nombre = categoria.nombre_categoria || 'Sin nombre';
-              const lowerName = nombre.toLowerCase();
+                  const lowerName = nombre.toLowerCase();
               let id = 'other';
               let icon = <Calendar className="h-6 w-6" />;
               let color = '';
-              if (lowerName.includes('música') || lowerName.includes('musica')) {
+                  if (lowerName.includes('música') || lowerName.includes('musica')) {
                 id = 'music'; icon = <Music className="h-6 w-6" />; color = '#f47c6c';
-              } else if (lowerName.includes('deporte')) {
+                  } else if (lowerName.includes('deporte')) {
                 id = 'sports'; icon = <Trophy className="h-6 w-6" />; color = '#a3d7e0';
-              } else if (lowerName.includes('gastronomía') || lowerName.includes('gastronomia') || lowerName.includes('comida')) {
+                  } else if (lowerName.includes('gastronomía') || lowerName.includes('gastronomia') || lowerName.includes('comida')) {
                 id = 'food'; icon = <Calendar className="h-6 w-6" />; color = '#f9a05d';
-              } else if (lowerName.includes('arte') || lowerName.includes('cultura')) {
+                  } else if (lowerName.includes('arte') || lowerName.includes('cultura')) {
                 id = 'art'; icon = <Palette className="h-6 w-6" />; color = '#f1c84b';
-              } else if (lowerName.includes('tecnología') || lowerName.includes('tecnologia')) {
+                  } else if (lowerName.includes('tecnología') || lowerName.includes('tecnologia')) {
                 id = 'tech'; icon = <Code className="h-6 w-6" />; color = '#6366f1';
-              } else if (lowerName.includes('aire libre') || lowerName.includes('outdoor')) {
+                  } else if (lowerName.includes('aire libre') || lowerName.includes('outdoor')) {
                 id = 'outdoor'; icon = <TreePine className="h-6 w-6" />; color = '#22c55e';
-              } else if (lowerName.includes('educación') || lowerName.includes('educacion')) {
+                  } else if (lowerName.includes('educación') || lowerName.includes('educacion')) {
                 id = 'education'; icon = <Calendar className="h-6 w-6" />; color = '#ef4444';
               } else if (lowerName.includes('teatro')) {
                 id = 'theater'; icon = <Drama className="h-6 w-6" />; color = '#a21caf';
@@ -381,18 +439,18 @@ export default function Home() {
               } else if (lowerName.includes('negocios')) {
                 id = 'business'; icon = <Briefcase className="h-6 w-6" />; color = '#334155';
               }
-              return (
-                <CategoryCardWithCount
-                  key={categoria.id_categoria}
+                return (
+                  <CategoryCardWithCount
+                    key={categoria.id_categoria}
                   id={id}
                   name={nombre}
-                  categoriaId={categoria.id_categoria}
+                    categoriaId={categoria.id_categoria}
                   icon={icon}
                   color={color}
-                />
-              );
-            })}
-          </div>
+                  />
+                );
+              })}
+            </div>
         </section>
 
         {/* CTA Section */}
@@ -421,48 +479,48 @@ export default function Home() {
         <section className="container py-8">
           <div className="mt-12">
             <h3 className="text-xl font-bold mb-6 text-primary">Explorar todos los eventos</h3>
-            <Tabs defaultValue="list" className="w-full">
+          <Tabs defaultValue="list" className="w-full">
               <TabsList className="mb-4">
                 <TabsTrigger value="list">Lista</TabsTrigger>
                 <TabsTrigger value="map">Mapa</TabsTrigger>
-              </TabsList>
-              <TabsContent value="list" className="space-y-8">
-                {isLoadingEventos ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {[1, 2, 3, 4, 5, 6].map((i) => (
-                      <div key={i} className="h-64 bg-gray-200 rounded-lg animate-pulse" />
-                    ))}
-                  </div>
-                ) : errorEventos ? (
-                  <div className="text-center py-8">
-                    <p className="text-muted-foreground">Error al cargar eventos: {errorEventos}</p>
-                  </div>
-                ) : (
+                </TabsList>
+            <TabsContent value="list" className="space-y-8">
+                {/* Aquí iría el loading/error de eventos si se usa el hook remoto */}
+                {/* Eliminar bloque de errorEventos */}
                   <>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {eventos?.map((event) => (
-                        <EventCard key={event.id_evento} event={event} />
-                      ))}
-                    </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {eventosAll?.map((event: Event) => {
+                         // Calcular proximo y en_curso si no existen
+                         const now = new Date();
+                         const fechaInicio = new Date(event.fecha_inicio);
+                         const fechaFin = new Date(event.fecha_fin);
+                         const proximo = (event as any).proximo !== undefined ? (event as any).proximo : (fechaInicio > now);
+                         const en_curso = (event as any).en_curso !== undefined ? (event as any).en_curso : (fechaInicio <= now && fechaFin >= now);
+                         const ya_realizado = (event as any).ya_realizado !== undefined ? (event as any).ya_realizado : (fechaFin < now);
+                         return (
+                           <EventCard key={event.id_evento} event={{ ...event, proximo, en_curso, ya_realizado }} />
+                         );
+                       })}
+                </div>
                     <div className="flex justify-center mt-6">
                       <a href="/events" className="inline-block px-6 py-2 rounded bg-primary text-white font-semibold hover:bg-primary/90 transition">Ver más eventos</a>
-                    </div>
+              </div>
                   </>
-                )}
-              </TabsContent>
-              <TabsContent value="map">
+                
+            </TabsContent>
+            <TabsContent value="map">
                 {locationError && (
                   <div className="mb-4 p-4 bg-muted rounded-lg">
                     <p className="text-muted-foreground">{locationError}</p>
-                  </div>
+                </div>
                 )}
                 <EventMap 
                   center={userLocation || { lat: -36.82, lng: -73.05 }}
                   userLocation={userLocation}
-                  events={eventos || []}
+                  events={eventosAll || []}
                 />
-              </TabsContent>
-            </Tabs>
+            </TabsContent>
+          </Tabs>
           </div>
         </section>
 
@@ -473,14 +531,14 @@ export default function Home() {
             <p className="text-muted-foreground">Conoce a quienes crean los mejores eventos</p>
           </div>
           <FeaturedOrganizers 
-            organizadores={organizadores} 
-            loading={loadingOrganizadores} 
+            organizadores={(organizacionesAll || []).slice(0, 9)} 
+            loading={false} 
           />
-          {errorOrganizadores && (
+          {/* errorOrganizadores && (
             <div className="text-center py-8">
               <p className="text-muted-foreground">Error al cargar organizadores: {errorOrganizadores}</p>
             </div>
-          )}
+          ) */}
         </section>
 
         {/* Testimonials */}

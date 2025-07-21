@@ -44,32 +44,12 @@ export default function OrganizersPage() {
   // Filtramos los datos de forma segura y consistente
   const pending = loading ? [] : organizers.filter(o => {
     const estadoId = o.estadoAcreditacionActual?.id_estado_acreditacion;
-    const estadoNombre = o.estadoAcreditacionActual?.nombre_estado;
-    const isPending = estadoId === 1 || !estadoId || estadoNombre === 'Pendiente';
-    console.log('🔍 Filtrado PENDIENTE:', {
-      id: o.id_organizador,
-      nombre: o.nombre_organizacion,
-      estadoId,
-      estadoNombre,
-      isPending,
-      estadoCompleto: o.estadoAcreditacionActual
-    });
-    return isPending;
+    return estadoId === 1;
   });
 
   const accredited = loading ? [] : organizers.filter(o => {
     const estadoId = o.estadoAcreditacionActual?.id_estado_acreditacion;
-    const estadoNombre = o.estadoAcreditacionActual?.nombre_estado;
-    const isAccredited = estadoId === 2 || estadoNombre === 'Aprobado';
-    console.log('🔍 Filtrado ACREDITADO:', {
-      id: o.id_organizador,
-      nombre: o.nombre_organizacion,
-      estadoId,
-      estadoNombre,
-      isAccredited,
-      estadoCompleto: o.estadoAcreditacionActual
-    });
-    return isAccredited;
+    return estadoId === 2;
   });
 
   console.log('📊 RESUMEN FINAL:', {
@@ -92,12 +72,6 @@ export default function OrganizersPage() {
             <p className="text-sm text-muted-foreground">Administra y verifica los perfiles de los organizadores.</p>
           </div>
         </div>
-        <Link href="/admin/organizers/create">
-          <Button className="w-full md:w-auto gap-2">
-            <PlusCircle className="h-4 w-4" />
-            Añadir Organizador
-          </Button>
-        </Link>
       </div>
 
       {/* Resumen de estados */}

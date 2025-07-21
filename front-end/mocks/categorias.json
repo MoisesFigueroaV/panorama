@@ -1,0 +1,34 @@
+[
+  {
+    "id_categoria": 7,
+    "nombre_categoria": "Cine"
+  },
+  {
+    "id_categoria": 3,
+    "nombre_categoria": "Cultura"
+  },
+  {
+    "id_categoria": 5,
+    "nombre_categoria": "Deporte"
+  },
+  {
+    "id_categoria": 2,
+    "nombre_categoria": "Educación"
+  },
+  {
+    "id_categoria": 1,
+    "nombre_categoria": "Música"
+  },
+  {
+    "id_categoria": 8,
+    "nombre_categoria": "Negocios"
+  },
+  {
+    "id_categoria": 6,
+    "nombre_categoria": "Teatro"
+  },
+  {
+    "id_categoria": 4,
+    "nombre_categoria": "Tecnología"
+  }
+]

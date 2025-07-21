@@ -15,10 +15,13 @@ import Link from "next/link"
 import { OrganizerSidebar } from "./organizer-sidebar"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/context/AuthContext"
+import NotificationsDropdown from "@/components/NotificationsDropdown"
+import { usePathname } from "next/navigation";
 
 export function OrganizerHeader() {
   const router = useRouter()
-  const { logout } = useAuth()
+  const { user, logout } = useAuth()
+  const pathname = usePathname();
 
   const handleSignOut = async () => {
     try {
@@ -46,13 +49,12 @@ export function OrganizerHeader() {
       </Sheet>
       <div className="flex-1"></div>
       <div className="flex items-center gap-2">
-        <Button variant="outline" size="icon" className="relative">
-          <Bell className="h-5 w-5" />
-          <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">
-            3
-          </span>
-          <span className="sr-only">Notifications</span>
-        </Button>
+        {user && user.rol?.nombre_rol && !pathname?.includes("/profile") && (
+          <NotificationsDropdown
+            idUsuario={user.id_usuario}
+            rolUsuario={user.rol.nombre_rol.trim() as "Administrador" | "Organizador" | "Usuario"}
+          />
+        )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="icon">

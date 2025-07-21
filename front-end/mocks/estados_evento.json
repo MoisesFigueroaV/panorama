@@ -1,0 +1,17 @@
+[
+  {
+    "id_estado_evento": 1,
+    "nombre_estado": "Borrador",
+    "descripcion": "No publicado"
+  },
+  {
+    "id_estado_evento": 2,
+    "nombre_estado": "Publicado",
+    "descripcion": "Visible"
+  },
+  {
+    "id_estado_evento": 3,
+    "nombre_estado": "Finalizado",
+    "descripcion": "Ya ocurrió"
+  }
+]

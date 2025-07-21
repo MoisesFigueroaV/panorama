@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { apiClient } from '@/lib/api/apiClient';
 import { useToast } from '@/components/ui/use-toast'; // Asumiendo que usas los toasts de shadcn
+import { shouldUseLocalData } from '@/lib/hooks/useLocalData';
 
 // Este tipo debe coincidir con la respuesta del backend
 export interface AdminOrganizer {
@@ -31,6 +32,25 @@ export const useAdminOrganizers = () => {
     setLoading(true);
     setError(null);
     try {
+      if (shouldUseLocalData()) {
+        const organizadoresMock = await import('@/mocks/organizadores.json');
+        const usuariosMock = await import('@/mocks/usuarios.json');
+        const organizersList = (organizadoresMock.default || organizadoresMock).map((o: any) => ({
+          id_organizador: o.id_organizador,
+          nombre_organizacion: o.nombre_organizacion,
+          acreditado: o.acreditado ?? false,
+          documento_acreditacion: o.documento_acreditacion ?? null,
+          usuario: {
+            nombre_usuario: usuariosMock.default.find((u: any) => u.id_usuario === o.id_usuario)?.nombre_usuario || '',
+            correo: usuariosMock.default.find((u: any) => u.id_usuario === o.id_usuario)?.correo || '',
+            fecha_registro: usuariosMock.default.find((u: any) => u.id_usuario === o.id_usuario)?.fecha_registro || ''
+          },
+          estadoAcreditacionActual: o.id_estado_acreditacion_actual ? { id_estado_acreditacion: o.id_estado_acreditacion_actual, nombre_estado: o.acreditado ? 'Acreditado' : 'Pendiente' } : null
+        }));
+        setOrganizers(organizersList);
+        setLoading(false);
+        return;
+      }
       console.log('🔄 Fetching organizers...');
       const response = await apiClient.get<AdminOrganizer[]>('/admin/organizers');
       console.log('📥 Organizers fetched:', response.data.map(org => ({

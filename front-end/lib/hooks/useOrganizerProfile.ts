@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
+import { shouldUseLocalData } from '@/lib/hooks/useLocalData';
 
 interface OrganizerProfile {
   hasProfile: boolean;
@@ -15,19 +16,47 @@ export function useOrganizerProfile() {
   const [profile, setProfile] = useState<OrganizerProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { accessToken, isLoadingSession, isAuthenticated } = useAuth();
+  const { accessToken, isLoadingSession, isAuthenticated, user } = useAuth();
 
   useEffect(() => {
     const checkProfile = async () => {
       console.log('🔍 useOrganizerProfile - Estado actual:', {
         isLoadingSession,
         isAuthenticated,
-        hasAccessToken: !!accessToken
+        hasAccessToken: !!accessToken,
+        isLocalMode: shouldUseLocalData()
       });
 
       // Esperar a que la sesión se cargue completamente
       if (isLoadingSession) {
         console.log('⏳ Esperando a que se cargue la sesión...');
+        return;
+      }
+
+      // Si estamos en modo local, usar datos de mocks
+      if (shouldUseLocalData()) {
+        console.log('📁 Modo local: usando perfil de organizador simulado...');
+        
+        if (user && user.id_usuario) {
+          // Simular que el usuario tiene un perfil de organizador
+          setProfile({
+            hasProfile: true,
+            organizador: {
+              id_organizador: 1, // ID simulado
+              nombre_organizacion: 'Mi Organización',
+              estado_acreditacion: 2 // Verificado
+            }
+          });
+          setError(null);
+        } else {
+          setProfile({
+            hasProfile: false,
+            organizador: null
+          });
+          setError('No hay usuario autenticado');
+        }
+        
+        setLoading(false);
         return;
       }
 
@@ -56,7 +85,7 @@ export function useOrganizerProfile() {
     };
 
     checkProfile();
-  }, [accessToken, isLoadingSession, isAuthenticated]);
+  }, [accessToken, isLoadingSession, isAuthenticated, user]);
 
   return { profile, loading, error };
 } 

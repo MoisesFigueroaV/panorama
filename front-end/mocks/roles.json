@@ -1,0 +1,14 @@
+[
+  {
+    "id_rol": 1,
+    "nombre_rol": "Administrador"
+  },
+  {
+    "id_rol": 2,
+    "nombre_rol": "Organizador"
+  },
+  {
+    "id_rol": 3,
+    "nombre_rol": "Usuario"
+  }
+]

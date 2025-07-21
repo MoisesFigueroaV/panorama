@@ -8,7 +8,7 @@ import Link from "next/link";
 
 export default function OrganizerProfilePage() {
   return (
-    <div className="p-4 md:p-6 space-y-6">
+    <div className="min-h-screen p-4 md:p-6 space-y-6 bg-[#6BEAFF]/20">
       <div className="flex items-center gap-3">
         <User className="h-7 w-7" />
         <div>

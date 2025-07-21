@@ -80,6 +80,30 @@ apiClient.interceptors.response.use(
       headers: error.config?.headers
     });
     
+    // Si la respuesta no es JSON, crear una respuesta JSON válida
+    if (error.response && typeof error.response.data === 'string') {
+      const errorMessage = error.response.data;
+      error.response.data = {
+        error: true,
+        message: errorMessage,
+        status: error.response.status,
+        timestamp: new Date().toISOString()
+      };
+    }
+    
+    // Si no hay respuesta, crear un error estándar
+    if (!error.response) {
+      error.response = {
+        data: {
+          error: true,
+          message: 'Error de conexión. Verifica tu conexión a internet.',
+          status: 0,
+          timestamp: new Date().toISOString()
+        },
+        status: 0
+      };
+    }
+    
     // Solo registrar el error, no manejar refresh automáticamente
     // El contexto de autenticación se encargará de manejar la sesión
     return Promise.reject(error);

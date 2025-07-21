@@ -8,9 +8,6 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { api } from '@/lib/api'
-import { DynamicHeader } from '@/components/dynamic-header'
-import SiteFooter from '@/components/site-footer'
-import EventCard from '@/components/event-card'
 import Link from 'next/link'
 
 interface OrganizadorPublico {
@@ -88,44 +85,32 @@ export default function OrganizadorPublicPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen flex-col">
-        <DynamicHeader />
-        <main className="flex-1">
-          <div className="container py-8">
-            <div className="animate-pulse">
-              <div className="h-64 bg-gray-200 rounded-lg mb-8" />
-              <div className="space-y-4">
-                <div className="h-8 bg-gray-200 rounded w-1/3" />
-                <div className="h-4 bg-gray-200 rounded w-2/3" />
-                <div className="h-4 bg-gray-200 rounded w-1/2" />
-              </div>
-            </div>
+      <div className="container py-8">
+        <div className="animate-pulse">
+          <div className="h-64 bg-gray-200 rounded-lg mb-8" />
+          <div className="space-y-4">
+            <div className="h-8 bg-gray-200 rounded w-1/3" />
+            <div className="h-4 bg-gray-200 rounded w-2/3" />
+            <div className="h-4 bg-gray-200 rounded w-1/2" />
           </div>
-        </main>
-        <SiteFooter />
+        </div>
       </div>
     )
   }
 
   if (error || !organizador) {
     return (
-      <div className="flex min-h-screen flex-col">
-        <DynamicHeader />
-        <main className="flex-1">
-          <div className="container py-8">
-            <div className="text-center">
-              <h1 className="text-2xl font-bold text-red-600 mb-4">Error</h1>
-              <p className="text-muted-foreground">{error || 'Organizador no encontrado'}</p>
-            </div>
-          </div>
-        </main>
-        <SiteFooter />
+      <div className="container py-8">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-red-600 mb-4">Error</h1>
+          <p className="text-muted-foreground">{error || 'Organizador no encontrado'}</p>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Hero Section */}
       <section className="relative h-64 md:h-80 overflow-hidden">
         <Image
@@ -296,12 +281,53 @@ export default function OrganizadorPublicPage() {
             <h2 className="text-2xl font-bold mb-6">Eventos de {organizador.nombre_organizacion}</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {eventos.map((evento) => (
-                <EventCard key={evento.id_evento} event={evento} />
+                <Card key={evento.id_evento} className="overflow-hidden">
+                  <div className="relative h-48">
+                    <Image
+                      src={evento.imagen || "/placeholder.svg"}
+                      alt={evento.titulo}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                  <CardContent className="p-4">
+                    <h3 className="font-semibold text-lg mb-2">{evento.titulo}</h3>
+                    <p className="text-muted-foreground text-sm mb-3 line-clamp-2">
+                      {evento.descripcion}
+                    </p>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <span>{new Date(evento.fecha_inicio).toLocaleDateString()}</span>
+                      </div>
+                      {evento.ubicacion && (
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-4 w-4 text-muted-foreground" />
+                          <span>{evento.ubicacion}</span>
+                        </div>
+                      )}
+                      {evento.nombre_categoria && (
+                        <Badge variant="secondary">{evento.nombre_categoria}</Badge>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           </section>
         )}
       </div>
+      
+      {/* Footer simple */}
+      <footer className="bg-gray-900 text-white py-8 mt-auto">
+        <div className="container">
+          <div className="text-center">
+            <p className="text-sm text-gray-400">
+              © 2025 Panorama - Eventos y Cultura. Todos los derechos reservados.
+            </p>
+          </div>
+        </div>
+      </footer>
     </div>
   )
 } 

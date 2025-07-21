@@ -21,6 +21,7 @@ export const usuarioTable = pgTable('usuario', {
   // Campos de contacto
   telefono: varchar('telefono', { length: 20 }),
   ubicacion: varchar('ubicacion', { length: 100 }),
+  activo: integer('activo').default(1).notNull(), // 1 = activo, 0 = suspendido
 });
 
 export const usuarioRelations = relations(usuarioTable, ({ one }) => ({

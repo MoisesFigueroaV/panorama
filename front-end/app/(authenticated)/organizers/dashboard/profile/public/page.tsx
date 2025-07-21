@@ -166,6 +166,8 @@ export default function PublicProfilePage() {
       const response = await api.organizadores.updatePublicProfile(accessToken, {
         ...data,
         anio_fundacion: data.anio_fundacion ? parseInt(data.anio_fundacion) : undefined,
+        imagen_portada: coverImage,
+        logo_organizacion: logoImage,
       });
 
       console.log('Perfil actualizado:', response);

@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronLeft, ChevronRight, MoreHorizontal, Search, UserPlus, Filter, Download, Loader2, AlertCircle } from "lucide-react";
 import { useAdminUsers } from "@/lib/hooks/useAdminUsers";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { cn } from "@/lib/utils";
 
 export default function AdminUsersPage() {
   const { users, loading, error, page, totalPages, goToPage } = useAdminUsers();
@@ -22,6 +23,32 @@ export default function AdminUsersPage() {
     (user?.nombre_usuario?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
     (user?.correo?.toLowerCase() || '').includes(searchTerm.toLowerCase())
   ) || [];
+
+  // Cambiar estado de usuario (suspender/reactivar) en modo local
+  const handleToggleUserState = async (id_usuario: number, activo: boolean) => {
+    // Solo modo local
+    const usuariosRaw = localStorage.getItem('usuarios');
+    let usuarios = usuariosRaw ? JSON.parse(usuariosRaw) : null;
+    if (!usuarios) {
+      // Si no hay en localStorage, cargar del mock
+      const usuariosMock = await import('@/mocks/usuarios.json');
+      usuarios = usuariosMock.default || usuariosMock;
+    }
+    const idx = usuarios.findIndex((u: any) => u.id_usuario === id_usuario);
+    if (idx !== -1) {
+      usuarios[idx].activo = activo;
+      localStorage.setItem('usuarios', JSON.stringify(usuarios));
+      // Actualizar la vista sin recargar
+      if (users && users.users) {
+        const updatedUsers = users.users.map(u =>
+          u.id_usuario === id_usuario ? { ...u, activo } : u
+        );
+        users.users = updatedUsers;
+      }
+    }
+    // Forzar re-render
+    window.location.reload(); // Si quieres evitar esto, puedes usar un useState para forzar el render
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -64,6 +91,7 @@ export default function AdminUsersPage() {
                     <TableHead>Usuario</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Rol</TableHead>
+                    <TableHead>Estado</TableHead>
                     <TableHead>Fecha de registro</TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
@@ -81,7 +109,35 @@ export default function AdminUsersPage() {
                       </TableCell>
                       <TableCell>{user.correo || ''}</TableCell>
                       <TableCell>
-                        <Badge variant="outline">{user.rol?.nombre_rol ?? 'Sin Rol'}</Badge>
+                        <Badge
+                          className={
+                            user.rol?.nombre_rol === "Administrador"
+                              ? "bg-primary text-white border-primary"
+                              : user.rol?.nombre_rol === "Organizador"
+                              ? "bg-accent text-accent-foreground border-accent"
+                              : "bg-secondary text-secondary-foreground border-secondary"
+                          }
+                        >
+                          {user.rol?.nombre_rol ?? 'Sin Rol'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold",
+                            user.activo !== false
+                              ? "bg-green-100 text-green-700 border border-green-200"
+                              : "bg-red-100 text-red-700 border border-red-200"
+                          )}
+                        >
+                          <span
+                            className={cn(
+                              "inline-block w-2 h-2 rounded-full",
+                              user.activo !== false ? "bg-green-500" : "bg-red-500"
+                            )}
+                          />
+                          {user.activo !== false ? "Activo" : "Suspendido"}
+                        </span>
                       </TableCell>
                       <TableCell>{new Date(user.fecha_registro).toLocaleDateString()}</TableCell>
                       <TableCell className="text-right">
@@ -89,7 +145,15 @@ export default function AdminUsersPage() {
                           <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem>Ver detalles</DropdownMenuItem>
-                            <DropdownMenuItem className="text-red-600">Suspender</DropdownMenuItem>
+                            {user.activo !== false ? (
+                              <DropdownMenuItem className="text-red-600" onClick={() => handleToggleUserState(user.id_usuario, false)}>
+                                Suspender
+                              </DropdownMenuItem>
+                            ) : (
+                              <DropdownMenuItem className="text-green-600" onClick={() => handleToggleUserState(user.id_usuario, true)}>
+                                Reactivar
+                              </DropdownMenuItem>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>

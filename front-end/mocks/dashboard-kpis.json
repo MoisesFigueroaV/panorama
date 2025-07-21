@@ -1,0 +1,10 @@
+{
+  "usuariosRegistrados": 150,
+  "organizadoresActivos": 25,
+  "eventosTotales": 45,
+  "ingresosTotales": 25000,
+  "eventosPendientesAprobacion": 8,
+  "usuariosNuevosEsteMes": 12,
+  "eventosNuevosEsteMes": 15,
+  "tasaConversion": 0.75
+} 

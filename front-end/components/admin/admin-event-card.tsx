@@ -11,6 +11,7 @@ import { api } from "@/lib/api"
 import { useAuth } from "@/context/AuthContext"
 import { toast } from "sonner"
 import { useState } from "react"
+import { shouldUseLocalData } from '@/lib/hooks/useLocalData'
 
 interface AdminEvent {
   id_evento: number
@@ -25,6 +26,9 @@ interface AdminEvent {
   nombre_organizacion: string | null
   nombre_categoria: string | null
   nombre_estado: string | null
+  imagen_portada?: string | null;
+  imagen_evento?: string | null;
+  categoria_evento?: { nombre_categoria: string | null };
 }
 
 interface AdminEventCardProps {
@@ -35,16 +39,19 @@ interface AdminEventCardProps {
 function getStatusBadge(estadoId: number | null, nombreEstado: string | null) {
   if (!estadoId) return <Badge variant="secondary">Sin estado</Badge>
   
-  const statusMap: Record<number, { variant: "default" | "secondary" | "destructive" | "outline", label: string }> = {
-    1: { variant: "secondary", label: "Borrador" },
-    2: { variant: "default", label: "Publicado" },
-    3: { variant: "destructive", label: "Cancelado" },
-    4: { variant: "outline", label: "Finalizado" }
+  if (estadoId === 2) {
+    return <Badge className="bg-green-500 text-white font-semibold">Publicado</Badge>;
   }
-  
-  const status = statusMap[estadoId] || { variant: "secondary" as const, label: nombreEstado || "Desconocido" }
-  
-  return <Badge variant={status.variant}>{status.label}</Badge>
+  if (estadoId === 1) {
+    return <Badge className="bg-yellow-400 text-black font-semibold">Pendiente</Badge>;
+  }
+  if (estadoId === 3) {
+    return <Badge className="bg-red-500 text-white font-semibold">Cancelado</Badge>;
+  }
+  if (estadoId === 4) {
+    return <Badge variant="outline">Finalizado</Badge>;
+  }
+  return <Badge variant="secondary">{nombreEstado || "Desconocido"}</Badge>;
 }
 
 function getCategoryBadge(nombreCategoria: string | null) {
@@ -67,24 +74,26 @@ export function AdminEventCard({ event, onStatusChange }: AdminEventCardProps) {
   }
 
   const handleStatusChange = async (newStatus: number) => {
-    if (!accessToken) {
-      toast.error("No tienes acceso")
-      return
-    }
-
     setIsUpdating(true)
     try {
-      await api.eventos.updateStatus(event.id_evento, newStatus, accessToken)
-      
+      if (shouldUseLocalData()) {
+        // Modo local: actualizar en localStorage
+        const { localDataManager } = await import('@/lib/localStorage/localDataManager');
+        await localDataManager.updateEvento(event.id_evento, { id_estado_evento: newStatus });
+      } else {
+        if (!accessToken) {
+          toast.error("No tienes acceso")
+          return
+        }
+        await api.eventos.updateStatus(event.id_evento, newStatus, accessToken)
+      }
       const statusLabels = {
         1: "Borrador",
         2: "Publicado", 
         3: "Cancelado",
         4: "Finalizado"
       }
-      
       toast.success(`Evento cambiado a ${statusLabels[newStatus as keyof typeof statusLabels]}`)
-      
       // Llamar callback para refrescar la lista
       if (onStatusChange) {
         onStatusChange()
@@ -97,20 +106,45 @@ export function AdminEventCard({ event, onStatusChange }: AdminEventCardProps) {
     }
   }
 
+  const handleReject = async () => {
+    setIsUpdating(true)
+    try {
+      if (shouldUseLocalData()) {
+        const { localDataManager } = await import('@/lib/localStorage/localDataManager');
+        await localDataManager.deleteEvento(event.id_evento);
+        toast.success('Evento rechazado y eliminado');
+        if (onStatusChange) onStatusChange();
+      } else {
+        toast.info('Funcionalidad de rechazo solo disponible en modo local');
+      }
+    } catch (error: any) {
+      console.error('Error al rechazar/eliminar evento:', error);
+      toast.error(error.message || 'Error al rechazar el evento');
+    } finally {
+      setIsUpdating(false)
+    }
+  }
+
   console.log('🖼️ [ADMIN] IMAGEN DEL EVENTO:', event.imagen)
+
+  // Lógica igual que en EventCard de la home
+  const imgSrc = event.imagen || "/placeholder.svg";
+
+  // Compatibilidad con mocks: buscar categoría en varias propiedades
+  const categoria = event.nombre_categoria || event.categoria_evento?.nombre_categoria || 'Sin categoría';
 
   return (
     <Card className="overflow-hidden">
-      <div className="aspect-video relative overflow-hidden">
+      <div className="aspect-video relative overflow-hidden rounded-lg bg-[#FFB86B]/20">
         <Image
-          src={event.imagen && event.imagen.startsWith('http') ? event.imagen : 'https://via.placeholder.com/800x450?text=Evento'}
+          src={imgSrc}
           alt={event.titulo}
           fill
-          className="object-cover"
+          className="object-cover rounded-lg"
         />
         <div className="absolute top-2 left-2 flex gap-1">
           {getStatusBadge(event.id_estado_evento, event.nombre_estado)}
-          {getCategoryBadge(event.nombre_categoria)}
+          <Badge variant="outline">{categoria}</Badge>
         </div>
       </div>
 
@@ -169,7 +203,7 @@ export function AdminEventCard({ event, onStatusChange }: AdminEventCardProps) {
                 variant="outline" 
                 size="sm" 
                 className="h-8 gap-1 text-red-600 border-red-600 hover:bg-red-50 flex-1 sm:flex-none"
-                onClick={() => handleStatusChange(3)}
+                onClick={handleReject}
                 disabled={isUpdating}
               >
                 <X className="h-3 w-3" />
@@ -202,21 +236,11 @@ export function AdminEventCard({ event, onStatusChange }: AdminEventCardProps) {
             </>
           )}
           {event.id_estado_evento === 3 && (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="h-8 gap-1 text-green-600 border-green-600 hover:bg-green-50 flex-1 sm:flex-none"
-              onClick={() => handleStatusChange(2)}
-              disabled={isUpdating}
-            >
-              <Check className="h-3 w-3" />
-              Reactivar
-            </Button>
+            <span className="text-red-600 font-semibold">Este evento está cancelado.</span>
           )}
         </div>
-        <Link href={`/events/${event.id_evento}`} className="w-full sm:w-auto">
-          <Button size="sm" className="w-full gap-1">
-            <Eye className="h-3 w-3" />
+        <Link href={`/events/${event.id_evento}`} passHref legacyBehavior>
+          <Button variant="destructive" className="w-full mt-2">
             Ver evento
           </Button>
         </Link>

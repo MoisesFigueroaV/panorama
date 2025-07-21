@@ -23,14 +23,16 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "bun run --watch src/index.ts",
     "seed": "bun run src/scripts/seed-categorias.ts",
-    "check": "bun run src/scripts/check-categorias.ts"
+    "check": "bun run src/scripts/check-categorias.ts",
+    "drizzle:push": "drizzle-kit push"
   },
   "devDependencies": {
     "@types/bun": "latest",
     "@types/dotenv": "^6.1.1",
     "@types/node": "^24.0.1",
     "@types/pg": "^8.15.4",
-    "bun-types": "latest"
+    "bun-types": "latest",
+    "drizzle-kit": "^0.31.4"
   },
   "peerDependencies": {
     "typescript": "^5"

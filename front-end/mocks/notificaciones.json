@@ -1,0 +1,369 @@
+[
+  {
+    "id_notificacion": 1,
+    "id_usuario": 4,
+    "mensaje": "Gracias por participar en el evento.",
+    "fecha_envio": "2025-06-06",
+    "tipo": "sistema"
+  },
+  {
+    "id_notificacion": 2,
+    "id_usuario": 5,
+    "mensaje": "Tu comentario ha sido registrado.",
+    "fecha_envio": "2025-06-12",
+    "tipo": "sistema"
+  },
+  {
+    "id_notificacion": 3,
+    "id_usuario": 6,
+    "mensaje": "Se ha actualizado el horario del evento.",
+    "fecha_envio": "2025-06-10",
+    "tipo": "sistema"
+  },
+  {
+    "id_notificacion": 4,
+    "id_usuario": 7,
+    "mensaje": "Tu denuncia está siendo revisada.",
+    "fecha_envio": "2025-06-14",
+    "tipo": "sistema"
+  },
+  {
+    "id_notificacion": 5,
+    "id_usuario": 5,
+    "mensaje": "Gracias por calificar el evento.",
+    "fecha_envio": "2025-07-01",
+    "tipo": "sistema"
+  },
+  {
+    "id_notificacion": 6,
+    "id_usuario": 4,
+    "mensaje": "Estado actualizado: \"Cocodiro fight\" ahora está \"Publicado\"",
+    "fecha_envio": "2025-06-16",
+    "tipo": "sistema"
+  },
+  {
+    "id_notificacion": 7,
+    "id_usuario": 4,
+    "mensaje": "Estado actualizado: \"Cocodiro fight\" ahora está \"Finalizado\"",
+    "fecha_envio": "2025-06-16",
+    "tipo": "sistema"
+  },
+  {
+    "id_notificacion": 8,
+    "id_usuario": 4,
+    "mensaje": "Estado actualizado: \"Cocodiro fight\" ahora está \"Publicado\"",
+    "fecha_envio": "2025-06-16",
+    "tipo": "sistema"
+  },
+  {
+    "id_notificacion": 9,
+    "id_usuario": 4,
+    "mensaje": "Estado actualizado: \"Cocodiro hermanos\" ahora está \"Borrador\"",
+    "fecha_envio": "2025-06-16",
+    "tipo": "sistema"
+  },
+  {
+    "id_notificacion": 10,
+    "id_usuario": 6,
+    "mensaje": "Estado actualizado: \"rock jiji\" ahora está \"Publicado\"",
+    "fecha_envio": "2025-06-18",
+    "tipo": "sistema"
+  },
+  {
+    "id_notificacion": 11,
+    "id_usuario": 4,
+    "mensaje": "Estado actualizado: \"Conferencia de Inteligencia Artificial 2025\" ahora está \"Publicado\"",
+    "fecha_envio": "2025-06-18",
+    "tipo": "sistema"
+  },
+  {
+    "id_notificacion": 12,
+    "id_usuario": 6,
+    "mensaje": "Estado actualizado: \"historia de concepcion\" ahora está \"Publicado\"",
+    "fecha_envio": "2025-06-18",
+    "tipo": "sistema"
+  },
+  {
+    "id_notificacion": 13,
+    "id_usuario": 7,
+    "mensaje": "Estado actualizado: \"Feria de la historia militar\" ahora está \"Publicado\"",
+    "fecha_envio": "2025-06-18",
+    "tipo": "sistema"
+  },
+  {
+    "id_notificacion": 14,
+    "id_usuario": 6,
+    "mensaje": "Estado actualizado: \"Historial de concepcion\" ahora está \"Publicado\"",
+    "fecha_envio": "2025-06-22",
+    "tipo": "sistema"
+  },
+  {
+    "id_notificacion": 15,
+    "id_usuario": 6,
+    "mensaje": "Estado actualizado: \"sdfasdgasdg\" ahora está \"Publicado\"",
+    "fecha_envio": "2025-06-23",
+    "tipo": "sistema"
+  },
+  {
+    "id_notificacion": 16,
+    "id_usuario": 6,
+    "mensaje": "Estado actualizado: \"flksdnflasjdf\" ahora está \"Publicado\"",
+    "fecha_envio": "2025-06-23",
+    "tipo": "sistema"
+  },
+  {
+    "id_notificacion": 17,
+    "id_usuario": 6,
+    "mensaje": "Estado actualizado: \"Evento prueba 2\" ahora está \"Publicado\"",
+    "fecha_envio": "2025-06-23",
+    "tipo": "sistema"
+  },
+  {
+    "id_notificacion": 18,
+    "id_usuario": 6,
+    "mensaje": "Estado actualizado: \"evento prueba 6\" ahora está \"Publicado\"",
+    "fecha_envio": "2025-06-23",
+    "tipo": "sistema"
+  },
+  {
+    "id_notificacion": 19,
+    "id_usuario": 6,
+    "mensaje": "Estado actualizado: \"Evento prueba imagen\" ahora está \"Publicado\"",
+    "fecha_envio": "2025-06-23",
+    "tipo": "sistema"
+  },
+  {
+    "id_notificacion": 20,
+    "id_usuario": 6,
+    "mensaje": "Estado actualizado: \"fasdfasdf\" ahora está \"Publicado\"",
+    "fecha_envio": "2025-06-23",
+    "tipo": "sistema"
+  },
+  {
+    "id_notificacion": 21,
+    "id_usuario": 6,
+    "mensaje": "Estado actualizado: \"evento prueba 7\" ahora está \"Publicado\"",
+    "fecha_envio": "2025-06-23",
+    "tipo": "sistema"
+  },
+  {
+    "id_notificacion": 22,
+    "id_usuario": 6,
+    "mensaje": "Estado actualizado: \"Evento prueba 8\" ahora está \"Publicado\"",
+    "fecha_envio": "2025-06-23",
+    "tipo": "sistema"
+  },
+  {
+    "id_notificacion": 23,
+    "id_usuario": 6,
+    "mensaje": "Estado actualizado: \"Evento prueba 10\" ahora está \"Publicado\"",
+    "fecha_envio": "2025-06-24",
+    "tipo": "sistema"
+  },
+  {
+    "id_notificacion": 24,
+    "id_usuario": 67,
+    "mensaje": "¡Bienvenido a la plataforma! Esta es tu primera notificación.",
+    "fecha_envio": "2025-06-24",
+    "tipo": "sistema"
+  },
+  {
+    "id_notificacion": 25,
+    "id_usuario": 6,
+    "mensaje": "Estado actualizado: \"Flow\" ahora está \"Publicado\"",
+    "fecha_envio": "2025-06-25",
+    "tipo": "sistema"
+  },
+  {
+    "id_notificacion": 26,
+    "id_usuario": 6,
+    "mensaje": "Estado actualizado: \"Las tumbas de las lucierganas\" ahora está \"Publicado\"",
+    "fecha_envio": "2025-06-25",
+    "tipo": "sistema"
+  },
+  {
+    "id_notificacion": 27,
+    "id_usuario": 6,
+    "mensaje": "Estado actualizado: \"Exposición de autos \" ahora está \"Publicado\"",
+    "fecha_envio": "2025-06-25",
+    "tipo": "sistema"
+  },
+  {
+    "id_notificacion": 28,
+    "id_usuario": 6,
+    "mensaje": "Estado actualizado: \"Futbol Chile vs Ecuador\" ahora está \"Publicado\"",
+    "fecha_envio": "2025-06-25",
+    "tipo": "sistema"
+  },
+  {
+    "id_notificacion": 29,
+    "id_usuario": 6,
+    "mensaje": "Estado actualizado: \"Dino Aventure\" ahora está \"Publicado\"",
+    "fecha_envio": "2025-06-25",
+    "tipo": "sistema"
+  },
+  {
+    "id_notificacion": 30,
+    "id_usuario": 8,
+    "mensaje": "Estado actualizado: \"Esteban Duch en Concepción\" ahora está \"Publicado\"",
+    "fecha_envio": "2025-06-25",
+    "tipo": "sistema"
+  },
+  {
+    "id_notificacion": 31,
+    "id_usuario": 8,
+    "mensaje": "Estado actualizado: \"El lago de los Cisnes & el maravilloso mundo del Ballet\" ahora está \"Publicado\"",
+    "fecha_envio": "2025-06-25",
+    "tipo": "sistema"
+  },
+  {
+    "id_notificacion": 32,
+    "id_usuario": 1,
+    "mensaje": "Estado actualizado: \"Obituary 2026 - Concepción\" ahora está \"Publicado\"",
+    "fecha_envio": "2025-06-25",
+    "tipo": "sistema"
+  },
+  {
+    "id_notificacion": 33,
+    "id_usuario": 1,
+    "mensaje": "Estado actualizado: \"Joe Vasconcellos - Toque 30 años\" ahora está \"Publicado\"",
+    "fecha_envio": "2025-06-25",
+    "tipo": "sistema"
+  },
+  {
+    "id_notificacion": 34,
+    "id_usuario": 8,
+    "mensaje": "Estado actualizado: \"MYRIAM HERNANDEZ / TAURO / TOUR 2025 / TALCAHUANO\" ahora está \"Publicado\"",
+    "fecha_envio": "2025-06-25",
+    "tipo": "sistema"
+  },
+  {
+    "id_notificacion": 35,
+    "id_usuario": 67,
+    "mensaje": "Se ha actualizado tu perfil de usuario correctamente.",
+    "fecha_envio": "2025-06-27",
+    "tipo": "sistema"
+  },
+  {
+    "id_notificacion": 36,
+    "id_usuario": 67,
+    "mensaje": "Hemos mejorado nuestras políticas de privacidad.",
+    "fecha_envio": "2025-06-27",
+    "tipo": "sistema"
+  },
+  {
+    "id_notificacion": 37,
+    "id_usuario": 6,
+    "mensaje": "Estado actualizado: \"Los bunkers\" ahora está \"Publicado\"",
+    "fecha_envio": "2025-06-29",
+    "tipo": "sistema"
+  },
+  {
+    "id_notificacion": 38,
+    "id_usuario": 6,
+    "mensaje": "Estado actualizado: \"Kendrick Lamar\" ahora está \"Publicado\"",
+    "fecha_envio": "2025-07-01",
+    "tipo": "sistema"
+  },
+  {
+    "id_notificacion": 39,
+    "id_usuario": 67,
+    "mensaje": "Se ha actualizado tu perfil de usuario correctamente.",
+    "fecha_envio": "2025-07-05",
+    "tipo": "sistema"
+  },
+  {
+    "id_notificacion": 40,
+    "id_usuario": 68,
+    "mensaje": "Tu evento 'Festival de Jazz Nocturno' ha sido aprobado.",
+    "fecha_envio": "2025-07-05",
+    "tipo": "sistema"
+  },
+  {
+    "id_notificacion": 41,
+    "id_usuario": 68,
+    "mensaje": "Tienes 5 nuevos seguidores en tu perfil público.",
+    "fecha_envio": "2025-07-05",
+    "tipo": "social"
+  },
+  {
+    "id_notificacion": 42,
+    "id_usuario": 68,
+    "mensaje": "El evento 'Cine Bajo las Estrellas' fue editado por otro organizador.",
+    "fecha_envio": "2025-07-04",
+    "tipo": "alerta"
+  },
+  {
+    "id_notificacion": 43,
+    "id_usuario": 68,
+    "mensaje": "Tu evento 'Startup Weekend' fue rechazado por incumplir las normas.",
+    "fecha_envio": "2025-07-04",
+    "tipo": "sistema"
+  },
+  {
+    "id_notificacion": 44,
+    "id_usuario": 68,
+    "mensaje": "Recibiste una nueva calificación en tu perfil.",
+    "fecha_envio": "2025-07-03",
+    "tipo": "social"
+  },
+  {
+    "id_notificacion": 45,
+    "id_usuario": 1,
+    "mensaje": "El organizador \"Cultura Viva\" ha enviado una solicitud de verificación.",
+    "fecha_envio": "2025-07-05",
+    "tipo": "sistema"
+  },
+  {
+    "id_notificacion": 46,
+    "id_usuario": 1,
+    "mensaje": "El evento \"Noche Electrónica\" ha sido reportado por múltiples usuarios.",
+    "fecha_envio": "2025-07-04",
+    "tipo": "alerta"
+  },
+  {
+    "id_notificacion": 47,
+    "id_usuario": 1,
+    "mensaje": "Un nuevo organizador \"Deporte Total\" se ha registrado en la plataforma.",
+    "fecha_envio": "2025-07-03",
+    "tipo": "sistema"
+  },
+  {
+    "id_notificacion": 48,
+    "id_usuario": 1,
+    "mensaje": "Se han creado 15 eventos en las últimas 24 horas.",
+    "fecha_envio": "2025-07-03",
+    "tipo": "informativo"
+  },
+  {
+    "id_notificacion": 49,
+    "id_usuario": 1,
+    "mensaje": "Se ha recibido una sugerencia de mejora en el formulario de creación de eventos.",
+    "fecha_envio": "2025-07-02",
+    "tipo": "social"
+  },
+  {
+    "id": 1,
+    "id_usuario": 63,
+    "mensaje": "Bienvenido a Panorama! Tu cuenta ha sido verificada exitosamente.",
+    "fecha": "2025-07-06T21:08:52.368Z",
+    "leida": false,
+    "tipo": "bienvenida"
+  },
+  {
+    "id": 2,
+    "id_usuario": 63,
+    "mensaje": "Tienes un nuevo evento pendiente de revisión.",
+    "fecha": "2025-07-06T20:08:52.368Z",
+    "leida": false,
+    "tipo": "evento"
+  },
+  {
+    "id": 3,
+    "id_usuario": 63,
+    "mensaje": "Tu evento 'Conferencia de Tecnología' ha sido aprobado.",
+    "fecha": "2025-07-06T19:08:52.368Z",
+    "leida": true,
+    "tipo": "aprobacion"
+  }
+]

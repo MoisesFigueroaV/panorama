@@ -14,10 +14,11 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/context/AuthContext"
 import { toast } from "@/components/ui/use-toast"
+import NotificationsDropdown from "@/components/NotificationsDropdown"
 
 export function AdminHeader() {
   const router = useRouter()
-  const { logout } = useAuth()
+  const { user, logout } = useAuth()
 
   const handleSignOut = async () => {
     try {
@@ -36,11 +37,12 @@ export function AdminHeader() {
     <header className="sticky top-0 z-40 w-full border-b bg-background">
       <div className="container flex h-16 items-center justify-end py-4">
         <div className="flex items-center gap-4">
-          <Button variant="outline" size="icon" className="relative">
-            <Bell className="h-5 w-5" />
-            <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-destructive" />
-            <span className="sr-only">Notificaciones</span>
-          </Button>
+        {user && user.rol?.nombre_rol && user.rol.nombre_rol !== "Administrador" && (
+          <NotificationsDropdown
+            idUsuario={user.id_usuario}
+            rolUsuario={user.rol.nombre_rol.trim() as "Administrador" | "Organizador" | "Usuario"}
+          />
+        )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="icon" className="rounded-full">

@@ -34,6 +34,7 @@ import { useAuth } from "@/context/AuthContext"
 import { api } from "@/lib/api"
 import { getCategoriaNombre } from "@/lib/evento-constants"
 import { toast } from "sonner"
+import { formatShortDate } from '@/lib/utils/date-utils'
 
 interface Evento {
   id_evento: number
@@ -396,12 +397,7 @@ export default function OrganizerEventsPage() {
 }
 
 function formatDate(dateString: string) {
-  const date = new Date(dateString)
-  return date.toLocaleDateString('es-ES', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  })
+  return formatShortDate(dateString)
 }
 
 function getStatusLabel(estadoId: number) {
