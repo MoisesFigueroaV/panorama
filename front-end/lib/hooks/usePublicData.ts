@@ -40,19 +40,42 @@ interface Categoria {
   nombre_categoria: string;
 }
 
+import { events as mockEvents } from '@/lib/mock-data';
+import { CATEGORIAS as mockCategorias } from '@/constants/categorias';
+
 export function useEventosDestacados(limit?: number) {
   const [eventos, setEventos] = useState<EventoDestacado[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchEventos = async () => {
+    const fetchEventos = () => {
       try {
         setLoading(true);
         setError(null);
         
-        const response = await api.public.getEventosDestacados(limit);
-        setEventos(response);
+        const adaptedEvents = mockEvents.map(event => ({
+          id_evento: parseInt(event.id),
+          titulo: event.title,
+          descripcion: event.description,
+          fecha_inicio: event.date,
+          fecha_fin: event.date,
+          hora_inicio: event.time,
+          hora_fin: event.time,
+          ubicacion: event.location,
+          imagen: event.image,
+          capacidad: event.attendees,
+          nombre_organizacion: event.organizer,
+          logo_organizacion: null,
+          nombre_categoria: event.category,
+          ya_realizado: false,
+          proximo: true,
+          en_curso: false,
+          latitud: event.coordinates[0],
+          longitud: event.coordinates[1],
+        }));
+
+        setEventos(limit ? adaptedEvents.slice(0, limit) : adaptedEvents);
       } catch (err: any) {
         console.error('Error al obtener eventos destacados:', err);
         setError(err.message || 'Error al obtener eventos destacados');
@@ -73,22 +96,9 @@ export function useOrganizadoresVerificados(limit?: number) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchOrganizadores = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const response = await api.public.getOrganizadoresVerificados(limit);
-        setOrganizadores(response);
-      } catch (err: any) {
-        console.error('Error al obtener organizadores verificados:', err);
-        setError(err.message || 'Error al obtener organizadores verificados');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchOrganizadores();
+    setLoading(true);
+    setOrganizadores([]);
+    setLoading(false);
   }, [limit]);
 
   return { organizadores, loading, error };
@@ -100,13 +110,17 @@ export function useCategorias() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchCategorias = async () => {
+    const fetchCategorias = () => {
       try {
         setLoading(true);
         setError(null);
         
-        const response = await api.public.getCategorias();
-        setCategorias(response);
+        const adaptedCategorias = mockCategorias.map(categoria => ({
+          id_categoria: categoria.id,
+          nombre_categoria: categoria.nombre,
+        }));
+
+        setCategorias(adaptedCategorias);
       } catch (err: any) {
         console.error('Error al obtener categorías:', err);
         setError(err.message || 'Error al obtener categorías');
@@ -128,12 +142,17 @@ export function useEventosByCategoria(categoriaId: number, limit: number = 6) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchEventos = async () => {
+    const fetchEventos = () => {
       try {
         setLoading(true);
         setError(null);
-        const response = await api.public.getEventosByCategoria(categoriaId, limit);
-        setEventos(response);
+        const category = mockCategorias.find(c => c.id === categoriaId);
+        if (category) {
+          const filteredEvents = mockEvents.filter(event => event.category.toLowerCase() === category.nombre.toLowerCase());
+          setEventos(limit ? filteredEvents.slice(0, limit) : filteredEvents);
+        } else {
+          setEventos([]);
+        }
       } catch (err: any) {
         console.error('Error al obtener eventos por categoría:', err);
         setError(err.message || 'Error al cargar eventos');
@@ -157,12 +176,36 @@ export function useEventoById(eventoId: number) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchEvento = async () => {
+    const fetchEvento = () => {
       try {
         setLoading(true);
         setError(null);
-        const response = await api.public.getEventoById(eventoId);
-        setEvento(response);
+        const foundEvent = mockEvents.find(event => parseInt(event.id) === eventoId);
+        if (foundEvent) {
+          const adaptedEvent = {
+            id_evento: parseInt(foundEvent.id),
+            titulo: foundEvent.title,
+            descripcion: foundEvent.description,
+            fecha_inicio: foundEvent.date,
+            fecha_fin: foundEvent.date,
+            hora_inicio: foundEvent.time,
+            hora_fin: foundEvent.time,
+            ubicacion: foundEvent.location,
+            imagen: foundEvent.image,
+            capacidad: foundEvent.attendees,
+            nombre_organizacion: foundEvent.organizer,
+            logo_organizacion: null,
+            nombre_categoria: foundEvent.category,
+            ya_realizado: false,
+            proximo: true,
+            en_curso: false,
+            latitud: foundEvent.coordinates[0],
+            longitud: foundEvent.coordinates[1],
+          };
+          setEvento(adaptedEvent);
+        } else {
+          setEvento(null);
+        }
       } catch (err: any) {
         console.error('Error al obtener evento:', err);
         setError(err.message || 'Error al cargar evento');

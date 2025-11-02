@@ -12,8 +12,8 @@ import {
 import { Button } from "@/components/ui/button"
 import { Search, Filter } from "lucide-react"
 import EventCard from "@/components/event-card"
-import { api } from "@/lib/api"
-import { getEventosFiltrados } from "@/lib/api/apiClient"
+import { CATEGORIAS as mockCategorias } from "@/constants/categorias"
+import { events as mockEvents } from "@/lib/mock-data"
 
 interface Categoria {
   id_categoria: number
@@ -45,10 +45,13 @@ export default function MiniEventFilter() {
   const [hasFiltered, setHasFiltered] = useState(false)
 
   useEffect(() => {
-    const fetchCategorias = async () => {
+    const fetchCategorias = () => {
       try {
-        const cats = await api.public.getCategorias()
-        setCategorias(cats)
+        const adaptedCategorias = mockCategorias.map(cat => ({
+          id_categoria: cat.id,
+          nombre_categoria: cat.nombre,
+        }));
+        setCategorias(adaptedCategorias)
       } catch (err) {
         console.error("Error al obtener categorías:", err)
       }
@@ -63,21 +66,47 @@ export default function MiniEventFilter() {
       return
     }
 
-    const fetchEventos = async () => {
+    const fetchEventos = () => {
       try {
         setLoading(true)
         setHasFiltered(true)
 
-        const filtros: Record<string, any> = {
-          search: searchText,
-          limit: 10,
+        let filteredEvents = mockEvents;
+
+        if (searchText) {
+          filteredEvents = filteredEvents.filter(event =>
+            event.title.toLowerCase().includes(searchText.toLowerCase())
+          );
         }
 
-        if (categoria) filtros.categoria = categoria
-        if (estado) filtros.estado = estado
+        if (categoria) {
+          const categoryName = categorias.find(c => c.id_categoria.toString() === categoria)?.nombre_categoria;
+          if (categoryName) {
+            filteredEvents = filteredEvents.filter(event =>
+              event.category.toLowerCase() === categoryName.toLowerCase()
+            );
+          }
+        }
 
-        const data = await getEventosFiltrados(filtros)
-        setEventos((data.eventos || []).slice(0, 3))
+        // The mock data does not have an 'estado' field, so I can't filter by it.
+        // I will just return the events filtered by search and category.
+
+        const adaptedEvents: EventoReal[] = filteredEvents.map(event => ({
+          id_evento: parseInt(event.id),
+          titulo: event.title,
+          descripcion: event.description,
+          fecha_inicio: event.date,
+          fecha_fin: event.date,
+          hora_inicio: event.time,
+          hora_fin: event.time,
+          ubicacion: event.location,
+          imagen: event.image,
+          nombre_categoria: event.category,
+          nombre_organizacion: event.organizer,
+          logo_organizacion: null,
+        }));
+
+        setEventos(adaptedEvents.slice(0, 3))
       } catch (err) {
         console.error("Error al filtrar eventos:", err)
       } finally {
@@ -86,7 +115,7 @@ export default function MiniEventFilter() {
     }
 
     fetchEventos()
-  }, [searchText, categoria, estado])
+  }, [searchText, categoria, estado, categorias])
 
   const construirUrlEventos = () => {
     const params = new URLSearchParams()

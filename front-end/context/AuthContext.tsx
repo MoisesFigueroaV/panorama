@@ -101,112 +101,123 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const checkSession = async () => {
     try {
-      console.log('🔍 Verificando sesión...');
+      console.log('🔍 Verificando sesión (simulado)...');
       const token = getAccessToken()
-      console.log('🔍 Token obtenido:', token ? 'Presente' : 'Ausente');
-      
       if (token) {
-        console.log('🔍 Configurando token en el cliente API...');
-        // Configurar el token en el cliente API
-        setAccessToken(token)
-        setLocalAccessToken(token)
-        
-        console.log('🔍 Verificando sesión con el backend...');
-        // Verificar la sesión con el backend
-        const response = await apiClient.get('/usuarios/yo')
-        console.log('🔍 Respuesta del backend:', response.data);
-        // La respuesta viene en un array, tomamos el primer elemento
-        setUser(response.data[0])
-        console.log('🔍 Usuario configurado:', response.data[0]);
+        // In a real scenario, you would verify the token with the backend.
+        // Here, we'll just assume the token is valid if it exists.
+        // You might want to decode the token to get user info if it's a JWT.
       } else {
-        console.log('🔍 No hay token, limpiando sesión...');
-        // Si no hay token, limpiar todo
-        await clearSession()
+        await clearSession();
       }
     } catch (err) {
-      console.error('❌ Error al verificar sesión:', err)
+      console.error('❌ Error al verificar sesión (simulado):', err)
       await clearSession()
     } finally {
-      console.log('🔍 Finalizando verificación de sesión...');
+      console.log('🔍 Finalizando verificación de sesión (simulado)...');
       setIsLoadingSession(false)
     }
   }
 
   const clearSession = async () => {
     try {
-      console.log('Limpiando tokens en el cliente API...');
-      // Limpiar tokens en el cliente API
+      console.log('Limpiando tokens en el cliente API (simulado)...');
       clearAuthTokens()
       
-      console.log('Limpiando cookies...');
-      // Limpiar cookies
+      console.log('Limpiando cookies (simulado)...');
       deleteCookie('accessToken')
       deleteCookie('refreshToken')
       
-      console.log('Limpiando estado local...');
-      // Limpiar estado
+      console.log('Limpiando estado local (simulado)...');
       setUser(null)
       setLocalAccessToken(null)
       
-      console.log('Limpiando headers de la API...');
-      // Limpiar headers de la API
+      console.log('Limpiando headers de la API (simulado)...');
       delete apiClient.defaults.headers.common['Authorization']
       
-      console.log('Sesión limpiada completamente');
+      console.log('Sesión limpiada completamente (simulado)');
     } catch (err) {
-      console.error('Error al limpiar sesión:', err)
+      console.error('Error al limpiar sesión (simulado):', err)
     }
   }
 
   const login = async (credentials: LoginUsuarioPayload) => {
-    try {
-      console.log('Iniciando login con:', credentials.correo);
-      const { data: response } = await apiClient.post<{ accessToken: string; refreshToken: string; usuario: UsuarioAuth }>('/auth/login', credentials);
-      console.log('Respuesta del login:', response);
-      
-      setAccessToken(response.accessToken);
-      setRefreshToken(response.refreshToken);
-      setUser(response.usuario);
-      setLocalAccessToken(response.accessToken);
+    console.log('Iniciando login simulado con:', credentials.correo);
 
-      console.log('Usuario después del login:', response.usuario);
-      console.log('Rol del usuario:', response.usuario.rol);
+    const mockUsers: { [key: string]: UsuarioAuth } = {
+      'admin@panorama.cl': {
+        id_usuario: 1,
+        nombre_usuario: 'Admin Panorama',
+        correo: 'admin@panorama.cl',
+        fecha_registro: '2025-01-01',
+        rol: { id_rol: 1, nombre_rol: 'administrador' },
+      },
+      'organizer@panorama.cl': {
+        id_usuario: 2,
+        nombre_usuario: 'Organizador de Eventos',
+        correo: 'organizer@panorama.cl',
+        fecha_registro: '2025-01-01',
+        rol: { id_rol: 2, nombre_rol: 'organizador' },
+      },
+      'user@panorama.cl': {
+        id_usuario: 3,
+        nombre_usuario: 'Usuario Final',
+        correo: 'user@panorama.cl',
+        fecha_registro: '2025-01-01',
+        rol: { id_rol: 3, nombre_rol: 'usuario' },
+      },
+    };
+
+    const user = mockUsers[credentials.correo];
+
+    if (user && credentials.contrasena === 'admin123') { // Using a generic password for all mock users for simplicity
+      const mockResponse = {
+        accessToken: 'mock-access-token',
+        refreshToken: 'mock-refresh-token',
+        usuario: user,
+      };
+
+      console.log('Respuesta del login simulado:', mockResponse);
+      
+      setAccessToken(mockResponse.accessToken);
+      setRefreshToken(mockResponse.refreshToken);
+      setUser(mockResponse.usuario);
+      setLocalAccessToken(mockResponse.accessToken);
+
+      console.log('Usuario después del login simulado:', mockResponse.usuario);
+      console.log('Rol del usuario:', mockResponse.usuario.rol);
 
       // Redirección específica por rol
-      if (response.usuario.rol?.id_rol === 1) {
+      if (mockResponse.usuario.rol?.id_rol === 1) {
         console.log('Redirigiendo a /admin');
         router.push('/admin');
-      } else if (response.usuario.rol?.id_rol === 2) {
+      } else if (mockResponse.usuario.rol?.id_rol === 2) {
         console.log('Redirigiendo a /organizers/dashboard');
         router.push('/organizers/dashboard');
-      } else if (response.usuario.rol?.id_rol === 3) {
+      } else if (mockResponse.usuario.rol?.id_rol === 3) {
         console.log('Redirigiendo a /users/profile');
         router.push('/users/profile');
       } else {
         console.log('No se encontró rol válido, redirigiendo a /');
         router.push('/');
       }
-    } catch (error) {
-      console.error("Error en login (AuthContext):", error);
-      throw error;
+    } else {
+      console.error('Error en login simulado: credenciales incorrectas');
+      throw new Error('Correo o contraseña incorrectos');
     }
   };
 
   const logout = async () => {
     try {
-      console.log('Iniciando logout...');
+      console.log('Iniciando logout (simulado)...');
       
-      // Limpiar toda la sesión localmente
-      console.log('Limpiando sesión local...');
       await clearSession()
-      console.log('Sesión limpiada exitosamente');
+      console.log('Sesión limpiada exitosamente (simulado)');
       
-      // Redirigir a la página principal
       console.log('Redirigiendo a página principal...');
       router.push('/')
     } catch (err) {
-      console.error('Error durante el logout:', err)
-      // Aún así, intentar limpiar la sesión y redirigir a la principal
+      console.error('Error durante el logout (simulado):', err)
       await clearSession()
       router.push('/')
     }
